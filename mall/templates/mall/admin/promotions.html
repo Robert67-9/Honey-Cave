@@ -1,0 +1,124 @@
+{% extends "mall/admin/base_admin.html" %}
+{% block title %}Promotions — Market Admin{% endblock %}
+{% block page_title %}Promotions{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.8rem;">
+    <div>
+      <h2 style="margin:0;">All Promotions ({{ page_obj.paginator.count }})</h2>
+      <p style="margin:.3rem 0 0;font-size:.82rem;color:var(--muted);">
+        Internal banners and sponsored slots shown to customers. Track impressions and clicks to see which campaigns work.
+      </p>
+    </div>
+    <a href="{% url 'admin_promotion_add' %}" class="btn btn-gold">+ Add Promotion</a>
+  </div>
+
+  
+  <div style="padding:0.8rem 1.2rem;border-bottom:1px solid var(--border);background:#FAF7F2;">
+    <form method="get" style="display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap;">
+      <label style="font-size:.82rem;font-weight:600;color:var(--muted);">Filter by placement:</label>
+      <select name="placement" onchange="this.form.submit()"
+              style="padding:0.45rem 0.7rem;border:1px solid var(--border);border-radius:6px;">
+        <option value="">All placements</option>
+        {% for val, label in placement_choices %}
+          <option value="{{ val }}" {% if placement_filter == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      {% if placement_filter %}
+        <a href="{% url 'admin_promotions' %}" class="btn btn-ghost btn-sm">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:60px;">Image</th>
+        <th>Title</th>
+        <th>Placement</th>
+        <th>Priority</th>
+        <th>Schedule</th>
+        <th>Impressions</th>
+        <th>Clicks</th>
+        <th>CTR</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in promotions %}
+      <tr>
+        <td>
+          {% if p.image %}
+            <img src="{{ p.image.url }}" alt="" style="width:52px;height:36px;object-fit:cover;border-radius:4px;border:1px solid var(--border);">
+          {% elif p.bg_color %}
+            <div style="width:52px;height:36px;border-radius:4px;background:{{ p.bg_color }};border:1px solid var(--border);"></div>
+          {% else %}
+            <div style="width:52px;height:36px;border-radius:4px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:.9rem;color:var(--muted);">—</div>
+          {% endif %}
+        </td>
+        <td>
+          <div style="font-weight:600;">{{ p.title }}</div>
+          {% if p.subtitle %}
+            <div style="font-size:.78rem;color:var(--muted);margin-top:.15rem;">{{ p.subtitle|truncatechars:60 }}</div>
+          {% endif %}
+        </td>
+        <td style="font-size:.82rem;">{{ p.get_placement_display }}</td>
+        <td>{{ p.priority }}</td>
+        <td style="font-size:.78rem;color:var(--muted);">
+          {% if p.starts_at or p.ends_at %}
+            {% if p.starts_at %}From {{ p.starts_at|date:"M d, Y" }}{% else %}Immediately{% endif %}<br>
+            {% if p.ends_at %}Until {{ p.ends_at|date:"M d, Y" }}{% else %}No end{% endif %}
+          {% else %}
+            Always on
+          {% endif %}
+        </td>
+        <td>{{ p.impressions }}</td>
+        <td>{{ p.clicks }}</td>
+        <td style="font-weight:600;">{{ p.ctr }}%</td>
+        <td>
+          {% if p.is_live %}
+            <span class="badge badge-active">Live</span>
+          {% elif not p.is_active %}
+            <span class="badge badge-inactive">Paused</span>
+          {% else %}
+            <span class="badge" style="background:#fef3c7;color:#92400e;">Scheduled</span>
+          {% endif %}
+        </td>
+        <td>
+          <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+            <form method="post" action="{% url 'admin_promotion_toggle' p.pk %}" style="display:inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-ghost btn-sm">
+                {% if p.is_active %}Pause{% else %}Activate{% endif %}
+              </button>
+            </form>
+            <a href="{% url 'admin_promotion_edit' p.pk %}" class="btn btn-ghost btn-sm">Edit</a>
+            <a href="{% url 'admin_promotion_delete' p.pk %}" class="btn btn-danger btn-sm">Delete</a>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--muted);">
+        No promotions yet. Click <strong>+ Add Promotion</strong> to create your first banner.
+      </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if page_obj.has_other_pages %}
+<div style="display:flex;justify-content:center;gap:0.5rem;margin-top:1.5rem;">
+  {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}{% if placement_filter %}&placement={{ placement_filter }}{% endif %}" class="btn btn-ghost btn-sm">← Prev</a>
+  {% endif %}
+  <span style="padding:0.4rem 0.8rem;color:var(--muted);font-size:.85rem;">
+    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+  </span>
+  {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}{% if placement_filter %}&placement={{ placement_filter }}{% endif %}" class="btn btn-ghost btn-sm">Next →</a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

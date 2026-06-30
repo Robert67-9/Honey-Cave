@@ -1,0 +1,161 @@
+{% extends 'mall/admin/base_admin.html' %}
+{% block title %}Riders — Admin{% endblock %}
+
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
+  <div>
+    <h1 style="font-family:'Playfair Display',serif; font-size:1.6rem; margin:0;">🛵 Rider Roster</h1>
+    <p style="color:var(--text-muted); margin:.25rem 0 0; font-size:.92rem;">
+      Manage the persistent rider list. Auto-drafted riders from ad-hoc dispatches need verification.
+    </p>
+  </div>
+  <a href="{% url 'admin_rider_add' %}" class="btn btn-gold" style="padding:.55rem 1.2rem; text-decoration:none;">
+    + Add Rider
+  </a>
+</div>
+
+{% if messages %}
+{% for m in messages %}
+<div class="alert alert-{{ m.tags|default:'info' }}" style="margin-bottom:1rem;">{{ m }}</div>
+{% endfor %}
+{% endif %}
+
+<!-- Status tabs -->
+<div style="display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:1.25rem;">
+  {% with current=status %}
+  <a href="?{% if branch_id %}branch={{ branch_id }}&{% endif %}{% if q %}q={{ q }}{% endif %}"
+     class="filter-tab {% if not current %}is-active{% endif %}"
+     style="padding:.4rem .9rem; border:1.5px solid var(--border); border-radius:20px; font-size:.78rem; font-weight:600; text-decoration:none; background:{% if not current %}var(--accent-soft){% else %}var(--bg-elevated){% endif %}; color:{% if not current %}var(--text){% else %}var(--text-muted){% endif %};">
+    All ({{ counts.all }})
+  </a>
+  <a href="?status=unverified{% if branch_id %}&branch={{ branch_id }}{% endif %}{% if q %}&q={{ q }}{% endif %}"
+     style="padding:.4rem .9rem; border:1.5px solid var(--border); border-radius:20px; font-size:.78rem; font-weight:600; text-decoration:none; background:{% if current == 'unverified' %}var(--warning-bg){% else %}var(--bg-elevated){% endif %}; color:{% if current == 'unverified' %}var(--warning-text){% else %}var(--text-muted){% endif %};">
+    ⚠ Unverified ({{ counts.unverified }})
+  </a>
+  <a href="?status=verified{% if branch_id %}&branch={{ branch_id }}{% endif %}{% if q %}&q={{ q }}{% endif %}"
+     style="padding:.4rem .9rem; border:1.5px solid var(--border); border-radius:20px; font-size:.78rem; font-weight:600; text-decoration:none; background:{% if current == 'verified' %}var(--success-bg){% else %}var(--bg-elevated){% endif %}; color:{% if current == 'verified' %}var(--success-text){% else %}var(--text-muted){% endif %};">
+    ✓ Verified ({{ counts.verified }})
+  </a>
+  <a href="?status=inactive{% if branch_id %}&branch={{ branch_id }}{% endif %}{% if q %}&q={{ q }}{% endif %}"
+     style="padding:.4rem .9rem; border:1.5px solid var(--border); border-radius:20px; font-size:.78rem; font-weight:600; text-decoration:none; background:{% if current == 'inactive' %}var(--bg-sunken){% else %}var(--bg-elevated){% endif %}; color:var(--text-muted);">
+    Inactive ({{ counts.inactive }})
+  </a>
+  {% endwith %}
+</div>
+
+<!-- Search + branch filter -->
+<form method="get" style="background:var(--bg-elevated); border:1px solid var(--border); border-radius:10px; padding:.85rem 1rem; margin-bottom:1rem; display:flex; gap:.5rem; flex-wrap:wrap;">
+  {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+  <input type="text" name="q" value="{{ q }}" placeholder="Search by name or phone…"
+         style="flex:2; min-width:200px; padding:.5rem .75rem; border:1px solid var(--border); border-radius:8px; background:var(--bg-input); color:var(--text);">
+  <select name="branch" style="flex:1; min-width:180px; padding:.5rem .75rem; border:1px solid var(--border); border-radius:8px; background:var(--bg-input); color:var(--text);">
+    <option value="">All branches</option>
+    {% for b in branches %}
+    <option value="{{ b.id }}" {% if branch_id == b.id|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="btn" style="padding:.5rem 1rem; background:var(--dark-brand); color:#fff; border:none; border-radius:8px;">Search</button>
+  {% if status or q or branch_id %}<a href="{% url 'admin_riders' %}" style="padding:.5rem 1rem; background:var(--bg-sunken); color:var(--text-muted); border-radius:8px; text-decoration:none; font-size:.85rem;">✕ Clear</a>{% endif %}
+</form>
+
+<!-- Riders table -->
+{% if riders %}
+<div style="background:var(--bg-elevated); border:1px solid var(--border); border-radius:12px; overflow:hidden;">
+  <table style="width:100%; border-collapse:collapse;">
+    <thead style="background:var(--bg-sunken); font-size:.75rem; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted);">
+      <tr>
+        <th style="text-align:left; padding:.75rem 1rem;">Rider</th>
+        <th style="text-align:left; padding:.75rem 1rem;">Vehicle</th>
+        <th style="text-align:left; padding:.75rem 1rem;">Branches</th>
+        <th style="text-align:right; padding:.75rem 1rem;">Deliveries</th>
+        <th style="text-align:left; padding:.75rem 1rem;">Status</th>
+        <th style="text-align:right; padding:.75rem 1rem;">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in riders %}
+      <tr style="border-top:1px solid var(--border);">
+        <td style="padding:.85rem 1rem;">
+          <div style="display:flex; gap:.7rem; align-items:center;">
+            {% if r.photo %}
+            <img src="{{ r.photo.url }}" alt="{{ r.name }}" style="width:42px; height:42px; border-radius:50%; object-fit:cover;">
+            {% else %}
+            <div style="width:42px; height:42px; border-radius:50%; background:var(--bg-sunken); display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-weight:600;">
+              {{ r.name|first|upper }}
+            </div>
+            {% endif %}
+            <div>
+              <div style="font-weight:600; color:var(--text);">{{ r.name }}</div>
+              <div style="font-size:.78rem; color:var(--text-muted);">{{ r.phone }}{% if r.alt_phone %} · {{ r.alt_phone }}{% endif %}</div>
+            </div>
+          </div>
+        </td>
+        <td style="padding:.85rem 1rem; font-size:.86rem; color:var(--text-muted);">
+          {{ r.get_vehicle_type_display }}
+          {% if r.license_number %}<div style="font-size:.72rem;">Lic: {{ r.license_number }}</div>{% endif %}
+        </td>
+        <td style="padding:.85rem 1rem; font-size:.82rem;">
+          {% for b in r.branches.all %}
+          <span style="display:inline-block; padding:.1rem .5rem; background:var(--bg-sunken); border-radius:4px; font-size:.72rem; margin-right:.2rem; margin-bottom:.2rem;">{{ b.name }}</span>
+          {% empty %}
+          <span style="color:var(--text-faint); font-style:italic;">none</span>
+          {% endfor %}
+        </td>
+        <td style="padding:.85rem 1rem; text-align:right; font-size:.86rem;">
+          <strong>{{ r.n_done }}</strong> / {{ r.n_total }}
+          <div style="font-size:.7rem; color:var(--text-muted);">success / total</div>
+        </td>
+        <td style="padding:.85rem 1rem;">
+          {% if not r.is_active %}
+          <span style="display:inline-block; padding:.18rem .55rem; background:var(--bg-sunken); color:var(--text-muted); border-radius:4px; font-size:.72rem; font-weight:700;">INACTIVE</span>
+          {% elif r.is_verified %}
+          <span style="display:inline-block; padding:.18rem .55rem; background:var(--success-bg); color:var(--success-text); border-radius:4px; font-size:.72rem; font-weight:700;">✓ VERIFIED</span>
+          {% else %}
+          <span style="display:inline-block; padding:.18rem .55rem; background:var(--warning-bg); color:var(--warning-text); border-radius:4px; font-size:.72rem; font-weight:700;">⚠ UNVERIFIED</span>
+          {% endif %}
+        </td>
+        <td style="padding:.85rem 1rem; text-align:right;">
+          <div style="display:inline-flex; gap:.3rem;">
+            {% if not r.is_verified and r.is_active %}
+            <form method="post" action="{% url 'admin_rider_verify' r.pk %}" style="display:inline;">
+              {% csrf_token %}
+              <button type="submit" title="Mark verified"
+                      style="background:var(--success-bg); color:var(--success-text); border:none; padding:.3rem .55rem; border-radius:6px; cursor:pointer; font-size:.78rem; font-weight:600;">✓ Verify</button>
+            </form>
+            {% endif %}
+            <a href="{% url 'admin_rider_edit' r.pk %}" style="padding:.3rem .55rem; background:var(--bg-sunken); color:var(--text); border-radius:6px; text-decoration:none; font-size:.78rem; font-weight:600;">Edit</a>
+            {% if r.is_active %}
+            <form method="post" action="{% url 'admin_rider_deactivate' r.pk %}" style="display:inline;"
+                  onsubmit="return confirm('Deactivate {{ r.name }}? They\'ll be hidden from dropdowns. History is preserved.');">
+              {% csrf_token %}
+              <button type="submit" title="Deactivate"
+                      style="background:none; color:var(--danger); border:1px solid var(--danger-border); padding:.3rem .55rem; border-radius:6px; cursor:pointer; font-size:.78rem;">×</button>
+            </form>
+            {% else %}
+            <form method="post" action="{% url 'admin_rider_reactivate' r.pk %}" style="display:inline;">
+              {% csrf_token %}
+              <button type="submit" title="Reactivate"
+                      style="background:var(--accent-soft); color:var(--accent); border:none; padding:.3rem .55rem; border-radius:6px; cursor:pointer; font-size:.78rem; font-weight:600;">↻</button>
+            </form>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div style="background:var(--bg-elevated); border:1px solid var(--border); border-radius:12px; padding:3rem 2rem; text-align:center; color:var(--text-muted);">
+  <div style="font-size:2.5rem; margin-bottom:.5rem;">🛵</div>
+  <h3 style="color:var(--text); font-family:'Playfair Display',serif;">No riders found</h3>
+  <p style="margin:.5rem 0 1.25rem;">
+    {% if status or q or branch_id %}Try clearing filters above.{% else %}Add a rider, or wait for officers to dispatch ad-hoc — riders auto-draft into the roster on first use.{% endif %}
+  </p>
+  {% if not status and not q and not branch_id %}
+  <a href="{% url 'admin_rider_add' %}" class="btn btn-gold" style="text-decoration:none; padding:.55rem 1.2rem;">+ Add Your First Rider</a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

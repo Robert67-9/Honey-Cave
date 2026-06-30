@@ -1,0 +1,24 @@
+User-agent: *
+Allow: /
+Disallow: /panel/
+Disallow: /admin/
+Disallow: /cart/
+Disallow: /checkout/
+Disallow: /profile/
+Disallow: /login/
+Disallow: /register/
+Disallow: /verify-otp/
+Disallow: /forgot-password/
+Disallow: /reset-password/
+Disallow: /my-orders/
+
+# Allow search engines to index product images
+Allow: /media/products/
+Allow: /media/categories/
+
+Sitemap: {{ request.scheme }}://{{ request.get_host }}/sitemap.xml
+
+# Crawl delay to prevent overloading server
+Crawl-delay: 10
+
+# Honey Cave Market (HCM) - Ghana's Premier Online Shopping Destination

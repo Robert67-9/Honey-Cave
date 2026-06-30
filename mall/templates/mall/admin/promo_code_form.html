@@ -1,0 +1,73 @@
+{% extends "mall/admin/base_admin.html" %}
+{% block title %}{{ action }} Promo Code — Market Admin{% endblock %}
+{% block page_title %}{{ action }} Promo Code{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:560px;">
+  <div class="card-header"><h2>{{ action }} Promo Code</h2></div>
+  <div style="padding:1.5rem;">
+    <form method="post">
+      {% csrf_token %}
+      {% if action == 'Add' %}
+      <div style="margin-bottom:1rem;">
+        <label class="form-label">Code <span style="color:red;">*</span></label>
+        <input type="text" name="code" class="form-control" placeholder="e.g. SAVE20" required
+          value="{{ promo.code|default:'' }}" style="text-transform:uppercase;letter-spacing:2px;">
+        <small style="color:var(--muted);">Customers will enter this at checkout.</small>
+      </div>
+      {% endif %}
+
+      <div style="margin-bottom:1rem;">
+        <label class="form-label">Discount Type</label>
+        <select name="discount_type" class="form-control">
+          <option value="percent" {% if promo.discount_type == 'percent' or not promo %}selected{% endif %}>Percentage (%)</option>
+          <option value="fixed"   {% if promo.discount_type == 'fixed' %}selected{% endif %}>Fixed Amount (GH₵)</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom:1rem;">
+        <label class="form-label">Discount Value <span style="color:red;">*</span></label>
+        <input type="number" name="discount_value" class="form-control" step="0.01" min="0.01"
+          value="{{ promo.discount_value|default:'' }}" required placeholder="e.g. 20 for 20% or GH₵20">
+      </div>
+
+      <div style="margin-bottom:1rem;">
+        <label class="form-label">Minimum Order Value (GH₵)</label>
+        <input type="number" name="min_order_value" class="form-control" step="0.01" min="0"
+          value="{{ promo.min_order_value|default:'0' }}" placeholder="0 = no minimum">
+      </div>
+
+      <div style="margin-bottom:1rem;">
+        <label class="form-label">Max Uses</label>
+        <input type="number" name="max_uses" class="form-control" min="1"
+          value="{{ promo.max_uses|default:'' }}" placeholder="Leave blank for unlimited">
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+        <div>
+          <label class="form-label">Valid From</label>
+          <input type="datetime-local" name="valid_from" class="form-control"
+            value="{{ promo.valid_from|date:'Y-m-d\\TH:i'|default:'' }}">
+        </div>
+        <div>
+          <label class="form-label">Valid Until</label>
+          <input type="datetime-local" name="valid_until" class="form-control"
+            value="{{ promo.valid_until|date:'Y-m-d\\TH:i'|default:'' }}">
+        </div>
+      </div>
+
+      <div style="margin-bottom:1.5rem;">
+        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+          <input type="checkbox" name="is_active" {% if promo.is_active or not promo %}checked{% endif %}>
+          <span>Active (visible and usable at checkout)</span>
+        </label>
+      </div>
+
+      <div style="display:flex;gap:0.75rem;">
+        <button type="submit" class="btn btn-gold">Save</button>
+        <a href="{% url 'admin_promo_codes' %}" class="btn btn-ghost">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

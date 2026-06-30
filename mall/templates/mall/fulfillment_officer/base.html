@@ -1,0 +1,177 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Fulfillment Officer — {{ site_brand|default:"Honey Cave Market" }}{% endblock %}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --gold: #C9A84C;
+  --gold-light: #d9b86a;
+  --dark: #1A1410;
+  --bg: #FAF7F2;
+  --surface: #fff;
+  --border: #e7e2d8;
+  --muted: #6b6055;
+  --danger: #c62828;
+  --success: #2e7d32;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--dark);
+  line-height: 1.55;
+}
+header.skp-bar {
+  background: var(--dark);
+  color: #fff;
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+header.skp-bar .brand {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--gold);
+  white-space: nowrap;
+}
+header.skp-bar .who {
+  font-size: 0.85rem;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+header.skp-bar nav {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+header.skp-bar a {
+  color: rgba(255,255,255,0.85);
+  text-decoration: none;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+header.skp-bar a:hover { color: var(--gold); }
+@media (max-width: 768px) {
+  header.skp-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  header.skp-bar nav {
+    gap: 0.5rem;
+  }
+  header.skp-bar a {
+    font-size: 0.8rem;
+  }
+}
+main { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.25rem;
+}
+h1, h2, h3 { font-family: 'Playfair Display', serif; margin: 0 0 0.6rem; }
+h1 { font-size: 1.6rem; }
+h2 { font-size: 1.2rem; color: var(--dark); }
+h3 { font-size: 1rem; }
+.badge {
+  display: inline-block; padding: 0.2rem 0.55rem; border-radius: 999px;
+  font-size: 0.72rem; font-weight: 600; letter-spacing: 0.5px;
+}
+.badge-pending  { background: #fff3cd; color: #856404; }
+.badge-active   { background: #d4edda; color: #155724; }
+.badge-locked   { background: #f8d7da; color: #721c24; }
+.badge-done     { background: #e0f2e9; color: #155724; }
+.btn {
+  display: inline-block; padding: 0.6rem 1.1rem; border: none;
+  border-radius: 8px; font-weight: 600; font-size: 0.88rem;
+  text-decoration: none; cursor: pointer; transition: filter 0.15s;
+  font-family: inherit;
+}
+.btn-gold { background: var(--gold); color: var(--dark); }
+.btn-gold:hover { filter: brightness(1.05); }
+.btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--dark); }
+.btn-danger { background: var(--danger); color: #fff; }
+.alert {
+  padding: 0.7rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem;
+}
+.alert-error   { background: #fde7e7; color: #721c24; border: 1px solid #f5c6cb; }
+.alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+.alert-info    { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+.code-display {
+  font-family: 'Inter', monospace;
+  font-weight: 700;
+  font-size: 2.5rem;
+  letter-spacing: 0.3em;
+  text-align: center;
+  background: var(--dark);
+  color: var(--gold);
+  padding: 1.25rem;
+  border-radius: 12px;
+  margin: 0.75rem 0;
+}
+.code-input {
+  width: 100%; padding: 0.85rem 1rem; font-size: 1.5rem;
+  text-align: center; letter-spacing: 0.3em; font-family: monospace;
+  border: 2px solid var(--border); border-radius: 8px;
+  margin-bottom: 0.75rem;
+}
+.code-input:focus { outline: none; border-color: var(--gold); }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 0.7rem 0.5rem; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
+th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+a.row-link { color: var(--dark); text-decoration: none; font-weight: 600; }
+a.row-link:hover { color: var(--gold); }
+.empty {
+  padding: 1.5rem; text-align: center; color: var(--muted); font-size: 0.9rem;
+}
+.qr-wrap { display: flex; justify-content: center; padding: 1rem; }
+.qr-wrap svg { max-width: 220px; height: auto; }
+.timer { font-size: 0.85rem; color: var(--muted); }
+.section-title {
+  font-size: 0.78rem; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--muted); margin: 1.5rem 0 0.5rem;
+}
+</style>
+</head>
+<body>
+<header class="skp-bar">
+  <div class="brand">📦 Fulfillment Officer Portal</div>
+  {% if user.is_authenticated %}
+  <nav>
+    <a href="{% url 'fulfillment_officer_dashboard' %}" {% if request.resolver_match.url_name == 'fulfillment_officer_dashboard' %}style="font-weight:600;color:#fff;"{% endif %}>Dashboard</a>
+    <a href="{% url 'fulfillment_officer_branches' %}" {% if request.resolver_match.url_name == 'fulfillment_officer_branches' %}style="font-weight:600;color:#fff;"{% endif %}>My Branches</a>
+    <a href="{% url 'fulfillment_officer_riders' %}" {% if request.resolver_match.url_name == 'fulfillment_officer_riders' or request.resolver_match.url_name == 'fulfillment_officer_rider_add' %}style="font-weight:600;color:#fff;"{% endif %}>Riders</a>
+    <a href="{% url 'fulfillment_officer_history' %}" {% if request.resolver_match.url_name == 'fulfillment_officer_history' %}style="font-weight:600;color:#fff;"{% endif %}>History</a>
+    {% if user.profile and user.profile.can_upload_products %}
+      <a href="{% url 'officer_product_upload' %}" {% if request.resolver_match.url_name == 'officer_product_upload' %}style="font-weight:600;color:#fff;"{% endif %}>Upload Product</a>
+      <a href="{% url 'officer_my_products' %}" {% if request.resolver_match.url_name == 'officer_my_products' %}style="font-weight:600;color:#fff;"{% endif %}>My Products</a>
+      <a href="{% url 'officer_csv_upload' %}" {% if request.resolver_match.url_name == 'officer_csv_upload' %}style="font-weight:600;color:#fff;"{% endif %}>CSV Upload</a>
+    {% endif %}
+    <span class="who">{{ user.username }}</span>
+    <a href="{% url 'product_list' %}" target="_blank" rel="noopener">View Shop ↗</a>
+    <a href="{% url 'fulfillment_officer_logout' %}">Sign out</a>
+  </nav>
+  {% endif %}
+</header>
+<main>
+  {% if messages %}
+  {% for m in messages %}
+  <div class="alert alert-{{ m.tags|default:'info' }}">{{ m }}</div>
+  {% endfor %}
+  {% endif %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

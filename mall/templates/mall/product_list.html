@@ -1,0 +1,239 @@
+{% extends 'mall/base.html' %}
+{% block title %}{% if current_category %}{{ current_category.name }} — Shop {{ current_category.name }} in Ghana | Honey Cave Market{% elif query %}Search: {{ query }} — Honey Cave Market{% else %}Shop All Products — Honey Cave Market{% endif %}{% endblock %}
+
+{% block meta_title %}{% if current_category %}{{ current_category.name }} — Buy Online in Ghana{% elif query %}Search Results for "{{ query }}" — Honey Cave Market{% else %}Shop All Products — Honey Cave Market{% endif %}{% endblock %}
+{% block meta_description %}{% if current_category %}Browse our collection of {{ current_category.name }} at Honey Cave Market. Fast delivery across all 16 Ghana regions, secure Mobile Money payments.{% elif query %}Search results for "{{ query }}" at Honey Cave Market. Shop online in Ghana with fast delivery and Mobile Money payments.{% else %}Browse our full catalogue of electronics, fashion, home goods and more at Honey Cave Market. Fast delivery across Ghana, secure Mobile Money payments.{% endif %}{% endblock %}
+
+{% block og_title %}{% if current_category %}{{ current_category.name }} — Honey Cave Market{% else %}Shop All Products — Honey Cave Market{% endif %}{% endblock %}
+{% block og_description %}{% if current_category %}Browse {{ current_category.name }} at Honey Cave Market. Fast delivery across Ghana.{% else %}Shop electronics, fashion, home goods and more across Ghana.{% endif %}{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Shop layout: sidebar stacks on top on mobile ───────────── */
+.shop-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+@media (min-width: 700px) {
+    .shop-layout { grid-template-columns: 200px 1fr; gap: 1.5rem; }
+}
+@media (min-width: 900px) {
+    .shop-layout { grid-template-columns: 240px 1fr; gap: 2rem; }
+}
+.sidebar {
+    /* On mobile sidebar is above products, no sticky needed */
+}
+@media (min-width: 700px) {
+    .sidebar { position: sticky; top: 76px; align-self: start; }
+}
+.sidebar-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+}
+@media (min-width: 700px) {
+    .sidebar-card { padding: 1.5rem; margin-bottom: 1rem; }
+}
+.sidebar-card h3 {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
+}
+
+/* On mobile, categories scroll horizontally as chips */
+.cat-links-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+@media (min-width: 700px) {
+    .cat-links-wrap { display: block; }
+}
+.cat-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.35rem 0.65rem;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    text-decoration: none;
+    color: var(--dark);
+    font-size: 0.82rem;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+}
+@media (min-width: 700px) {
+    .cat-link {
+        display: flex;
+        border-radius: 6px;
+        border: none;
+        padding: 0.5rem 0.75rem;
+        margin-bottom: 0.25rem;
+        font-size: 0.9rem;
+        white-space: normal;
+    }
+}
+.cat-link:hover { background: var(--accent-soft); border-color: var(--accent); }
+.cat-link.active {
+    background: var(--dark-brand);
+    color: var(--gold);
+    font-weight: 600;
+    border-color: transparent;
+}
+.results-info {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-bottom: 1rem;
+}
+.results-info strong { color: var(--dark); }
+.empty-state { text-align: center; padding: 3rem 1rem; color: var(--muted); }
+.empty-state .icon { font-size: 3rem; display: block; margin-bottom: 0.75rem; }
+.search-box {
+    display: flex;
+    gap: 0;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--bg-elevated);
+}
+.search-box input {
+    flex: 1;
+    border: none;
+    padding: 0.6rem 0.85rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.875rem;
+    outline: none;
+    background: transparent;
+    color: var(--text);
+    min-width: 0;
+}
+.search-box button {
+    background: var(--dark-brand);
+    color: white;
+    border: none;
+    padding: 0.6rem 0.85rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    flex-shrink: 0;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{% load promotions %}
+<div class="page-header">
+    <p class="eyebrow">✦ Browse Collection ✦</p>
+    <h1>{% if current_category %}{{ current_category.name }}{% else %}All Products{% endif %}</h1>
+</div>
+
+{% promotions_for 'products_top' %}
+
+<div class="shop-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-card">
+            <h3>Search</h3>
+            <form class="search-box" action="" method="get">
+                {% if current_category %}<input type="hidden" name="category" value="{{ current_category.slug }}">{% endif %}
+                <input type="text" name="q" placeholder="Search..." value="{{ query }}">
+                <button type="submit">🔍</button>
+            </form>
+        </div>
+        <div class="sidebar-card">
+            <h3>Categories</h3>
+            <div class="cat-links-wrap">
+                <a href="{% url 'product_list' %}" class="cat-link {% if not current_category %}active{% endif %}">All Products</a>
+                {% for cat in categories %}
+                <a href="{% url 'product_list' %}?category={{ cat.slug }}" class="cat-link {% if current_category.slug == cat.slug %}active{% endif %}">{{ cat.name }}</a>
+                {% endfor %}
+            </div>
+        </div>
+    </aside>
+
+    <!-- Products -->
+    <div>
+        <p class="results-info">
+            Showing <strong>{{ products|length }}</strong> product{{ products|length|pluralize }}
+            {% if query %} for "<strong>{{ query }}</strong>"{% endif %}
+            {% if current_category %} in <strong>{{ current_category.name }}</strong>{% endif %}
+        </p>
+
+        {% if products %}
+        <div class="product-grid">
+            {% for product in products %}
+            <div class="product-card" id="product-{{ product.id }}">
+                {% include 'mall/includes/_product_card_media.html' with product=product %}
+                <div class="product-card-body">
+                    <span class="product-card-category">{{ product.category.name }}</span>
+                    <a href="{% url 'product_detail' product.slug %}" class="product-card-name">{{ product.name }}</a>
+                    <p class="text-muted" style="font-size:0.82rem; margin-bottom:0.5rem;">{{ product.description|truncatewords:10 }}</p>
+                    {% if product.stock > 0 %}
+                    <p style="font-size:0.75rem; color: var(--green); margin-bottom:0.5rem;">✓ In stock ({{ product.stock }})</p>
+                    {% else %}
+                    <p style="font-size:0.75rem; color: var(--red); margin-bottom:0.5rem;">✗ Out of stock</p>
+                    {% endif %}
+                    <div class="product-card-price">
+                        <span class="price-amount">GH₵ {{ product.price }}</span>
+                        <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap;">
+                        {% if product.stock > 0 %}
+                        <form method="post" action="{% url 'add_to_cart' product.id %}" style="display:inline;">
+                          {% csrf_token %}
+                          <button type="submit" class="btn btn-gold btn-sm">Add to Cart</button>
+                        </form>
+                        {% else %}
+                        <span class="btn btn-sm" style="background:#eee; color:var(--muted); cursor:not-allowed;">Sold Out</span>
+                        {% endif %}
+                        {% if user.is_authenticated %}
+                        <button class="wishlist-heart-btn" data-product-id="{{ product.id }}"
+                          title="{% if product.id in wishlist_ids %}Remove from Watchlist{% else %}Add to Watchlist{% endif %}"
+                          style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:4px 8px;cursor:pointer;font-size:1rem;color:var(--muted);transition:all .15s;flex-shrink:0;"
+                          data-wishlisted="{% if product.id in wishlist_ids %}1{% else %}0{% endif %}">
+                          {% if product.id in wishlist_ids %}♥{% else %}♡{% endif %}
+                        </button>
+                        {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if page_obj.has_other_pages %}
+        <div style="display:flex;justify-content:center;gap:0.5rem;margin-top:2.5rem;flex-wrap:wrap;">
+          {% if page_obj.has_previous %}
+          <a href="?{% if query %}q={{ query }}&{% endif %}{% if current_category %}category={{ current_category.slug }}&{% endif %}page={{ page_obj.previous_page_number }}" class="btn btn-outline btn-sm">← Previous</a>
+          {% endif %}
+          {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+            <span class="btn btn-gold btn-sm">{{ num }}</span>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <a href="?{% if query %}q={{ query }}&{% endif %}{% if current_category %}category={{ current_category.slug }}&{% endif %}page={{ num }}" class="btn btn-outline btn-sm">{{ num }}</a>
+            {% endif %}
+          {% endfor %}
+          {% if page_obj.has_next %}
+          <a href="?{% if query %}q={{ query }}&{% endif %}{% if current_category %}category={{ current_category.slug }}&{% endif %}page={{ page_obj.next_page_number }}" class="btn btn-outline btn-sm">Next →</a>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="empty-state">
+            <span class="icon">🔍</span>
+            <h3>No products found</h3>
+            <p>Try a different search or browse all categories.</p>
+            <a href="{% url 'product_list' %}" class="btn btn-primary mt-2">View All Products</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% include 'mall/_wishlist_js.html' %}
+{% endblock %}

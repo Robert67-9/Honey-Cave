@@ -1,0 +1,109 @@
+# ─── Honey Cave Market — Render Blueprint ─────────────────────────────────────
+# Deploy: push this repo to GitHub, then in Render → New → Blueprint, point it
+# at this file. Render provisions the web service + Postgres + Redis together.
+#
+# After the first deploy, set the secret values that can't be auto-generated
+# (marked `sync: false` below) in the Render dashboard:
+#   PAYSTACK_SECRET_KEY, PAYSTACK_PUBLIC_KEY
+#   CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
+#   EMAIL_HOST_USER, EMAIL_HOST_PASSWORD  (Gmail App Password etc.)
+#   SITE_URL  (your final https URL, e.g. https://honeycavemarket.onrender.com)
+#   GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET  (optional — Sign in with Google)
+#   TWILIO_* / TILIOW_*  (optional — WhatsApp/SMS)
+# ──────────────────────────────────────────────────────────────────────────────
+
+services:
+  - type: web
+    name: honeycavemarket
+    runtime: python
+    plan: free
+    buildCommand: |
+      pip install -r requirements.txt
+      python manage.py collectstatic --noinput
+      python manage.py migrate --noinput
+    startCommand: gunicorn mall_project.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --timeout 60
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: honeycavemarket-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: honeycavemarket-redis
+          type: redis
+          property: connectionString
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: RENDER_EXTERNAL_HOSTNAME
+        sync: false
+      # ── Production security toggles (HTTPS is terminated by Render) ──
+      - key: SECURE_SSL_REDIRECT
+        value: "True"
+      - key: SESSION_COOKIE_SECURE
+        value: "True"
+      - key: CSRF_COOKIE_SECURE
+        value: "True"
+      - key: SECURE_HSTS_SECONDS
+        value: "31536000"
+      - key: SECURE_HSTS_INCLUDE_SUBDOMAINS
+        value: "True"
+      - key: SECURE_HSTS_PRELOAD
+        value: "True"
+      # ── Set your final URL so CSRF trusted origins + email links work ──
+      - key: SITE_URL
+        sync: false
+      # ── Payments (Paystack) — set in dashboard ──
+      - key: PAYSTACK_SECRET_KEY
+        sync: false
+      - key: PAYSTACK_PUBLIC_KEY
+        sync: false
+      # ── Media storage ──
+      # Committed images in the repo are served in production automatically.
+      # NEW uploads via the portal need persistence. Pick ONE:
+      #   (A) No third party — attach a Render Persistent Disk below and set
+      #       MEDIA_ROOT to its mount path (requires a paid instance type).
+      #   (B) Cloudinary — uncomment the three keys and set them in the dashboard.
+      #   (C) S3-compatible (Cloudflare R2 / Backblaze B2 / Supabase) via
+      #       django-storages — add those packages + env vars.
+      # - key: MEDIA_ROOT
+      #   value: /var/data/media
+      # - key: CLOUDINARY_CLOUD_NAME
+      #   sync: false
+      # - key: CLOUDINARY_API_KEY
+      #   sync: false
+      # - key: CLOUDINARY_API_SECRET
+      #   sync: false
+      # ── Email (SMTP) — set in dashboard ──
+      - key: EMAIL_BACKEND
+        value: django.core.mail.backends.smtp.EmailBackend
+      - key: EMAIL_HOST
+        value: smtp.gmail.com
+      - key: EMAIL_PORT
+        value: "587"
+      - key: EMAIL_USE_TLS
+        value: "True"
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: DEFAULT_FROM_EMAIL
+        sync: false
+
+  - type: redis
+    name: honeycavemarket-redis
+    plan: free
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
+
+databases:
+  - name: honeycavemarket-db
+    plan: free
+    databaseName: honeycavemarket
+    user: honeycavemarket

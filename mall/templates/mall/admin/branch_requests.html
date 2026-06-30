@@ -1,0 +1,116 @@
+{% extends 'mall/admin/base_admin.html' %}
+{% block title %}Branch Requests — Admin{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:1.5rem;">
+  <h1 style="font-family:'Playfair Display',serif; font-size:1.6rem; margin:0;">📋 Branch Assignment Requests</h1>
+  <p style="color:var(--text-muted); margin:.25rem 0 0; font-size:.92rem;">
+    Officers can request to manage additional branches. Approve, reject, or revoke here.
+  </p>
+</div>
+
+{% if messages %}
+{% for m in messages %}
+<div class="alert alert-{{ m.tags|default:'info' }}" style="margin-bottom:1rem;">{{ m }}</div>
+{% endfor %}
+{% endif %}
+
+<!-- Status tabs -->
+<div style="display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:1.5rem;">
+  <a href="?status=pending"
+     style="padding:.4rem .9rem; border:1.5px solid var(--border); border-radius:20px; font-size:.78rem; font-weight:600; text-decoration:none; background:{% if status_filter == 'pending' %}var(--warning-bg){% else %}var(--bg-elevated){% endif %}; color:{% if status_filter == 'pending' %}var(--warning-text){% else %}var(--text-muted){% endif %};">
+    ⏳ Pending ({{ counts.pending }})
+  </a>
+  <a href="?status=approved"
+     style="padding:.4rem .9rem; border:1.5px solid var(--border); border-radius:20px; font-size:.78rem; font-weight:600; text-decoration:none; background:{% if status_filter == 'approved' %}var(--success-bg){% else %}var(--bg-elevated){% endif %}; color:{% if status_filter == 'approved' %}var(--success-text){% else %}var(--text-muted){% endif %};">
+    ✓ Approved ({{ counts.approved }})
+  </a>
+  <a href="?status=rejected"
+     style="padding:.4rem .9rem; border:1.5px solid var(--border); border-radius:20px; font-size:.78rem; font-weight:600; text-decoration:none; background:{% if status_filter == 'rejected' %}var(--danger-bg){% else %}var(--bg-elevated){% endif %}; color:{% if status_filter == 'rejected' %}var(--danger-text){% else %}var(--text-muted){% endif %};">
+    ✕ Rejected ({{ counts.rejected }})
+  </a>
+  <a href="?status=revoked"
+     style="padding:.4rem .9rem; border:1.5px solid var(--border); border-radius:20px; font-size:.78rem; font-weight:600; text-decoration:none; background:{% if status_filter == 'revoked' %}var(--bg-sunken){% else %}var(--bg-elevated){% endif %}; color:var(--text-muted);">
+    Revoked ({{ counts.revoked }})
+  </a>
+  <a href="?status=all"
+     style="padding:.4rem .9rem; border:1.5px solid var(--border); border-radius:20px; font-size:.78rem; font-weight:600; text-decoration:none; background:{% if status_filter == 'all' %}var(--accent-soft){% else %}var(--bg-elevated){% endif %}; color:var(--text);">
+    All
+  </a>
+</div>
+
+{% if assignments %}
+<div style="display:grid; gap:.85rem;">
+  {% for a in assignments %}
+  <div style="background:var(--bg-elevated); border:1px solid var(--border); border-radius:12px; padding:1.1rem 1.25rem;">
+    <div style="display:flex; justify-content:space-between; align-items:start; flex-wrap:wrap; gap:1rem;">
+      <div style="flex:1; min-width:280px;">
+        <div style="font-weight:700; font-size:1rem; color:var(--text);">
+          {{ a.officer.username }} → {{ a.branch.name }}
+          {% if a.role == 'primary' %}
+          <span style="margin-left:.4rem; padding:.1rem .55rem; background:var(--accent-soft); color:var(--accent); border-radius:4px; font-size:.7rem; font-weight:700; letter-spacing:.05em;">PRIMARY</span>
+          {% else %}
+          <span style="margin-left:.4rem; padding:.1rem .55rem; background:var(--bg-sunken); color:var(--text-muted); border-radius:4px; font-size:.7rem; font-weight:700; letter-spacing:.05em;">SECONDARY</span>
+          {% endif %}
+        </div>
+        <div style="font-size:.85rem; color:var(--text-muted); margin-top:.25rem;">
+          Officer: <strong>{{ a.officer.get_full_name|default:a.officer.username }}</strong>
+          {% if a.officer.email %} · {{ a.officer.email }}{% endif %}
+        </div>
+        <div style="font-size:.82rem; color:var(--text-muted); margin-top:.15rem;">
+          Branch: {{ a.branch.get_region_display }}{% if a.branch.address %} · {{ a.branch.address|truncatechars:60 }}{% endif %}
+        </div>
+        <div style="font-size:.78rem; color:var(--text-faint); margin-top:.25rem;">
+          Requested {{ a.requested_at|date:"M j, Y H:i" }}
+          {% if a.requested_by and a.requested_by != a.officer %} by {{ a.requested_by.username }}{% endif %}
+          {% if a.decided_at %} · Decided {{ a.decided_at|date:"M j, Y H:i" }}{% if a.decided_by %} by {{ a.decided_by.username }}{% endif %}{% endif %}
+        </div>
+        {% if a.decision_note %}
+        <div style="margin-top:.65rem; padding:.55rem .75rem; background:var(--bg-sunken); border-radius:6px; font-size:.85rem; color:var(--text);">
+          <em style="color:var(--text-muted); font-size:.78rem;">Note:</em><br>
+          {{ a.decision_note|linebreaksbr }}
+        </div>
+        {% endif %}
+      </div>
+
+      <div>
+        <span style="display:inline-block; padding:.3rem .8rem; border-radius:14px; font-size:.78rem; font-weight:700;
+          {% if a.status == 'pending' %}background:var(--warning-bg); color:var(--warning-text);{% endif %}
+          {% if a.status == 'approved' %}background:var(--success-bg); color:var(--success-text);{% endif %}
+          {% if a.status == 'rejected' %}background:var(--danger-bg); color:var(--danger-text);{% endif %}
+          {% if a.status == 'revoked' %}background:var(--bg-sunken); color:var(--text-muted);{% endif %}">
+          {{ a.get_status_display }}
+        </span>
+      </div>
+    </div>
+
+    {% if a.status == 'pending' or a.status == 'approved' %}
+    <form method="post" action="{% url 'admin_branch_request_decide' a.pk %}" style="margin-top:1rem; display:flex; gap:.55rem; align-items:flex-end; flex-wrap:wrap;">
+      {% csrf_token %}
+      <input type="text" name="note" maxlength="500" placeholder="Optional note (visible to officer)…"
+             style="flex:1; min-width:240px; padding:.55rem .75rem; border:1px solid var(--border); border-radius:8px; background:var(--bg-input); color:var(--text); font-size:.85rem;">
+      {% if a.status == 'pending' %}
+      <button type="submit" name="decision" value="approve"
+              style="padding:.55rem 1rem; background:var(--success); color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:.85rem;">✓ Approve</button>
+      <button type="submit" name="decision" value="reject"
+              onclick="return confirm('Reject this request?');"
+              style="padding:.55rem 1rem; background:var(--danger); color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:.85rem;">✕ Reject</button>
+      {% else %}
+      <button type="submit" name="decision" value="revoke"
+              onclick="return confirm('Revoke {{ a.officer.username }}\'s access to {{ a.branch.name }}?');"
+              style="padding:.55rem 1rem; background:var(--danger); color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:.85rem;">⚠️ Revoke</button>
+      {% endif %}
+    </form>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div style="background:var(--bg-elevated); border:1px solid var(--border); border-radius:12px; padding:3rem 2rem; text-align:center; color:var(--text-muted);">
+  <div style="font-size:2.5rem; margin-bottom:.5rem;">📋</div>
+  <h3 style="color:var(--text); font-family:'Playfair Display',serif;">No {{ status_filter }} requests</h3>
+  <p>When officers request additional branches, they'll show up here for review.</p>
+</div>
+{% endif %}
+
+{% endblock %}

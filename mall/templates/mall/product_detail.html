@@ -1,0 +1,527 @@
+{% extends 'mall/base.html' %}
+{% block title %}{{ product.name }} — Honey Cave Market{% endblock %}
+
+{% block meta_title %}{{ product.name }} — Honey Cave Market{% endblock %}
+{% block meta_description %}{{ product.description|striptags|truncatechars:155 }}{% endblock %}
+{% block meta_keywords %}{{ product.name }}, {{ product.category.name }}, buy {{ product.name }} Ghana, {{ product.category.name }} Ghana, honey cave market, online shopping Ghana{% endblock %}
+
+{% block og_title %}{{ product.name }} — GH₵ {{ product.price }} | Honey Cave Market{% endblock %}
+{% block og_description %}{{ product.description|striptags|truncatechars:155 }}{% endblock %}
+{% block og_image %}{% if product.image %}{{ request.scheme }}://{{ request.get_host }}{{ product.image.url }}{% elif product.image_url %}{{ product.image_url }}{% else %}{{ request.scheme }}://{{ request.get_host }}/static/images/og-image.jpg{% endif %}{% endblock %}
+
+{% block twitter_title %}{{ product.name }} — GH₵ {{ product.price }}{% endblock %}
+{% block twitter_description %}{{ product.description|striptags|truncatechars:155 }}{% endblock %}
+{% block twitter_image %}{% if product.image %}{{ request.scheme }}://{{ request.get_host }}{{ product.image.url }}{% elif product.image_url %}{{ product.image_url }}{% else %}{{ request.scheme }}://{{ request.get_host }}/static/images/twitter-card.jpg{% endif %}{% endblock %}
+
+{% comment %}
+SEO: JSON-LD Product schema (enables Google rich snippets —
+price, stock, star rating shown directly in search results)
+{% endcomment %}
+{% block extra_head %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org/",
+  "@type": "Product",
+  "name": "{{ product.name|escapejs }}",
+  "description": "{{ product.description|striptags|truncatechars:300|escapejs }}",
+  "sku": "HCM-{{ product.id }}",
+  "image": "{% if product.image %}{{ request.scheme }}://{{ request.get_host }}{{ product.image.url }}{% elif product.image_url %}{{ product.image_url }}{% endif %}",
+  "category": "{{ product.category.name|escapejs }}",
+  "brand": {
+    "@type": "Brand",
+    "name": "Honey Cave Market"
+  },
+  "offers": {
+    "@type": "Offer",
+    "url": "{{ request.scheme }}://{{ request.get_host }}{{ request.path }}",
+    "priceCurrency": "GHS",
+    "price": "{{ product.price }}",
+    "availability": "{% if product.stock > 0 %}https://schema.org/InStock{% else %}https://schema.org/OutOfStock{% endif %}",
+    "itemCondition": "https://schema.org/NewCondition",
+    "seller": {
+      "@type": "Organization",
+      "name": "Honey Cave Market"
+    }
+  }{% if product.avg_rating %},
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "{{ product.avg_rating }}",
+    "reviewCount": "{{ product.review_count }}",
+    "bestRating": "5",
+    "worstRating": "1"
+  }{% endif %}
+}
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.breadcrumb { font-size:0.82rem;color:var(--muted);margin-bottom:2rem; }
+.breadcrumb a { color:var(--muted);text-decoration:none; }
+.breadcrumb a:hover { color:var(--gold); }
+.breadcrumb span { margin:0 0.5rem; }
+.product-layout { display:grid;grid-template-columns:1fr 1fr;gap:3rem;margin-bottom:3rem; }
+@media(max-width:700px){ .product-layout{grid-template-columns:1fr;} }
+.product-image-box {
+  border-radius:16px;overflow:hidden;border:1px solid var(--border);background:#ffffff;
+  aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:6rem;
+}
+.product-image-box img { width:100%;height:100%;object-fit:contain;padding:14px; }
+.product-gallery { display:flex; flex-direction:column; gap:0.7rem; }
+.product-thumbs {
+  display:flex; gap:0.55rem; flex-wrap:wrap;
+}
+.product-thumb {
+  width:64px; height:64px; flex:0 0 auto; padding:3px;
+  border:2px solid var(--border); border-radius:10px; background:#fff;
+  cursor:pointer; overflow:hidden; transition:border-color .15s, transform .15s;
+}
+.product-thumb img { width:100%; height:100%; object-fit:contain; display:block; }
+.product-thumb:hover { transform:translateY(-2px); }
+.product-thumb.is-active { border-color: var(--gold); }
+@media(max-width:700px){ .product-thumb{ width:56px; height:56px; } }
+.product-info-box { display:flex;flex-direction:column; }
+.product-badge {
+  display:inline-block;background:var(--gold-light);color:#7a5500;
+  font-size:0.7rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;
+  padding:0.3rem 0.75rem;border-radius:20px;margin-bottom:1rem;
+}
+.product-title { font-family:'Playfair Display',serif;font-size:2rem;font-weight:700;line-height:1.25;margin-bottom:0.75rem; }
+.product-price-big { font-size:2rem;font-weight:700;color:var(--gold);margin-bottom:1rem; }
+.product-stock-good { font-size:0.85rem;color:var(--green);font-weight:500; }
+.product-stock-bad  { font-size:0.85rem;color:var(--red);font-weight:500; }
+.product-desc { color:var(--muted);line-height:1.8;margin-bottom:1.5rem;border-top:1px solid var(--border);padding-top:1.5rem; }
+.divider { border:none;border-top:1px solid var(--border);margin:1.5rem 0; }
+.rating-inline { display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;cursor:pointer; }
+.stars-sm { color:var(--gold);font-size:1rem; }
+
+/* Rating summary */
+.rating-summary {
+  background: var(--bg-elevated);border:1px solid var(--border);border-radius:14px;
+  padding:1.75rem;margin-bottom:2rem;display:grid;
+  grid-template-columns:160px 1fr;gap:2rem;align-items:center;
+}
+@media(max-width:600px){ .rating-summary{grid-template-columns:1fr;} }
+.rating-big { text-align:center; }
+.rating-number { font-size:3.5rem;font-weight:700;color:var(--dark);line-height:1; }
+.rating-stars-big { font-size:1.5rem;color:var(--gold);margin:0.3rem 0; }
+.rating-count { font-size:0.8rem;color:var(--muted); }
+.bar-row { display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem; }
+.bar-label { font-size:0.8rem;color:var(--muted);width:36px;flex-shrink:0;text-align:right; }
+.bar-track { flex:1;background:var(--cream);border-radius:20px;height:8px;overflow:hidden; }
+.bar-fill  { height:100%;border-radius:20px;background:var(--gold); }
+.bar-pct   { font-size:0.75rem;color:var(--muted);width:32px;flex-shrink:0; }
+
+/* Review cards */
+.reviews-section { margin-top:1rem; }
+.reviews-section h2 { font-family:'Playfair Display',serif;font-size:1.5rem;margin-bottom:1.5rem; }
+.review-card {
+  background: var(--bg-elevated);border:1px solid var(--border);border-radius:12px;
+  padding:1.25rem 1.5rem;margin-bottom:1rem;
+}
+.review-stars { color:var(--gold);font-size:1rem;margin-bottom:0.35rem; }
+.review-title { font-weight:700;font-size:0.95rem;margin-bottom:0.35rem;color:var(--dark); }
+.review-comment { font-size:0.9rem;color:var(--muted);line-height:1.7; }
+.verified-badge {
+  display:inline-flex;align-items:center;gap:0.3rem;
+  background:#d4edda;color:#155724;border-radius:20px;
+  font-size:0.7rem;font-weight:700;padding:0.2rem 0.65rem;
+  letter-spacing:.4px;margin-left:0.5rem;
+}
+.helpful-btn {
+  background:none;border:1px solid var(--border);border-radius:6px;
+  padding:0.3rem 0.75rem;font-size:0.78rem;color:var(--muted);cursor:pointer;transition:all 0.15s;
+}
+.helpful-btn:hover { border-color:var(--gold);color:var(--dark); }
+.helpful-btn.voted { background:var(--gold-light);border-color:var(--gold);color:#7a5500; }
+
+/* Star picker */
+.star-picker { display:flex;flex-direction:row-reverse;gap:0.2rem;justify-content:flex-end;margin-bottom:0.35rem; }
+.star-picker input[type=radio] { display:none; }
+.star-picker label { font-size:2rem;cursor:pointer;color:#ddd;transition:color 0.12s;line-height:1; }
+.star-picker input[type=radio]:checked ~ label,
+.star-picker label:hover,
+.star-picker label:hover ~ label { color:var(--gold); }
+
+/* Review form */
+.review-form-card {
+  background: var(--bg-elevated);border:1px solid var(--border);border-radius:14px;padding:1.75rem;margin-top:2rem;
+}
+.review-form-card h3 { font-family:'Playfair Display',serif;font-size:1.2rem;margin-bottom:1.25rem; }
+
+/* Purchase prompt */
+.purchase-prompt {
+  background:linear-gradient(135deg,#1A1410,#2e1f0e);color:white;
+  border-radius:12px;padding:1.1rem 1.5rem;margin-bottom:1.25rem;
+  display:flex;align-items:center;gap:1rem;
+}
+.purchase-prompt p { margin:0;font-size:0.85rem;color:rgba(255,255,255,.7);margin-top:0.15rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+  <a href="{% url 'home' %}">Home</a><span>›</span>
+  <a href="{% url 'product_list' %}">Shop</a><span>›</span>
+  <a href="{% url 'product_list' %}?category={{ product.category.slug }}">{{ product.category.name }}</a><span>›</span>
+  {{ product.name }}
+</div>
+
+<div class="product-layout">
+  <!-- Images -->
+  <div class="product-gallery">
+    <div class="product-image-box" id="galleryMain">
+      {% if product.image %}<img src="{{ product.image.url }}" alt="{{ product.name }}" id="galleryMainImg">
+      {% elif product.image_url %}<img src="{{ product.image_url }}" alt="{{ product.name }}" id="galleryMainImg">
+      {% elif product.gallery.all %}<img src="{{ product.gallery.first.image.url }}" alt="{{ product.name }}" id="galleryMainImg">
+      {% else %}🛍️{% endif %}
+    </div>
+
+    {% comment %} Build the thumbnail strip from the main image + every gallery image. {% endcomment %}
+    {% with gallery=product.gallery.all %}
+    {% if gallery or product.image %}
+    <div class="product-thumbs" id="galleryThumbs">
+      {% if product.image %}
+      <button type="button" class="product-thumb is-active" data-full="{{ product.image.url }}" aria-label="View image 1">
+        <img src="{{ product.image.url }}" alt="{{ product.name }}">
+      </button>
+      {% elif product.image_url %}
+      <button type="button" class="product-thumb is-active" data-full="{{ product.image_url }}" aria-label="View image 1">
+        <img src="{{ product.image_url }}" alt="{{ product.name }}">
+      </button>
+      {% endif %}
+      {% for img in gallery %}
+      <button type="button" class="product-thumb{% if not product.image and not product.image_url and forloop.first %} is-active{% endif %}" data-full="{{ img.image.url }}" aria-label="View image {{ forloop.counter|add:1 }}">
+        <img src="{{ img.image.url }}" alt="{{ img.alt_text|default:product.name }}">
+      </button>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+  </div>
+
+  <!-- Info -->
+  <div class="product-info-box">
+    <span class="product-badge">{{ product.category.name }}</span>
+    <h1 class="product-title">{{ product.name }}</h1>
+
+    {% if avg_rating %}
+    <a href="#reviews" class="rating-inline" style="text-decoration:none;">
+      <span class="stars-sm">
+        {% for i in "12345" %}{% if forloop.counter <= avg_rating %}★{% else %}☆{% endif %}{% endfor %}
+      </span>
+      <strong style="font-size:0.9rem;">{{ avg_rating }}</strong>
+      <span style="font-size:0.82rem;color:var(--muted);">({{ review_count }} review{{ review_count|pluralize }})</span>
+    </a>
+    {% endif %}
+
+    <div class="product-price-big">GH₵ {{ product.price }}</div>
+    {% if product.stock > 0 %}
+    <p class="product-stock-good">✓ In Stock — {{ product.stock }} available</p>
+    {% else %}
+    <p class="product-stock-bad">✗ Out of Stock</p>
+    {% endif %}
+
+    <hr class="divider">
+    <p class="product-desc">{{ product.description }}</p>
+
+    <div style="display:flex;flex-direction:column;gap:0.75rem;">
+    {% if product.stock > 0 %}
+    <form method="post" action="{% url 'add_to_cart' product.id %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-gold w-full" style="font-size:1rem;padding:0.9rem;">
+        🛒 Add to Cart
+      </button>
+    </form>
+    {% else %}
+    <button class="btn btn-outline w-full" disabled style="opacity:0.5;cursor:not-allowed;">Sold Out</button>
+    {% endif %}
+    {% if user.is_authenticated %}
+    <button id="detail-wishlist-btn" class="btn w-full wishlist-heart-btn" data-product-id="{{ product.id }}"
+      style="font-size:0.95rem;padding:0.75rem;border:1.5px solid {% if is_wishlisted %}#e74c3c{% else %}var(--border){% endif %};background:{% if is_wishlisted %}#fff0ef{% else %}white{% endif %};color:{% if is_wishlisted %}#e74c3c{% else %}var(--dark){% endif %};cursor:pointer;border-radius:10px;font-weight:600;transition:all .18s;"
+      data-wishlisted="{% if is_wishlisted %}1{% else %}0{% endif %}">
+      {% if is_wishlisted %}♥ Remove from Watchlist{% else %}♡ Add to Watchlist{% endif %}
+    </button>
+    {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- ── Rating Summary Bar Chart ── -->
+{% if review_count %}
+<div class="rating-summary" id="reviews">
+  <div class="rating-big">
+    <div class="rating-number">{{ avg_rating }}</div>
+    <div class="rating-stars-big">
+      {% for i in "12345" %}{% if forloop.counter <= avg_rating %}★{% else %}☆{% endif %}{% endfor %}
+    </div>
+    <div class="rating-count">{{ review_count }} review{{ review_count|pluralize }}</div>
+  </div>
+  <div>
+    {% for star, pct in rating_breakdown.items %}
+    <div class="bar-row">
+      <span class="bar-label">{{ star }}★</span>
+      <div class="bar-track"><div class="bar-fill" style="width:{{ pct }}%;"></div></div>
+      <span class="bar-pct">{{ pct }}%</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% else %}
+<div id="reviews"></div>
+{% endif %}
+
+<!-- ── Reviews List ── -->
+<div class="reviews-section">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:0.75rem;">
+    <h2 style="margin:0;">Customer Reviews <span style="font-size:1rem;font-weight:400;color:var(--muted);">({{ review_count }})</span></h2>
+    {% if review_count >= 3 %}
+    <button id="aiSummaryBtn" onclick="loadAISummary()"
+      style="padding:7px 16px;border-radius:20px;border:1px solid #C9A84C;background:#fff;color:#C9A84C;font-size:0.82rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">
+      🤖 AI Summary
+    </button>
+    {% endif %}
+  </div>
+
+  <!-- AI Review Summary Card (hidden until loaded) -->
+  <div id="aiSummaryCard" style="display:none;background:linear-gradient(135deg,#fffbf0,#fff);border:1px solid #f0e4c0;border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:0.75rem;">
+      <span style="font-size:1rem;">🤖</span>
+      <span style="font-weight:600;font-size:0.82rem;color:#888;">AI-generated summary from {{ review_count }} review{{ review_count|pluralize }}</span>
+    </div>
+    <p id="aiSummaryText" style="margin:0;font-size:0.92rem;line-height:1.65;color:#333;"></p>
+  </div>
+
+  {% if reviews %}
+  {% for review in reviews %}
+  <div class="review-card" id="review-{{ review.id }}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.4rem;">
+      <div>
+        <span style="font-weight:600;font-size:0.9rem;">{{ review.user.get_full_name|default:review.user.username }}</span>
+        {% if review.is_verified_purchase %}<span class="verified-badge">✓ Verified Purchase</span>{% endif %}
+        <span style="font-size:0.78rem;color:var(--muted);margin-left:0.5rem;">{{ review.created|date:"d M Y" }}</span>
+      </div>
+    </div>
+    <div class="review-stars">
+      {% for i in "12345" %}{% if forloop.counter <= review.rating %}★{% else %}☆{% endif %}{% endfor %}
+      <span style="font-size:0.78rem;color:var(--muted);">{{ review.rating }}/5</span>
+    </div>
+    {% if review.title %}<div class="review-title">"{{ review.title }}"</div>{% endif %}
+    <p class="review-comment">{{ review.comment }}</p>
+    <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.9rem;">
+      <span style="font-size:0.75rem;color:var(--muted);">Was this helpful?</span>
+      {% if user.is_authenticated and user != review.user %}
+      <button class="helpful-btn" onclick="markHelpful({{ review.id }}, this)">
+        👍 <span class="helpful-count">{{ review.helpful_count }}</span>
+      </button>
+      {% else %}
+      <span style="font-size:0.78rem;color:var(--muted);">👍 {{ review.helpful_count }}</span>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+
+  {% else %}
+  <div style="text-align:center;padding:3rem;background: var(--bg-elevated);border:1px solid var(--border);border-radius:12px;color:var(--muted);">
+    <div style="font-size:2.5rem;margin-bottom:0.75rem;">⭐</div>
+    <p style="font-weight:600;margin-bottom:0.25rem;">No reviews yet</p>
+    <p style="font-size:0.85rem;">Be the first to share your experience.</p>
+  </div>
+  {% endif %}
+
+  <!-- ── Write a Review ── -->
+  {% if user.is_authenticated %}
+    {% if user_review %}
+    <!-- User already reviewed — show their review -->
+    <div class="review-form-card" style="background:var(--cream);border-color:var(--gold);">
+      <h3 style="margin-bottom:0.75rem;">Your Review</h3>
+      <div class="review-stars" style="font-size:1.2rem;">
+        {% for i in "12345" %}{% if forloop.counter <= user_review.rating %}★{% else %}☆{% endif %}{% endfor %}
+        <span style="font-size:0.82rem;color:var(--muted);">{{ user_review.rating }}/5</span>
+      </div>
+      {% if user_review.title %}<div class="review-title" style="margin-bottom:0.35rem;">"{{ user_review.title }}"</div>{% endif %}
+      <p class="review-comment">{{ user_review.comment }}</p>
+      {% if user_review.is_verified_purchase %}
+      <div class="verified-badge" style="margin-top:0.75rem;display:inline-flex;">✓ Verified Purchase</div>
+      {% endif %}
+    </div>
+
+    {% else %}
+    <!-- Verified purchase prompt banner -->
+    {% if has_purchased %}
+    <div class="purchase-prompt">
+      <span style="font-size:2rem;">🛍️</span>
+      <div>
+        <strong>You've purchased this product!</strong>
+        <p>Your review will show a <strong style="color:var(--gold);">Verified Purchase</strong> badge.</p>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="review-form-card">
+      <h3>{% if has_purchased %}Share Your Experience{% else %}Write a Review{% endif %}</h3>
+      {% if not has_purchased %}
+      <p style="font-size:0.83rem;color:var(--muted);margin-bottom:1.25rem;">
+        Purchase this product to get a <strong>Verified Purchase</strong> badge on your review.
+      </p>
+      {% endif %}
+      <form method="post" id="review-form" novalidate>
+        {% csrf_token %}
+
+        <!-- Star picker -->
+        <div class="form-group" style="margin-bottom:1.25rem;">
+          <label style="margin-bottom:0.5rem;display:block;">Your Rating <span style="color:var(--red);">*</span></label>
+          <div class="star-picker">
+            <input type="radio" name="rating" id="s5" value="5"><label for="s5" title="5 — Excellent">★</label>
+            <input type="radio" name="rating" id="s4" value="4"><label for="s4" title="4 — Good">★</label>
+            <input type="radio" name="rating" id="s3" value="3"><label for="s3" title="3 — Average">★</label>
+            <input type="radio" name="rating" id="s2" value="2"><label for="s2" title="2 — Poor">★</label>
+            <input type="radio" name="rating" id="s1" value="1"><label for="s1" title="1 — Terrible">★</label>
+          </div>
+          <div style="font-size:0.78rem;color:var(--muted);" id="star-hint">Click a star to rate</div>
+          {% if review_form.rating.errors %}<div class="form-errors">{{ review_form.rating.errors }}</div>{% endif %}
+        </div>
+
+        <div class="form-group">
+          <label>Review Headline <span style="font-size:0.75rem;color:var(--muted);">(optional)</span></label>
+          {{ review_form.title }}
+          {% if review_form.title.errors %}<div class="form-errors">{{ review_form.title.errors }}</div>{% endif %}
+        </div>
+
+        <div class="form-group">
+          <label>Your Review <span style="color:var(--red);">*</span></label>
+          {{ review_form.comment }}
+          <div style="font-size:0.75rem;color:var(--muted);margin-top:0.3rem;" id="char-count">0 / 2000</div>
+          {% if review_form.comment.errors %}<div class="form-errors">{{ review_form.comment.errors }}</div>{% endif %}
+        </div>
+
+        <button type="submit" class="btn btn-gold" style="margin-top:0.25rem;">Submit Review →</button>
+      </form>
+    </div>
+    {% endif %}
+
+  {% else %}
+  <div class="review-form-card" style="text-align:center;background:var(--cream);">
+    <p style="color:var(--muted);margin-bottom:1rem;">
+      <a href="{% url 'login' %}?next={{ request.path }}" style="color:var(--gold);font-weight:600;">Sign in</a>
+      to write a review.
+    </p>
+    <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-outline btn-sm">Sign In to Review</a>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+// ─── Image gallery: clicking a thumbnail swaps the main image ───────────────
+(function () {
+  var mainImg = document.getElementById('galleryMainImg');
+  var thumbs  = document.querySelectorAll('#galleryThumbs .product-thumb');
+  if (!mainImg || !thumbs.length) return;
+  thumbs.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var full = btn.getAttribute('data-full');
+      if (!full) return;
+      mainImg.src = full;
+      thumbs.forEach(function (b) { b.classList.remove('is-active'); });
+      btn.classList.add('is-active');
+    });
+  });
+})();
+
+const starHints = {5:'Excellent',4:'Good',3:'Average',2:'Poor',1:'Terrible'};
+document.querySelectorAll('.star-picker input').forEach(r =>
+  r.addEventListener('change', () => {
+    const h = document.getElementById('star-hint');
+    if (h) h.textContent = starHints[r.value] || '';
+  })
+);
+const ta = document.querySelector('#review-form textarea');
+const cc = document.getElementById('char-count');
+if (ta && cc) {
+  ta.addEventListener('input', () => {
+    const n = ta.value.length;
+    cc.textContent = n + ' / 2000';
+    cc.style.color = n > 1900 ? 'var(--red)' : 'var(--muted)';
+  });
+}
+async function markHelpful(id, btn) {
+  if (btn.classList.contains('voted') || btn.disabled) return;
+  btn.disabled = true;
+  const csrf = document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+  try {
+    const res  = await fetch(`/reviews/${id}/helpful/`, {
+      method:'POST', headers:{'X-CSRFToken':csrf,'Content-Type':'application/x-www-form-urlencoded'}
+    });
+    const data = await res.json();
+    if (data.ok && !data.already_voted) {
+      btn.classList.add('voted');
+      btn.querySelector('.helpful-count').textContent = data.helpful_count;
+    }
+  } catch(e) {}
+  btn.disabled = false;
+}
+
+// AI Review Summary
+async function loadAISummary() {
+  const btn  = document.getElementById('aiSummaryBtn');
+  const card = document.getElementById('aiSummaryCard');
+  const text = document.getElementById('aiSummaryText');
+  btn.textContent = '⏳ Summarising…';
+  btn.disabled = true;
+  try {
+    const res  = await fetch('/api/ai/review-summary/{{ product.slug }}/');
+    const data = await res.json();
+    if (data.ok) {
+      text.textContent = data.summary;
+      card.style.display = 'block';
+      btn.style.display  = 'none';
+    } else {
+      btn.textContent = data.error || 'Could not summarise';
+      btn.disabled = false;
+    }
+  } catch(e) {
+    btn.textContent = '⚠ Try again';
+    btn.disabled = false;
+  }
+}
+
+// AI Product Recommendations
+{% if user.is_authenticated %}
+(async function loadRecommendations() {
+  try {
+    const res  = await fetch('/api/ai/recommendations/');
+    const data = await res.json();
+    if (!data.ok || !data.recommendations?.length) return;
+    const container = document.getElementById('ai-recs-container');
+    if (!container) return;
+    container.innerHTML = data.recommendations.map(p => `
+      <a href="/products/${p.slug}/" style="text-decoration:none;color:inherit;">
+        <div style="background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.07);overflow:hidden;transition:.15s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+          ${p.image ? `<img src="${p.image}" style="width:100%;height:160px;object-fit:cover;">` : '<div style="width:100%;height:160px;background:#f2ede7;display:flex;align-items:center;justify-content:center;font-size:2rem;">📦</div>'}
+          <div style="padding:0.85rem;">
+            <p style="margin:0 0 4px;font-weight:600;font-size:0.88rem;">${p.name}</p>
+            <p style="margin:0 0 6px;font-weight:700;color:#C9A84C;">GH₵${p.price}</p>
+            <p style="margin:0;font-size:0.75rem;color:#888;line-height:1.4;">${p.reason}</p>
+          </div>
+        </div>
+      </a>`).join('');
+    document.getElementById('ai-recs-section').style.display = 'block';
+  } catch(e) {}
+})();
+{% endif %}
+</script>
+
+<!-- AI Recommendations Section -->
+{% if user.is_authenticated %}
+<div id="ai-recs-section" style="display:none;margin:2.5rem 0;">
+  <h2 style="font-family:'Playfair Display',serif;font-size:1.4rem;margin-bottom:1rem;">
+    🤖 Recommended for You
+  </h2>
+  <div id="ai-recs-container" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem;"></div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% include 'mall/_wishlist_js.html' %}
+{% endblock %}

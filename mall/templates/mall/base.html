@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
+    <!-- Primary Meta Tags -->
+    <title>{% block title %}Honey Cave Market (HCM) - Premium Online Shopping Ghana | Electronics, Fashion & More{% endblock %}</title>
+    <meta name="title" content="{% block meta_title %}Honey Cave Market (HCM) - Premium Online Shopping Ghana{% endblock %}">
+    <meta name="description" content="{% block meta_description %}Shop quality electronics, fashion, home appliances and more at Honey Cave Market (HCM). Fast delivery across all 16 Ghana regions. Pay with Mobile Money (MTN, Vodafone, AirtelTigo).{% endblock %}">
+    <meta name="keywords" content="{% block meta_keywords %}honey cave market, HCM ghana, online shopping ghana, buy electronics ghana, mobile money shopping, MTN momo shopping, accra online store, ghana e-commerce{% endblock %}">
+    <meta name="author" content="Honey Cave Market (HCM)">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="{% block canonical %}{{ request.scheme }}://{{ request.get_host }}{{ request.path }}{% endblock %}">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
+    <meta property="og:title" content="{% block og_title %}Honey Cave Market (HCM) - Premium Online Shopping Ghana{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Shop quality products across Ghana with fast delivery and secure Mobile Money payments at Honey Cave Market (HCM).{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{{ request.scheme }}://{{ request.get_host }}/static/images/og-image.jpg{% endblock %}">
+    <meta property="og:locale" content="en_GH">
+    <meta property="og:site_name" content="Honey Cave Market">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
+    <meta name="twitter:title" content="{% block twitter_title %}Honey Cave Market (HCM) - Premium Online Shopping Ghana{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}Shop quality products with fast delivery and Mobile Money payments at HCM.{% endblock %}">
+    <meta name="twitter:image" content="{% block twitter_image %}{{ request.scheme }}://{{ request.get_host }}/static/images/twitter-card.jpg{% endblock %}">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/static/images/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/images/apple-touch-icon.png">
+    
+    <!-- Preconnect for Performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    
+    <!-- Structured Data (JSON-LD) for Organization -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "OnlineStore",
+      "name": "{{ site_brand|escapejs }}",
+      "alternateName": "{{ site_brand_short|escapejs }}",
+      "slogan": "{{ site_slogan|escapejs }}",
+      "description": "{{ site_slogan|escapejs }} — online shopping in Ghana with Mobile Money payments.",
+      "url": "{{ request.scheme }}://{{ request.get_host }}",
+      "logo": "{{ request.scheme }}://{{ request.get_host }}{{ site_logo_path }}",
+      "image": "{{ request.scheme }}://{{ request.get_host }}{{ site_og_image }}",
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": "GH",
+        "addressRegion": "Greater Accra"
+      },
+      "paymentAccepted": ["Mobile Money", "MTN Mobile Money", "Vodafone Cash", "AirtelTigo Money"],
+      "priceRange": "GHS",
+      "sameAs": [
+        "https://facebook.com/honeycavemarket",
+        "https://twitter.com/honeycavemarket",
+        "https://instagram.com/honeycavemarket"
+      ]
+    }
+    </script>
+    
+    <!-- Google Analytics (Add your GA4 measurement ID) -->
+    {% block analytics %}
+    <!-- <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XXXXXXXXXX');
+    </script> -->
+    {% endblock %}
+    
+    <!-- Facebook Pixel (Optional) -->
+    {% block facebook_pixel %}
+    <!-- Add your Facebook Pixel code here -->
+    {% endblock %}
+    
+    {% block extra_head %}{% endblock %}
+
+    {% comment %}
+    FOUC prevention: apply theme synchronously before any CSS loads.
+    Without this, every page renders in light mode for 50–200ms then
+    flashes to dark. Inline + blocking is the only way to fix it.
+    {% endcomment %}
+    <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('hcm-theme');
+        if (!saved) {
+          saved = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', saved);
+      } catch (e) { /* localStorage blocked — fall back to light */ }
+    })();
+    </script>
+
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        /* ═══════════════════════════════════════════════════════════════
+           DESIGN TOKENS
+           ═══════════════════════════════════════════════════════════════
+           Semantic tokens (--bg, --text, --accent…) shift between themes.
+           Fixed brand tokens (--gold, --dark-brand, --cream-brand) keep
+           their meaning across themes — used when you want the *brand*
+           color regardless of mode (e.g. a hero gradient).
+           ─────────────────────────────────────────────────────────────── */
+
+        :root {
+          /* ── Brand (fixed, never themed) ── */
+          --gold:           #C9A84C;
+          --gold-soft:      #E8D5A3;
+          --gold-deep:      #A38535;
+          --dark-brand:     #1A1410;
+          --cream-brand:    #FAF7F2;
+
+          /* ── Semantic tokens — LIGHT THEME ── */
+          --bg:             #FAF7F2;   /* page background */
+          --bg-elevated:    #FFFFFF;   /* cards, surfaces above bg */
+          --bg-sunken:      #F0ECE4;   /* form fields, subtle wells */
+          --bg-input:       #FFFFFF;
+          --bg-overlay:     rgba(26,20,16,.55);
+
+          --text:           #1A1410;   /* primary copy */
+          --text-muted:     #7A6E64;   /* secondary copy */
+          --text-faint:     #A89B8E;   /* placeholders, captions */
+          --text-on-accent: #1A1410;   /* text on gold buttons */
+          --text-on-dark:   #FAF7F2;   /* text on dark navbar/hero */
+
+          --border:         #E8E0D4;
+          --border-strong:  #C9C0B2;
+
+          --accent:         #C9A84C;
+          --accent-hover:   #B6952F;
+          --accent-soft:    #FDF5E0;   /* light wash of accent */
+          --accent-text:    #1A1410;
+
+          /* ── Status — light theme uses soft pastel surfaces ── */
+          --success:        #2E7D32;
+          --success-bg:     #E8F5E9;
+          --success-border: #C8E6C9;
+          --success-text:   #1B5E20;
+
+          --warning:        #B07A04;
+          --warning-bg:     #FFF8E1;
+          --warning-border: #FFE082;
+          --warning-text:   #6B5B00;
+
+          --danger:         #C62828;
+          --danger-bg:      #FDECEC;
+          --danger-border:  #F5C6CB;
+          --danger-text:    #7A1F1F;
+
+          --info:           #1976D2;
+          --info-bg:        #E3F2FD;
+          --info-border:    #BBDEFB;
+          --info-text:      #0D47A1;
+
+          /* ── Effects ── */
+          --shadow-sm:      0 1px 2px rgba(26,20,16,.06);
+          --shadow-md:      0 4px 12px rgba(26,20,16,.08);
+          --shadow-lg:      0 12px 32px rgba(26,20,16,.10);
+          --radius-sm:      6px;
+          --radius:         10px;
+          --radius-lg:      14px;
+          --radius-xl:      20px;
+
+          /* ── Legacy aliases (so existing templates keep working) ── */
+          --cream:          var(--bg);
+          --dark:           var(--text);
+          --muted:          var(--text-muted);
+          --white:          var(--bg-elevated);
+          --surface:        var(--bg-elevated);
+          --gold-light:     var(--gold-soft);
+          --red:            var(--danger);
+          --green:          var(--success);
+        }
+
+        /* ── Semantic tokens — DARK THEME ───────────────────────────────
+           Strategy: keep brand tokens fixed; rebase the semantic tokens
+           against a true dark surface. Status panels use desaturated
+           tinted-charcoal backgrounds (modern dark UI standard) instead
+           of inverting pastel light-theme backgrounds (which always
+           looks ugly).
+           ─────────────────────────────────────────────────────────────── */
+        [data-theme="dark"] {
+          --bg:             #15110D;
+          --bg-elevated:    #1F1812;
+          --bg-sunken:      #2A2018;
+          --bg-input:       #251D17;
+          --bg-overlay:     rgba(0,0,0,.65);
+
+          --text:           #F2EDE5;
+          --text-muted:     #B0A496;
+          --text-faint:     #80776B;
+          --text-on-accent: #1A1410;   /* gold stays, so dark text on it */
+          --text-on-dark:   #F2EDE5;
+
+          --border:         #322820;
+          --border-strong:  #4A3C2E;
+
+          --accent:         #D6B65A;   /* slightly brighter for contrast */
+          --accent-hover:   #E5C66B;
+          --accent-soft:    #2A2114;
+          --accent-text:    #1A1410;
+
+          --success:        #66BB6A;
+          --success-bg:     #1E2C20;
+          --success-border: #2E4A33;
+          --success-text:   #A5D6A7;
+
+          --warning:        #E5BC4F;
+          --warning-bg:     #2D2415;
+          --warning-border: #4A3D22;
+          --warning-text:   #FFD88C;
+
+          --danger:         #EF5350;
+          --danger-bg:      #2D1A1A;
+          --danger-border:  #4D2828;
+          --danger-text:    #FF8A80;
+
+          --info:           #64B5F6;
+          --info-bg:        #142433;
+          --info-border:    #1F3A52;
+          --info-text:      #90CAF9;
+
+          --shadow-sm:      0 1px 2px rgba(0,0,0,.4);
+          --shadow-md:      0 4px 12px rgba(0,0,0,.5);
+          --shadow-lg:      0 12px 32px rgba(0,0,0,.55);
+        }
+
+        /* ── Smooth theme transition ─────────────────────────────────── */
+        html {
+          color-scheme: light;
+        }
+        html[data-theme="dark"] {
+          color-scheme: dark;
+        }
+        html, body, .navbar, .card, .product-card,
+        input, select, textarea, button {
+          transition: background-color .25s ease, color .25s ease, border-color .25s ease;
+        }
+        /* Disable transitions during theme swap (prevents stutter on reload) */
+        html.theme-swapping *,
+        html.theme-swapping *::before,
+        html.theme-swapping *::after {
+          transition: none !important;
+        }
+
+        /* ── Element defaults that use the semantic tokens ─────────── */
+        body {
+          background: var(--bg);
+          color: var(--text);
+        }
+
+        /* Form inputs everywhere — automatic theming */
+        input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]),
+        select,
+        textarea {
+          background: var(--bg-input);
+          color: var(--text);
+          border-color: var(--border);
+        }
+        input:focus, select:focus, textarea:focus {
+          outline: none;
+          border-color: var(--accent);
+          box-shadow: 0 0 0 3px var(--accent-soft);
+        }
+        input::placeholder, textarea::placeholder { color: var(--text-faint); }
+
+        /* Auto-darken images in dark mode (very subtle, 92% brightness) */
+        [data-theme="dark"] img:not([src*=".svg"]) {
+          /* opt-in only on photos that look "blown out" — apply selectively
+             via the .img-dim helper rather than blanket. Comment out
+             the next line if you want it on everything. */
+          /* filter: brightness(.92); */
+        }
+
+        /* ── Light-theme inline-style fallbacks ──────────────────────────
+           A handful of templates set background:#fff or background:white
+           directly. We can't catch every case, but the most common patterns
+           need to remain readable in dark mode. Applied conservatively —
+           only the literally-pure-white backgrounds get an override. ─── */
+        [data-theme="dark"] [style*="background: white"]:not(.dark-skip),
+        [data-theme="dark"] [style*="background:white"]:not(.dark-skip),
+        [data-theme="dark"] [style*="background: #fff "]:not(.dark-skip),
+        [data-theme="dark"] [style*="background: #fff;"]:not(.dark-skip),
+        [data-theme="dark"] [style*="background:#fff "]:not(.dark-skip),
+        [data-theme="dark"] [style*="background:#fff;"]:not(.dark-skip),
+        [data-theme="dark"] [style*="background: #ffffff"]:not(.dark-skip),
+        [data-theme="dark"] [style*="background:#ffffff"]:not(.dark-skip) {
+          background: var(--bg-elevated) !important;
+        }
+
+        /* Generic card-like wrappers always read tokens */
+        [data-theme="dark"] .card,
+        [data-theme="dark"] .product-card,
+        [data-theme="dark"] .order-detail-card,
+        [data-theme="dark"] .checkout-section {
+          background: var(--bg-elevated);
+          border-color: var(--border);
+          color: var(--text);
+        }
+
+        /* ── Theme toggle button (proper, not childish) ────────────── */
+        .theme-toggle {
+          background: rgba(255,255,255,.06);
+          border: 1px solid rgba(255,255,255,.12);
+          color: rgba(255,255,255,.85);
+          cursor: pointer;
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0;
+          transition: background .18s, border-color .18s, transform .18s;
+          position: relative;
+          overflow: hidden;
+        }
+        .theme-toggle:hover {
+          background: rgba(255,255,255,.12);
+          border-color: rgba(201,168,76,.4);
+        }
+        .theme-toggle:active { transform: scale(.92); }
+        .theme-toggle svg { width: 16px; height: 16px; display: block; }
+        /* Sun & moon icons swap based on theme */
+        .theme-toggle .icon-sun  { display: none; }
+        .theme-toggle .icon-moon { display: block; }
+        [data-theme="dark"] .theme-toggle .icon-sun  { display: block; color: var(--gold); }
+        [data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--cream);
+            color: var(--dark);
+            line-height: 1.6;
+            font-size: 15px;
+        }
+
+        /* ── NAVBAR ── */
+        .navbar {
+            background: var(--dark-brand);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(201,168,76,0.3);
+        }
+        [data-theme="dark"] .navbar {
+            /* In dark theme, navbar gets a slightly cooler near-black so it
+               separates from the page bg without screaming */
+            background: #0E0A07;
+        }
+        .nav-inner {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 70px;
+        }
+        .nav-logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--gold);
+            text-decoration: none;
+            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+        }
+        .nav-logo-img {
+            height: 44px;
+            width: auto;
+            max-width: 200px;
+            object-fit: contain;
+            display: block;
+        }
+        .nav-logo .hcm {
+            font-size: 0.75rem;
+            color: var(--white);
+            opacity: 0.8;
+            font-weight: 400;
+            margin-left: 0.5rem;
+        }
+        .nav-links { display: flex; align-items: center; gap: 2rem; }
+        .nav-links a {
+            color: rgba(255,255,255,0.75);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            transition: color 0.2s;
+        }
+        .nav-links a:hover { color: var(--gold); }
+        .nav-search {
+            display: flex;
+            align-items: center;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 40px;
+            padding: 0.35rem 1rem;
+            gap: 0.5rem;
+        }
+        .nav-search input {
+            background: none;
+            border: none;
+            outline: none;
+            color: white;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.85rem;
+            width: 180px;
+        }
+        .nav-search input::placeholder { color: rgba(255,255,255,0.4); }
+        .nav-search button {
+            background: none; border: none; cursor: pointer; color: var(--gold);
+            font-size: 1rem; padding: 0;
+        }
+        .cart-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--gold);
+            color: var(--dark) !important;
+            padding: 0.5rem 1.2rem;
+            border-radius: 40px;
+            font-weight: 600 !important;
+            letter-spacing: 0 !important;
+            transition: background 0.2s, transform 0.1s !important;
+        }
+        .cart-btn:hover { background: var(--gold-light) !important; transform: scale(1.02); }
+        .cart-badge {
+            background: var(--dark-brand);
+            color: var(--gold);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        /* ── MESSAGES ── */
+        .messages-container { max-width: 1280px; margin: 1rem auto; padding: 0 2rem; }
+        .alert {
+            padding: 0.85rem 1.25rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: 1px solid transparent;
+        }
+        .alert-success { background: var(--success-bg); color: var(--success-text); border-color: var(--success-border); }
+        .alert-error   { background: var(--danger-bg);  color: var(--danger-text);  border-color: var(--danger-border); }
+        .alert-warning { background: var(--warning-bg); color: var(--warning-text); border-color: var(--warning-border); }
+        .alert-info    { background: var(--info-bg);    color: var(--info-text);    border-color: var(--info-border); }
+
+        /* ── MAIN ── */
+        .main-content { max-width: 1280px; margin: 0 auto; padding: 3rem 2rem; }
+
+        /* ── BTN ── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            padding: 0.7rem 1.6rem;
+            border-radius: 6px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            border: none;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: var(--dark-brand); color: #fff; }
+        .btn-primary:hover { background: #2e261e; transform: translateY(-1px); }
+        [data-theme="dark"] .btn-primary { background: var(--accent); color: var(--accent-text); }
+        [data-theme="dark"] .btn-primary:hover { background: var(--accent-hover); }
+
+        .btn-gold { background: var(--accent); color: var(--accent-text); font-weight: 600; }
+        .btn-gold:hover { background: var(--accent-hover); transform: translateY(-1px); }
+        .btn-outline {
+            background: transparent;
+            border: 1.5px solid var(--text);
+            color: var(--text);
+        }
+        .btn-outline:hover { background: var(--text); color: var(--bg); }
+        .btn-sm { padding: 0.45rem 1rem; font-size: 0.8rem; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #a93226; }
+
+        /* ── FORM STYLES ── */
+        .form-group { margin-bottom: 1.25rem; }
+        .form-group label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 0.4rem;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.9rem;
+            background: white;
+            color: var(--dark);
+            transition: border-color 0.2s;
+            outline: none;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus { border-color: var(--gold); }
+        .form-errors { font-size: 0.8rem; color: var(--red); margin-top: 0.25rem; }
+
+        /* ── CARDS ── */
+        .card {
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+        .card-body { padding: 1.5rem; }
+
+        /* ── FOOTER ── */
+        footer {
+            background: var(--dark-brand);
+            color: rgba(255,255,255,0.65);
+            margin-top: 4rem;
+            padding: 3rem 2rem 1.5rem;
+        }
+        [data-theme="dark"] footer { background: #0E0A07; }
+        .footer-inner {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .footer-brand .logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.4rem;
+            color: var(--gold);
+            margin-bottom: 0.75rem;
+        }
+        .footer-brand p { font-size: 0.875rem; line-height: 1.7; }
+        .footer-brand .footer-slogan {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            color: var(--gold);
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.92;
+        }
+        .footer-socials {
+          display: flex;
+          gap: 0.6rem;
+          margin-top: 1rem;
+          flex-wrap: wrap;
+        }
+        .footer-socials a {
+          width: 38px;
+          height: 38px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(201, 168, 76, 0.12);
+          color: var(--gold);
+          border-radius: 50%;
+          transition: background 0.18s, color 0.18s, transform 0.18s;
+        }
+        .footer-socials a:hover {
+          background: var(--gold);
+          color: var(--dark);
+          transform: translateY(-2px);
+        }
+        .footer-col h4 {
+            color: white;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+        }
+        .footer-col a {
+            display: block;
+            color: rgba(255,255,255,0.5);
+            text-decoration: none;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+            transition: color 0.2s;
+        }
+        .footer-col a:hover { color: var(--gold); }
+        .footer-bottom {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding-top: 1.25rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.4rem 1.25rem;
+            font-size: 0.78rem;
+            color: rgba(255,255,255,0.35);
+            text-align: center;
+        }
+
+        /* ── PAGE HEADER ── */
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        .page-header .eyebrow {
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 0.5rem;
+        }
+        .page-header h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1.2;
+            color: var(--dark);
+        }
+        .page-header p { color: var(--muted); margin-top: 0.75rem; font-size: 1rem; }
+
+        /* ── PRODUCT CARD ── */
+        /* Mobile: 2-column product grid; desktop: auto-fill from 220px */
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+        }
+        @media (min-width: 600px) {
+            .product-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.25rem; }
+        }
+        @media (min-width: 900px) {
+            .product-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.5rem; }
+        }
+        .product-card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+            /* Keep the 70px sticky navbar from covering anchored cards
+               after Add-to-Cart redirects to #product-<id>. */
+            scroll-margin-top: 86px;
+        }
+        .product-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.1);
+        }
+        .product-card-img {
+            width: 100%;
+            aspect-ratio: 4/3;
+            object-fit: contain;
+            background: #ffffff;
+            display: block;
+            padding: 8px;
+        }
+        /* ── Product card image carousel ───────────────────────────── */
+        .product-card-media { position: relative; }
+        .pcard-link { display: block; }
+        .pcard-track {
+            display: flex;
+            width: 100%;
+            aspect-ratio: 4/3;
+            transition: transform .3s ease;
+            touch-action: pan-y;          /* let vertical page-scroll through */
+        }
+        .pcard-track .product-card-img {
+            flex: 0 0 100%;
+            width: 100%;
+            height: 100%;
+            aspect-ratio: auto;           /* the track sets the box */
+        }
+        .pcard-dots {
+            position: absolute;
+            left: 0; right: 0; bottom: 7px;
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            pointer-events: auto;
+        }
+        .pcard-dot {
+            width: 7px; height: 7px;
+            padding: 0;
+            border: none;
+            border-radius: 50%;
+            background: rgba(0,0,0,.28);
+            cursor: pointer;
+            transition: width .2s, background .2s, border-radius .2s;
+        }
+        .pcard-dot.is-active {
+            width: 18px;
+            border-radius: 4px;
+            background: var(--gold);
+        }
+        .product-card-img-placeholder {
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: linear-gradient(135deg, #f0ebe3, #e8ddd0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+        }
+        .product-card-body {
+            padding: 0.75rem;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        @media (min-width: 600px) {
+            .product-card-body { padding: 1.25rem; }
+        }
+        .product-card-category {
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 0.35rem;
+        }
+        .product-card-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--dark);
+            text-decoration: none;
+            margin-bottom: 0.35rem;
+            display: block;
+            line-height: 1.3;
+        }
+        @media (min-width: 600px) {
+            .product-card-name { font-size: 1rem; margin-bottom: 0.5rem; }
+        }
+        .product-card-name:hover { color: var(--gold); }
+        .product-card-price {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin-top: auto;
+            padding-top: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+        }
+        @media (min-width: 600px) {
+            .product-card-price { font-size: 1.1rem; padding-top: 0.75rem; }
+        }
+        .price-amount { color: var(--gold); }
+
+        /* ── UTILITIES ── */
+        .text-center { text-align: center; }
+        .text-muted { color: var(--muted); }
+        .mt-1 { margin-top: 0.5rem; }
+        .mt-2 { margin-top: 1rem; }
+        .mt-3 { margin-top: 1.5rem; }
+        .mb-2 { margin-bottom: 1rem; }
+        .flex { display: flex; }
+        .gap-2 { gap: 1rem; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .w-full { width: 100%; }
+
+        @media (max-width: 520px) {
+            .footer-inner { grid-template-columns: 1fr; gap: 1.5rem; }
+            .page-header h1 { font-size: 1.5rem; }
+        }
+        @media (min-width: 521px) and (max-width: 768px) {
+            .footer-inner { grid-template-columns: 1fr 1fr; gap: 2rem; }
+            .page-header h1 { font-size: 1.8rem; }
+        }
+
+        /* ══════════════════════════════════════════════════════════════
+           MOBILE NAVBAR
+           Logo left | icon strip right | bottom nav handles ALL links.
+           The .nav-mobile-icons div is hidden on desktop, shown on mobile.
+           ══════════════════════════════════════════════════════════════ */
+
+        /* Hidden on desktop */
+        .nav-mobile-icons { display: none; }
+
+        @media (max-width: 900px) {
+          .nav-inner { padding: 0 1rem; height: 56px; }
+
+          /* Kill desktop nav links + search bar entirely on mobile */
+          .nav-links  { display: none !important; }
+          .nav-search { display: none !important; }
+
+          /* Show the compact icon strip */
+          .nav-mobile-icons {
+            display: flex;
+            align-items: center;
+            gap: .45rem;
+          }
+          .nav-mobile-icons a,
+          .nav-mobile-icons button {
+            background: rgba(255,255,255,.08);
+            border: 1px solid rgba(255,255,255,.12);
+            color: rgba(255,255,255,.85);
+            border-radius: 50%;
+            width: 36px; height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            font-size: 1rem;
+            cursor: pointer;
+            position: relative;
+            transition: background .15s, border-color .15s;
+            flex-shrink: 0;
+          }
+          .nav-mobile-icons a:hover,
+          .nav-mobile-icons button:hover {
+            background: rgba(201,168,76,.2);
+            border-color: rgba(201,168,76,.4);
+          }
+          /* Cart pill — pill shape, gold, wider for the count */
+          .nav-mobile-cart {
+            border-radius: 20px !important;
+            padding: 0 .75rem !important;
+            width: auto !important;
+            gap: .3rem;
+            font-size: .8rem;
+            font-weight: 700;
+            background: var(--gold) !important;
+            border-color: var(--gold) !important;
+            color: #1A1410 !important;
+          }
+          /* Badge dot on notification / wishlist icon */
+          .nav-mobile-icons .mob-badge {
+            position: absolute;
+            top: -3px; right: -3px;
+            background: #dc3545;
+            color: #fff;
+            border-radius: 10px;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 1px 4px;
+            min-width: 15px;
+            text-align: center;
+            line-height: 1.4;
+            pointer-events: none;
+          }
+          .nav-logo     { font-size: 1.05rem; }
+          .nav-logo-img { height: 34px; }
+        }
+
+        /* ── Mobile bottom navigation bar ─────────────────────────────────
+           Fixed at the bottom on phones/tablets, hidden on desktop.
+        */
+        .bottom-nav { display: none; }
+        @media (max-width: 900px) {
+          .bottom-nav {
+            display: flex;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: var(--dark-brand);
+            border-top: 1px solid rgba(201,168,76,.2);
+            box-shadow: 0 -4px 20px rgba(0,0,0,.35);
+            z-index: 990;
+            justify-content: space-around;
+            padding: .4rem 0 calc(.4rem + env(safe-area-inset-bottom, 0px));
+          }
+          [data-theme="dark"] .bottom-nav {
+            background: #0E0A07;
+            border-top-color: rgba(201,168,76,.15);
+          }
+          .bottom-nav a {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            padding: .4rem .2rem .3rem;
+            color: rgba(255,255,255,.45);
+            text-decoration: none;
+            font-size: .6rem;
+            font-weight: 500;
+            letter-spacing: .3px;
+            position: relative;
+            transition: color .15s;
+          }
+          .bottom-nav a .bn-icon {
+            font-size: 1.25rem;
+            line-height: 1;
+            transition: transform .15s;
+          }
+          .bottom-nav a.active {
+            color: var(--gold);
+          }
+          .bottom-nav a.active .bn-icon {
+            transform: translateY(-2px);
+          }
+          .bottom-nav a.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 4px;
+            background: var(--gold);
+            border-radius: 50%;
+          }
+          .bottom-nav a:hover { color: rgba(201,168,76,.8); }
+          .bottom-nav .bn-badge {
+            position: absolute;
+            top: 2px;
+            right: calc(50% - 20px);
+            background: #e74c3c;
+            color: #fff;
+            font-size: 9px;
+            font-weight: 700;
+            border-radius: 10px;
+            padding: 1px 5px;
+            min-width: 16px;
+            text-align: center;
+            line-height: 1.4;
+          }
+          /* Push body content up so it isn't hidden behind the bar */
+          body { padding-bottom: 72px; }
+          .main-content { padding: 1rem 0.75rem 1.5rem; }
+          .messages-container { padding: 0 0.75rem; }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body id="top">
+{% if site_settings.maintenance_mode and user.is_staff %}
+<div style="background:#f59e0b;color:#1d1405;text-align:center;padding:0.5rem 1rem;font-size:0.88rem;font-weight:600;position:relative;z-index:1000;">
+  ⚠️ Maintenance mode is <strong>ON</strong> — visitors see the maintenance page. You see the live site because you're staff.
+  <a href="?preview_maintenance=1" style="color:#1d1405;text-decoration:underline;margin-left:0.4rem;">Preview it</a> ·
+  <a href="{% url 'admin_site_settings' %}" style="color:#1d1405;text-decoration:underline;">Turn off</a>
+</div>
+{% endif %}
+
+    <nav class="navbar">
+        <div class="nav-inner">
+            <a href="{% url 'home' %}" class="nav-logo" title="{{ site_brand }} — {{ site_slogan }}">
+                {% load static %}
+                <img src="{{ site_logo_path }}"
+                     alt="{{ site_brand }} logo"
+                     class="nav-logo-img"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='inline';">
+                <span class="nav-logo-text" style="display:none;">
+                    {{ site_brand }} <span class="hcm">({{ site_brand_short }})</span>
+                </span>
+            </a>
+            <form class="nav-search" action="{% url 'product_list' %}" method="get">
+                <button type="submit">🔍</button>
+                <input type="text" name="q" placeholder="Search products..." value="{{ request.GET.q }}">
+            </form>
+            <!-- ── Desktop nav links (hidden on mobile via CSS) ─────── -->
+            <div class="nav-links">
+                <a href="{% url 'product_list' %}">Shop</a>
+                <a href="{% url 'contact' %}">Contact</a>
+                <a href="{% url 'branches' %}">Our Branches</a>
+                {% if user.is_authenticated %}
+                    {% if user.is_staff %}
+                    <a href="{% url 'admin_dashboard' %}" style="color:var(--gold);font-weight:600;">⚙ Admin</a>
+                    {% endif %}
+                    <a href="{% url 'profile' %}">{{ user.username }}</a>
+                    <a href="{% url 'my_orders' %}">Orders</a>
+                    <a href="{% url 'wishlist' %}" title="My Watchlist" style="position:relative;">♥<span id="wl-count" style="display:none;position:absolute;top:-6px;right:-8px;background:#e74c3c;color:#fff;border-radius:10px;font-size:10px;padding:1px 5px;font-weight:700;"></span></a>
+                    <a href="{% url 'notifications' %}" title="Notifications" id="notif-bell" style="position:relative;">
+                      🔔<span id="notif-count" style="display:none;position:absolute;top:-6px;right:-8px;background:#dc3545;color:#fff;border-radius:10px;font-size:10px;padding:1px 5px;font-weight:700;"></span>
+                    </a>
+                    <a href="{% url 'ai_chat' %}" title="AI Assistant" style="color:var(--gold);">🤖</a>
+                    <form method="post" action="{% url 'logout' %}" style="display:inline">{% csrf_token %}<button type="submit" style="background:none;border:none;cursor:pointer;color:inherit;font:inherit;padding:0;">Logout</button></form>
+                {% else %}
+                    <a href="{% url 'login' %}">Login</a>
+                    <a href="{% url 'register' %}">Register</a>
+                {% endif %}
+                <button class="theme-toggle" id="theme-btn" title="Toggle dark mode" aria-label="Toggle dark mode">
+                  <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                  </svg>
+                  <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="4"></circle>
+                    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+                  </svg>
+                </button>
+                <a href="{% url 'cart' %}" class="cart-btn">
+                    🛒 Cart <span class="cart-badge">{{ cart_count }}</span>
+                </a>
+            </div>
+
+            <!-- ── Mobile icon strip (visible only on ≤900px screens) ── -->
+            <div class="nav-mobile-icons">
+                <!-- Dark/light toggle -->
+                <button class="theme-toggle" id="theme-btn-mob" title="Toggle dark mode" aria-label="Toggle dark mode">
+                  <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                  <svg class="icon-sun"  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>
+                </button>
+                {% if user.is_authenticated %}
+                <!-- Notifications bell -->
+                <a href="{% url 'notifications' %}" title="Notifications" aria-label="Notifications">
+                  🔔<span class="mob-badge" id="mob-notif-count" style="display:none;"></span>
+                </a>
+                {% if user.is_staff %}
+                <!-- Admin shortcut -->
+                <a href="{% url 'admin_dashboard' %}" title="Admin panel" aria-label="Admin" style="color:var(--gold);border-color:rgba(201,168,76,.35);">⚙</a>
+                {% endif %}
+                {% else %}
+                <!-- Login shortcut -->
+                <a href="{% url 'login' %}" title="Sign in" aria-label="Sign in">👤</a>
+                {% endif %}
+                <!-- Cart pill -->
+                <a href="{% url 'cart' %}" class="nav-mobile-cart" aria-label="Cart">
+                  🛒 <span>{{ cart_count }}</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    {% if messages %}
+    <div class="messages-container">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <div class="logo">{{ site_brand }} ({{ site_brand_short }})</div>
+                <p class="footer-slogan">{{ site_slogan }}</p>
+                <p>Your premier destination for quality products and everyday essentials — delivered fast across all 16 Ghana regions. Pay securely with Mobile Money.</p>
+
+                
+                {% if site_settings.facebook_url or site_settings.instagram_url or site_settings.twitter_url or site_settings.tiktok_url or site_settings.whatsapp %}
+                <div class="footer-socials">
+                  {% if site_settings.facebook_url %}
+                  <a href="{{ site_settings.facebook_url }}" target="_blank" rel="noopener" aria-label="Facebook" title="Facebook">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.13 8.44 9.88v-6.99H7.9v-2.89h2.54V9.85c0-2.51 1.49-3.89 3.78-3.89 1.09 0 2.24.19 2.24.19v2.47h-1.26c-1.24 0-1.63.78-1.63 1.57v1.88h2.78l-.45 2.89h-2.34V22c4.78-.75 8.44-4.88 8.44-9.94z"/></svg>
+                  </a>
+                  {% endif %}
+                  {% if site_settings.instagram_url %}
+                  <a href="{{ site_settings.instagram_url }}" target="_blank" rel="noopener" aria-label="Instagram" title="Instagram">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M12 2c2.72 0 3.06.01 4.12.06 1.07.05 1.79.22 2.43.47.66.26 1.22.6 1.77 1.15.55.55.89 1.11 1.15 1.77.25.64.42 1.36.47 2.43.05 1.07.06 1.4.06 4.12s-.01 3.06-.06 4.12c-.05 1.07-.22 1.79-.47 2.43-.26.66-.6 1.22-1.15 1.77-.55.55-1.11.89-1.77 1.15-.64.25-1.36.42-2.43.47-1.07.05-1.4.06-4.12.06s-3.06-.01-4.12-.06c-1.07-.05-1.79-.22-2.43-.47-.66-.26-1.22-.6-1.77-1.15-.55-.55-.89-1.11-1.15-1.77-.25-.64-.42-1.36-.47-2.43C2.01 15.06 2 14.72 2 12s.01-3.06.06-4.12c.05-1.07.22-1.79.47-2.43.26-.66.6-1.22 1.15-1.77.55-.55 1.11-.89 1.77-1.15.64-.25 1.36-.42 2.43-.47C8.94 2.01 9.28 2 12 2zm0 1.8c-2.67 0-2.99.01-4.04.06-.98.04-1.5.21-1.86.34-.47.18-.8.4-1.15.75-.35.35-.57.68-.75 1.15-.13.36-.3.88-.34 1.86C3.81 9.01 3.8 9.33 3.8 12s.01 2.99.06 4.04c.04.98.21 1.5.34 1.86.18.47.4.8.75 1.15.35.35.68.57 1.15.75.36.13.88.3 1.86.34 1.05.05 1.37.06 4.04.06s2.99-.01 4.04-.06c.98-.04 1.5-.21 1.86-.34.47-.18.8-.4 1.15-.75.35-.35.57-.68.75-1.15.13-.36.3-.88.34-1.86.05-1.05.06-1.37.06-4.04s-.01-2.99-.06-4.04c-.04-.98-.21-1.5-.34-1.86a3.05 3.05 0 0 0-.75-1.15 3.05 3.05 0 0 0-1.15-.75c-.36-.13-.88-.3-1.86-.34C14.99 3.81 14.67 3.8 12 3.8zm0 3.06a5.14 5.14 0 1 1 0 10.28 5.14 5.14 0 0 1 0-10.28zm0 1.8a3.34 3.34 0 1 0 0 6.68 3.34 3.34 0 0 0 0-6.68zm5.34-2.04a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4z"/></svg>
+                  </a>
+                  {% endif %}
+                  {% if site_settings.twitter_url %}
+                  <a href="{{ site_settings.twitter_url }}" target="_blank" rel="noopener" aria-label="X (Twitter)" title="X (Twitter)">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zM17.083 19.77h1.833L7.084 4.126H5.117z"/></svg>
+                  </a>
+                  {% endif %}
+                  {% if site_settings.tiktok_url %}
+                  <a href="{{ site_settings.tiktok_url }}" target="_blank" rel="noopener" aria-label="TikTok" title="TikTok">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5.8 20.1a6.34 6.34 0 0 0 10.86-4.43V8.55a8.16 8.16 0 0 0 4.77 1.52V6.69h-1.84z"/></svg>
+                  </a>
+                  {% endif %}
+                  {% if site_settings.whatsapp %}
+                  <a href="https://wa.me/{{ site_settings.whatsapp }}" target="_blank" rel="noopener" aria-label="WhatsApp" title="WhatsApp">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.999-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413"/></svg>
+                  </a>
+                  {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            <div class="footer-col">
+                <h4>Shop</h4>
+                <a href="{% url 'product_list' %}">All Products</a>
+                <a href="{% url 'cart' %}">My Cart</a>
+                {% if user.is_authenticated %}
+                <a href="{% url 'my_orders' %}">My Orders</a>
+                {% endif %}
+            </div>
+            <div class="footer-col">
+                <h4>Info</h4>
+                <a href="{% url 'contact' %}">Contact Us</a>
+                <a href="{% url 'terms' %}">Terms & Conditions</a>
+                <a href="{% url 'privacy' %}">Privacy Policy</a>
+            </div>
+            <div class="footer-col">
+                <h4>Account</h4>
+                {% if user.is_authenticated %}
+                <a href="{% url 'profile' %}">Profile</a>
+                <form method="post" action="{% url 'logout' %}" style="display:inline">{% csrf_token %}<button type="submit" style="background:none;border:none;cursor:pointer;color:inherit;font:inherit;padding:0;">Logout</button></form>
+                {% else %}
+                <a href="{% url 'login' %}">Login</a>
+                <a href="{% url 'register' %}">Create Account</a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <span>&copy; 2026 {{ site_brand }} ({{ site_brand_short }}). All rights reserved.</span>
+            <span>Powered by JAMS TECH🛜</span>
+        </div>
+    </footer>
+{% if user.is_authenticated %}
+<script>
+/* Silent background location detection — runs once per session */
+(function() {
+  const key = 'cm_loc_sent';
+  if (sessionStorage.getItem(key)) return;   // already sent this session
+  if (!navigator.geolocation) return;
+
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    const csrf = '{{ csrf_token }}';
+    fetch('{% url "save_location" %}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': csrf },
+      body: 'lat=' + pos.coords.latitude + '&lng=' + pos.coords.longitude,
+    }).then(r => r.json()).then(d => {
+      if (d.ok) sessionStorage.setItem(key, '1');
+    }).catch(() => {});
+  }, function() {}, { timeout: 8000, maximumAge: 600000 });
+})();
+</script>
+
+{% if user.is_authenticated %}
+<script>
+// FEAT-NOTIF: Poll for unread notification count every 60 seconds
+(function pollNotifications() {
+  function refreshBell() {
+    fetch('{% url "notifications_count" %}')
+      .then(r => r.json())
+      .then(d => {
+        const badge = document.getElementById('notif-count');
+        if (!badge) return;
+        if (d.unread > 0) {
+          badge.textContent = d.unread > 99 ? '99+' : d.unread;
+          badge.style.display = 'inline';
+        } else {
+          badge.style.display = 'none';
+        }
+      }).catch(() => {});
+  }
+  refreshBell();
+  setInterval(refreshBell, 60000);
+})();
+
+// Wishlist count badge
+(function updateWatchlistBadge() {
+  fetch('/api/wishlist/count/')
+    .then(r => r.json())
+    .then(d => {
+      const badge = document.getElementById('wl-count');
+      if (!badge) return;
+      if (d.count > 0) {
+        badge.textContent = d.count > 99 ? '99+' : d.count;
+        badge.style.display = 'inline';
+      } else {
+        badge.style.display = 'none';
+      }
+    }).catch(() => {});
+})();
+</script>
+{% endif %}
+{% endif %}
+<script>
+(function() {
+  /* Theme is already applied synchronously by the FOUC-prevention script
+     in <head>. This block only wires up the click-to-toggle behaviour
+     and persists the choice. */
+  document.addEventListener('DOMContentLoaded', function() {
+    // Wire desktop + mobile theme toggles to the same handler
+    function doToggle() {
+      var html = document.documentElement;
+      html.classList.add('theme-swapping');
+      var next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      try { localStorage.setItem('hcm-theme', next); } catch (e) {}
+      requestAnimationFrame(function() { requestAnimationFrame(function() { html.classList.remove('theme-swapping'); }); });
+    }
+    var btn    = document.getElementById('theme-btn');
+    var btnMob = document.getElementById('theme-btn-mob');
+    if (btn)    btn.addEventListener('click', doToggle);
+    if (btnMob) btnMob.addEventListener('click', doToggle);
+  });
+})();
+</script>
+{% block extra_js %}{% endblock %}
+
+{% comment %}
+Mobile bottom navigation.
+Hidden on desktop via CSS (display:none). Active state determined by
+matching the current request path against each link.
+Hidden on fulfillment officer / rider / admin / auth pages — those have their
+own headers and don't need the customer bottom nav.
+{% endcomment %}
+{% with cur_path=request.path %}
+{% if not cur_path|slice:":7" == "/panel/" and not cur_path|slice:":12" == "/fulfillment officer" and not cur_path|slice:":7" == "/admin/" and not cur_path|slice:":7" == "/rider/" and not cur_path|slice:":7" == "/login/" and not cur_path|slice:":10" == "/register/" %}
+<nav class="bottom-nav" aria-label="Bottom navigation">
+  <a href="{% url 'home' %}" class="{% if cur_path == '/' %}active{% endif %}">
+    <span class="bn-icon">🏠</span>
+    <span>Home</span>
+  </a>
+  <a href="{% url 'product_list' %}" class="{% if cur_path|slice:":10" == '/products/' %}active{% endif %}">
+    <span class="bn-icon">🛍️</span>
+    <span>Shop</span>
+  </a>
+  <a href="{% url 'cart' %}" class="{% if cur_path == '/cart/' %}active{% endif %}">
+    <span class="bn-icon">🛒</span>
+    <span>Cart</span>
+    {% if cart_count %}<span class="bn-badge">{{ cart_count }}</span>{% endif %}
+  </a>
+  <a href="{% url 'wishlist' %}" class="{% if cur_path == '/wishlist/' %}active{% endif %}">
+    <span class="bn-icon">♥</span>
+    <span>Wishlist</span>
+    {% if user.is_authenticated %}<span class="bn-badge" id="bn-wl-count" style="display:none;"></span>{% endif %}
+  </a>
+  {% if user.is_authenticated %}
+  <a href="{% url 'profile' %}" class="{% if cur_path == '/profile/' or cur_path|slice:":11" == '/my-orders/' %}active{% endif %}">
+    <span class="bn-icon">👤</span>
+    <span>Profile</span>
+  </a>
+  {% else %}
+  <a href="{% url 'login' %}">
+    <span class="bn-icon">👤</span>
+    <span>Sign in</span>
+  </a>
+  {% endif %}
+</nav>
+<script>
+// Mirror the wishlist count fetch into the bottom-nav badge too.
+(function() {
+  var bn = document.getElementById('bn-wl-count');
+  if (!bn) return;
+  fetch('/api/wishlist/count/')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.count > 0) {
+        bn.textContent = d.count > 99 ? '99+' : d.count;
+        bn.style.display = 'inline-block';
+      }
+    })
+    .catch(function() {});
+})();
+</script>
+{% endif %}
+{% endwith %}
+
+<script>
+// ─── Product card image carousel (dots + swipe, no auto-play) ───────────────
+(function () {
+  var cards = document.querySelectorAll('.product-card-media.has-carousel');
+  cards.forEach(function (media) {
+    var link  = media.querySelector('.pcard-link');
+    var track = media.querySelector('.pcard-track');
+    if (!track) return;
+    var slides = track.querySelectorAll('.product-card-img');
+    var dots   = media.querySelectorAll('.pcard-dot');
+    var count  = slides.length;
+    if (count < 2) return;
+
+    var idx = 0, startX = 0, startY = 0, dragging = false, swiped = false;
+
+    function loadSlide(i) {
+      // Lazy: swap data-src -> src the first time a slide is shown.
+      var img = slides[i];
+      if (img && img.dataset.src) {
+        img.src = img.dataset.src;
+        img.removeAttribute('data-src');
+      }
+    }
+    function go(i) {
+      idx = Math.max(0, Math.min(count - 1, i));
+      loadSlide(idx);
+      loadSlide(idx + 1); // preload neighbour for a smooth next swipe
+      track.style.transform = 'translateX(' + (-idx * 100) + '%)';
+      dots.forEach(function (d, di) { d.classList.toggle('is-active', di === idx); });
+    }
+
+    dots.forEach(function (d, di) {
+      d.addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation(); go(di);
+      });
+    });
+
+    // Block the link navigation only when the gesture was a horizontal swipe.
+    if (link) {
+      link.addEventListener('click', function (e) {
+        if (swiped) { e.preventDefault(); swiped = false; }
+      });
+    }
+
+    media.addEventListener('touchstart', function (e) {
+      startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+      dragging = true; swiped = false;
+    }, { passive: true });
+
+    media.addEventListener('touchmove', function (e) {
+      if (!dragging) return;
+      var dx = e.touches[0].clientX - startX;
+      var dy = e.touches[0].clientY - startY;
+      if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) swiped = true;
+    }, { passive: true });
+
+    media.addEventListener('touchend', function (e) {
+      if (!dragging) return; dragging = false;
+      var dx = e.changedTouches[0].clientX - startX;
+      if (Math.abs(dx) > 40) { swiped = true; go(dx < 0 ? idx + 1 : idx - 1); }
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,63 @@
+{% extends "mall/admin/base_admin.html" %}
+{% block title %}2FA Setup — Market Admin{% endblock %}
+{% block page_title %}Two-Factor Authentication{% endblock %}
+
+{% block content %}
+<div style="max-width:520px;">
+  {% if totp.is_enabled %}
+  <div class="card" style="margin-bottom:1.5rem;border-left:4px solid var(--green);">
+    <div class="card-body">
+      <p style="margin:0;color:var(--green);font-weight:500;">✅ 2FA is currently <strong>enabled</strong> on your account.</p>
+    </div>
+  </div>
+  {% if user.is_superuser %}
+  <div class="card">
+    <div class="card-body">
+      <p style="color:var(--muted);margin-bottom:1rem;font-size:0.9rem;">Superusers can disable 2FA. This will remove the extra verification step on your next login.</p>
+      <form method="post">{% csrf_token %}
+        <input type="hidden" name="action" value="disable">
+        <button type="submit" class="btn btn-danger" onclick="return confirm('Disable 2FA on your account?')">Disable 2FA</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <p style="color:var(--muted);margin-bottom:1.5rem;line-height:1.6;">
+    Scan the QR code below with an authenticator app (Google Authenticator, Authy, 1Password, etc.), then enter the 6-digit code to activate.
+  </p>
+
+  <div class="card" style="margin-bottom:1.5rem;text-align:center;padding:2rem;">
+    <img src="data:image/png;base64,{{ qr_b64 }}" alt="2FA QR Code"
+         style="width:200px;height:200px;display:block;margin:0 auto 1rem;">
+    <p style="font-size:0.78rem;color:var(--muted);">Can't scan? Enter this key manually in your app:</p>
+    <code style="font-size:0.82rem;background:var(--surface-alt,#f5f2ee);padding:4px 8px;border-radius:4px;letter-spacing:2px;">{{ totp.secret }}</code>
+  </div>
+
+  {% if error %}
+  <div style="background:#fff0f0;border:1px solid #f5c6cb;border-radius:8px;padding:.75rem 1rem;margin-bottom:1rem;color:#721c24;font-size:.88rem;">
+    {{ error }}
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <div class="card-body">
+      <form method="post">{% csrf_token %}
+        <input type="hidden" name="action" value="enable">
+        <label style="display:block;margin-bottom:.4rem;font-size:.88rem;color:var(--muted);">Enter the 6-digit code from your app</label>
+        <div style="display:flex;gap:.75rem;">
+          <input type="text" name="token" maxlength="6" inputmode="numeric" autocomplete="one-time-code"
+                 placeholder="000000" autofocus
+                 style="flex:1;padding:.6rem .9rem;border:1px solid var(--border);border-radius:8px;font-size:1.2rem;letter-spacing:4px;text-align:center;">
+          <button type="submit" class="btn btn-gold">Enable 2FA</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  <div style="margin-top:1rem;">
+    <a href="{% url 'admin_dashboard' %}" class="btn btn-ghost">← Back to Dashboard</a>
+  </div>
+</div>
+{% endblock %}

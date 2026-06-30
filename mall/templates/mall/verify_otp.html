@@ -1,0 +1,51 @@
+{% extends 'mall/base.html' %}
+{% block title %}Verify Your Account — Market{% endblock %}
+
+{% block extra_css %}
+<style>
+.auth-wrapper { max-width: 460px; margin: 0 auto; }
+.auth-card { background: white; border: 1px solid var(--border); border-radius: 16px; padding: 2.5rem; }
+.auth-logo { text-align: center; margin-bottom: 2rem; }
+.auth-logo h2 { font-family: 'Playfair Display', serif; font-size: 1.75rem; margin-bottom: 0.35rem; }
+.auth-logo p { color: var(--muted); font-size: 0.9rem; }
+.otp-icon { font-size: 3rem; text-align: center; margin-bottom: 1rem; }
+.otp-hint { background: #fdf5e0; border: 1px solid #f0c96e; border-radius: 8px; padding: 0.85rem 1rem; font-size: 0.85rem; color: #7a5c00; margin-bottom: 1.5rem; text-align: center; }
+.resend-link { text-align: center; margin-top: 1.25rem; font-size: 0.875rem; color: var(--muted); }
+.resend-link a { color: var(--gold); text-decoration: none; font-weight: 500; }
+input[name="otp"] { letter-spacing: 0.4em; font-size: 1.4rem; text-align: center; font-weight: 700; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card">
+    <div class="otp-icon">📧</div>
+    <div class="auth-logo">
+      <h2>Check Your Email</h2>
+      <p>We sent a 6-digit code to <strong>{{ user.email }}</strong></p>
+    </div>
+    <div class="otp-hint">
+      ⏱ This code expires in <strong>10 minutes</strong>. Check your spam folder if you don't see it.
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label>{{ form.otp.label }}</label>
+        {{ form.otp }}
+        {% if form.otp.errors %}<div class="form-errors">{{ form.otp.errors }}</div>{% endif %}
+      </div>
+      {% if messages %}
+        {% for msg in messages %}
+          <div class="alert alert-{% if msg.tags == 'error' %}error{% else %}success{% endif %}" style="margin-bottom:1rem;">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+      <button type="submit" class="btn btn-gold w-full" style="padding:0.9rem; font-size:1rem; margin-top:0.5rem;">
+        Verify Code →
+      </button>
+    </form>
+  </div>
+  <div class="resend-link">
+    Didn't receive the code? <a href="{% url 'resend_otp' %}">Resend</a>
+  </div>
+</div>
+{% endblock %}

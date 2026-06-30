@@ -1,0 +1,97 @@
+{% extends 'mall/base.html' %}
+{% block title %}Our Branches — Market{% endblock %}
+
+{% block extra_css %}
+<style>
+.branches-layout { display: grid; grid-template-columns: 220px 1fr; gap: 2rem; }
+.region-nav { position: sticky; top: 90px; align-self: start; }
+.region-nav-card { background: white; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.region-nav-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.65rem 1.1rem; font-size: 0.85rem; cursor: pointer;
+    border-left: 3px solid transparent; text-decoration: none; color: var(--dark);
+    transition: all 0.15s;
+}
+.region-nav-item:hover { background: var(--cream); }
+.region-nav-item.active { border-left-color: var(--gold); background: #fdf9f0; font-weight: 600; color: var(--dark); }
+.region-nav-count { font-size: 0.72rem; background: var(--cream); padding: 1px 7px; border-radius: 10px; color: var(--muted); }
+
+.region-section { margin-bottom: 3rem; scroll-margin-top: 100px; }
+.region-heading {
+    font-family: 'Playfair Display', serif; font-size: 1.4rem;
+    margin-bottom: 1rem; display: flex; align-items: center; gap: 0.6rem;
+}
+.branch-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+.b-card {
+    background: white; border: 1px solid var(--border); border-radius: 12px;
+    padding: 1.25rem; transition: box-shadow 0.2s, transform 0.2s;
+}
+.b-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.08); transform: translateY(-2px); }
+.b-card-name { font-weight: 700; font-size: 0.95rem; margin-bottom: 0.3rem; color: var(--dark); }
+.b-card-addr { font-size: 0.82rem; color: var(--muted); line-height: 1.5; margin-bottom: 0.75rem; }
+.b-card-pills { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.b-pill { font-size: 0.72rem; padding: 3px 9px; background: var(--cream); border-radius: 20px; color: var(--muted); display: flex; align-items: center; gap: 0.3rem; }
+
+@media (max-width: 768px) {
+    .branches-layout { grid-template-columns: 1fr; }
+    .region-nav { display: none; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <p class="eyebrow">✦ Nationwide Network ✦</p>
+    <h1>Our Branches</h1>
+    <p>Market has a branch in all 16 regions of Ghana. Find the one closest to you.</p>
+</div>
+
+<div class="branches-layout">
+    <!-- Sidebar nav -->
+    <aside class="region-nav">
+        <div class="region-nav-card">
+            {% for key, name in region_choices %}
+            {% if grouped|dictsort:"0" %}
+            {% endif %}
+            <a class="region-nav-item" href="#region-{{ key }}">
+                {{ name|cut:" Region" }}
+                {% if grouped|length %}
+                <span class="region-nav-count">
+                    {% for rkey, rdata in grouped.items %}{% if rkey == key %}{{ rdata.branches|length }}{% endif %}{% endfor %}
+                </span>
+                {% endif %}
+            </a>
+            {% endfor %}
+        </div>
+    </aside>
+
+    <!-- Branches by region -->
+    <div>
+        {% for key, name in region_choices %}
+        {% if grouped|dictsort:"0" %}{% endif %}
+        {% for rkey, rdata in grouped.items %}
+        {% if rkey == key %}
+        <div class="region-section" id="region-{{ key }}">
+            <div class="region-heading">
+                🗺️ {{ rdata.name }}
+            </div>
+            <div class="branch-cards-grid">
+                {% for branch in rdata.branches %}
+                <div class="b-card">
+                    <div class="b-card-name">{{ branch.name }}</div>
+                    <div class="b-card-addr">{{ branch.address }}, {{ branch.city }}</div>
+                    <div class="b-card-pills">
+                        {% if branch.phone %}<span class="b-pill">📞 {{ branch.phone }}</span>{% endif %}
+                        {% if branch.opening_hours %}<span class="b-pill">🕐 {{ branch.opening_hours }}</span>{% endif %}
+                        {% if branch.landmark %}<span class="b-pill">📌 {{ branch.landmark }}</span>{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

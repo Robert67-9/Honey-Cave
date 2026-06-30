@@ -1,0 +1,70 @@
+{% extends 'mall/base.html' %}
+{% block title %}Login — Market{% endblock %}
+
+{% block extra_css %}
+<style>
+.auth-wrapper { max-width: 440px; margin: 0 auto; }
+.auth-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2.5rem;
+}
+.auth-logo { text-align: center; margin-bottom: 2rem; }
+.auth-logo h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.75rem;
+    margin-bottom: 0.35rem;
+}
+.auth-logo p { color: var(--muted); font-size: 0.9rem; }
+.auth-footer { text-align: center; margin-top: 1.25rem; font-size: 0.875rem; color: var(--muted); }
+.auth-footer a { color: var(--gold); text-decoration: none; font-weight: 500; }
+.auth-divider { display:flex; align-items:center; gap:.75rem; margin:1.25rem 0 1rem; color:var(--muted); font-size:.8rem; }
+.auth-divider::before, .auth-divider::after { content:''; flex:1; height:1px; background:var(--border); }
+.btn-google {
+    display:flex; align-items:center; justify-content:center; gap:.65rem;
+    width:100%; padding:.7rem 1rem; background:#fff;
+    border:1px solid var(--border); border-radius:8px;
+    color:#3c4043; font-weight:500; font-size:.92rem;
+    text-decoration:none; transition:background .15s, box-shadow .15s;
+}
+.btn-google:hover { background:#f8f9fa; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <div class="auth-logo">
+            <h2>Welcome Back</h2>
+            <p>Sign in to your Market account</p>
+        </div>
+        {% include 'mall/includes/google_signin_button.html' %}
+        <div class="auth-divider"><span>or</span></div>
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+            <div class="form-group">
+                <label>{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}<div class="form-errors">{{ field.errors }}</div>{% endif %}
+            </div>
+            {% endfor %}
+            {% if form.non_field_errors %}
+            <div class="alert alert-error">{{ form.non_field_errors }}</div>
+            {% endif %}
+            <button type="submit" class="btn btn-gold w-full" style="padding:0.9rem; font-size:1rem; margin-top:0.5rem;">
+                Sign In →
+            </button>
+            <div style="text-align:center;margin-top:1rem;">
+                <a href="{% url 'forgot_password' %}" style="color:var(--muted);font-size:0.85rem;text-decoration:none;">Forgot your password?</a>
+            </div>
+        </form>
+
+
+    </div>
+    <div class="auth-footer">
+        Don't have an account? <a href="{% url 'register' %}">Create one</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "mall/admin/base_admin.html" %}
+{% block title %}Branches — Market Admin{% endblock %}
+{% block page_title %}Branches{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+    <p style="color:var(--muted);font-size:0.88rem;">{{ branches|length }} branches across all 16 regions</p>
+    <a href="{% url 'admin_branch_add' %}" class="btn btn-gold btn-sm">+ Add Branch</a>
+</div>
+
+{% regroup branches by get_region_display as region_list %}
+{% for region_group in region_list %}
+<div style="margin-bottom:2rem;">
+    <h3 style="font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:0.75rem;color:var(--muted);border-bottom:1px solid var(--border);padding-bottom:0.5rem;">
+        🗺️ {{ region_group.grouper }}
+    </h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Branch Name</th>
+                <th>City</th>
+                <th>Phone</th>
+                <th>Hours</th>
+                <th>Status</th>
+                <th>Orders</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for branch in region_group.list %}
+            <tr>
+                <td style="font-weight:600;">{{ branch.name }}</td>
+                <td>{{ branch.city }}</td>
+                <td style="font-size:0.82rem;color:var(--muted);">{{ branch.phone|default:"—" }}</td>
+                <td style="font-size:0.78rem;color:var(--muted);">{{ branch.opening_hours }}</td>
+                <td>
+                    <span class="badge {% if branch.is_active %}badge-delivered{% else %}badge-cancelled{% endif %}">
+                        {% if branch.is_active %}Active{% else %}Inactive{% endif %}
+                    </span>
+                </td>
+                <td>{{ branch.orders.count }}</td>
+                <td>
+                    <a href="{% url 'admin_branch_edit' branch.pk %}" class="btn btn-ghost btn-sm">Edit</a>
+                    <a href="{% url 'admin_branch_delete' branch.pk %}" class="btn btn-danger btn-sm">Delete</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endfor %}
+{% endblock %}

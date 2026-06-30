@@ -1,0 +1,126 @@
+{% extends "mall/fulfillment_officer/base.html" %}
+{% block title %}Order History — Fulfillment Officer Portal{% endblock %}
+
+{% block content %}
+<h1 style="margin-top:0;">📜 Order History</h1>
+<p style="color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;">
+  All orders at <strong>{{ branch.name }}</strong> from the last {{ cutoff_days }} days.
+</p>
+
+<form method="get" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem 1.2rem;margin-bottom:1.25rem;display:grid;grid-template-columns:1fr auto auto auto;gap:.6rem;align-items:end;">
+  <div>
+    <label style="display:block;font-size:.78rem;color:var(--muted);font-weight:600;margin-bottom:.25rem;text-transform:uppercase;">Search</label>
+    <input type="text" name="q" value="{{ q }}" placeholder="Order number, customer name, or phone"
+           style="width:100%;padding:.55rem .7rem;border:1px solid var(--border);border-radius:6px;font-family:inherit;">
+  </div>
+  <div>
+    <label style="display:block;font-size:.78rem;color:var(--muted);font-weight:600;margin-bottom:.25rem;text-transform:uppercase;">Status</label>
+    <select name="status" style="padding:.55rem .7rem;border:1px solid var(--border);border-radius:6px;font-family:inherit;background:#fff;">
+      <option value="all"        {% if status_filter == 'all' %}selected{% endif %}>All</option>
+      <option value="pending"    {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+      <option value="processing" {% if status_filter == 'processing' %}selected{% endif %}>Processing</option>
+      <option value="dispatched" {% if status_filter == 'dispatched' %}selected{% endif %}>Dispatched</option>
+      <option value="delivered"  {% if status_filter == 'delivered' %}selected{% endif %}>Delivered</option>
+      <option value="cancelled"  {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+    </select>
+  </div>
+  <div>
+    <label style="display:block;font-size:.78rem;color:var(--muted);font-weight:600;margin-bottom:.25rem;text-transform:uppercase;">Type</label>
+    <select name="fulfillment" style="padding:.55rem .7rem;border:1px solid var(--border);border-radius:6px;font-family:inherit;background:#fff;">
+      <option value="all"      {% if fulfillment_filter == 'all' %}selected{% endif %}>All</option>
+      <option value="delivery" {% if fulfillment_filter == 'delivery' %}selected{% endif %}>Delivery</option>
+      <option value="pickup"   {% if fulfillment_filter == 'pickup' %}selected{% endif %}>Pickup</option>
+    </select>
+  </div>
+  <button type="submit" style="padding:.55rem 1rem;background:#C9A84C;color:#1A1410;border:none;border-radius:6px;font-weight:600;cursor:pointer;">
+    Apply
+  </button>
+</form>
+
+<p style="color:var(--muted);font-size:.85rem;margin-bottom:.6rem;">
+  {% if page_obj.paginator.count %}
+    Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }} order{{ page_obj.paginator.count|pluralize }}
+    {% if q or status_filter != 'all' or fulfillment_filter != 'all' %}
+      · <a href="{% url 'fulfillment_officer_history' %}" style="color:var(--gold);">Clear filters</a>
+    {% endif %}
+  {% else %}
+    No orders match your filters.
+  {% endif %}
+</p>
+
+{% if page_obj %}
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+<table style="width:100%;border-collapse:collapse;">
+  <thead>
+    <tr style="background:#fafafa;border-bottom:2px solid var(--border);">
+      <th style="text-align:left;padding:.7rem 1rem;font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Order</th>
+      <th style="text-align:left;padding:.7rem 1rem;font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Customer</th>
+      <th style="text-align:right;padding:.7rem 1rem;font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Items</th>
+      <th style="text-align:right;padding:.7rem 1rem;font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Total</th>
+      <th style="text-align:left;padding:.7rem 1rem;font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Type</th>
+      <th style="text-align:left;padding:.7rem 1rem;font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Status</th>
+      <th style="text-align:left;padding:.7rem 1rem;font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Date</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for order in page_obj %}
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:.65rem 1rem;font-family:monospace;font-size:.85rem;font-weight:600;">{{ order.order_number }}</td>
+      <td style="padding:.65rem 1rem;">
+        <div style="font-weight:600;font-size:.88rem;">{{ order.full_name|default:"—" }}</div>
+        <div style="color:var(--muted);font-size:.78rem;">{{ order.phone|default:"" }}</div>
+      </td>
+      <td style="padding:.65rem 1rem;text-align:right;font-size:.85rem;">{{ order.items.count }}</td>
+      <td style="padding:.65rem 1rem;text-align:right;font-weight:600;font-size:.88rem;">GH₵ {{ order.total_price|floatformat:2 }}</td>
+      <td style="padding:.65rem 1rem;font-size:.85rem;">
+        {% if order.fulfillment_type == 'delivery' %}🚚 Delivery{% else %}🏪 Pickup{% endif %}
+      </td>
+      <td style="padding:.65rem 1rem;">
+        {% if order.status == 'delivered' %}
+          <span style="background:#e8f5e9;color:#2e7d32;padding:.2rem .55rem;border-radius:12px;font-size:.75rem;font-weight:600;">✓ Delivered</span>
+        {% elif order.status == 'cancelled' %}
+          <span style="background:#fde7e7;color:#c62828;padding:.2rem .55rem;border-radius:12px;font-size:.75rem;font-weight:600;">✕ Cancelled</span>
+        {% elif order.status == 'dispatched' %}
+          <span style="background:#fff8e1;color:#856404;padding:.2rem .55rem;border-radius:12px;font-size:.75rem;font-weight:600;">🛵 Dispatched</span>
+        {% elif order.status == 'processing' %}
+          <span style="background:#e3f2fd;color:#0d47a1;padding:.2rem .55rem;border-radius:12px;font-size:.75rem;font-weight:600;">📦 Processing</span>
+        {% else %}
+          <span style="background:#f5f5f5;color:#666;padding:.2rem .55rem;border-radius:12px;font-size:.75rem;font-weight:600;">{{ order.get_status_display }}</span>
+        {% endif %}
+      </td>
+      <td style="padding:.65rem 1rem;font-size:.8rem;color:var(--muted);">
+        {{ order.created|date:"M j, Y" }}<br>
+        <span style="font-size:.72rem;">{{ order.created|date:"H:i" }}</span>
+      </td>
+      <td style="padding:.65rem 1rem;text-align:right;">
+        <a href="{% url 'fulfillment_officer_order' order.pk %}" style="color:var(--gold);font-weight:600;font-size:.85rem;text-decoration:none;">View →</a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="8" style="padding:2.5rem;text-align:center;color:var(--muted);">
+      No orders found in the last 90 days.
+    </td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+
+{% if page_obj.paginator.num_pages > 1 %}
+<div style="display:flex;justify-content:center;gap:.5rem;margin-top:1.5rem;flex-wrap:wrap;">
+  {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}{% if fulfillment_filter != 'all' %}&fulfillment={{ fulfillment_filter }}{% endif %}"
+       style="padding:.4rem .8rem;border:1px solid var(--border);border-radius:6px;text-decoration:none;color:inherit;">← Prev</a>
+  {% endif %}
+  <span style="padding:.4rem .8rem;font-size:.88rem;color:var(--muted);">
+    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+  </span>
+  {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}{% if fulfillment_filter != 'all' %}&fulfillment={{ fulfillment_filter }}{% endif %}"
+       style="padding:.4rem .8rem;border:1px solid var(--border);border-radius:6px;text-decoration:none;color:inherit;">Next →</a>
+  {% endif %}
+</div>
+{% endif %}
+{% endif %}
+
+{% endblock %}

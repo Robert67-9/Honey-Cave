@@ -1,0 +1,57 @@
+{% extends 'mall/admin/base_admin.html' %}
+{% block title %}Payment Settings — Admin{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+  <h1 style="font-family:'Playfair Display',serif;font-size:1.5rem;">💳 Payment Settings</h1>
+  <a href="{% url 'admin_payment_settings_add' %}" class="btn btn-gold">+ Add Payment Method</a>
+</div>
+
+{% if messages %}{% for msg in messages %}
+<div class="alert alert-{% if msg.tags == 'error' %}error{% else %}success{% endif %}" style="margin-bottom:1rem;">{{ msg }}</div>
+{% endfor %}{% endif %}
+
+{% if settings_list %}
+<div style="background:white;border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+  <table style="width:100%;border-collapse:collapse;">
+    <thead>
+      <tr style="background:#fdf5e0;border-bottom:1px solid var(--border);">
+        <th style="padding:0.9rem 1.2rem;text-align:left;font-size:0.82rem;text-transform:uppercase;letter-spacing:0.05em;">Provider</th>
+        <th style="padding:0.9rem 1.2rem;text-align:left;font-size:0.82rem;text-transform:uppercase;letter-spacing:0.05em;">Account Name</th>
+        <th style="padding:0.9rem 1.2rem;text-align:left;font-size:0.82rem;text-transform:uppercase;letter-spacing:0.05em;">Account Number</th>
+        <th style="padding:0.9rem 1.2rem;text-align:left;font-size:0.82rem;text-transform:uppercase;letter-spacing:0.05em;">Status</th>
+        <th style="padding:0.9rem 1.2rem;text-align:right;font-size:0.82rem;text-transform:uppercase;letter-spacing:0.05em;">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ps in settings_list %}
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:0.9rem 1.2rem;font-weight:600;font-size:1.2rem;">{{ ps.get_icon }} {{ ps.get_provider_display }}</td>
+        <td style="padding:0.9rem 1.2rem;">{{ ps.account_name }}</td>
+        <td style="padding:0.9rem 1.2rem;font-family:monospace;font-size:.82rem;color:var(--muted);">{{ ps.account_number|truncatechars:30 }}</td>
+        <td style="padding:0.9rem 1.2rem;">
+          {% if ps.is_active and ps.adapter_ready %}
+            <span style="background:#d4edda;color:#155724;padding:2px 10px;border-radius:20px;font-size:0.78rem;font-weight:600;">Active</span>
+          {% elif ps.is_active and not ps.adapter_ready %}
+            <span style="background:#fff3cd;color:#856404;padding:2px 10px;border-radius:20px;font-size:0.78rem;font-weight:600;" title="Adapter is not yet wired — customers cannot pay through this gateway">⚠ Stub</span>
+          {% else %}
+            <span style="background:#f8d7da;color:#721c24;padding:2px 10px;border-radius:20px;font-size:0.78rem;font-weight:600;">Inactive</span>
+          {% endif %}
+        </td>
+        <td style="padding:0.9rem 1.2rem;text-align:right;">
+          <a href="{% url 'admin_payment_settings_edit' ps.pk %}" style="color:var(--gold);font-size:0.85rem;text-decoration:none;margin-right:1rem;">Edit</a>
+          <a href="{% url 'admin_payment_test' ps.pk %}" style="color:#0066cc;font-size:0.85rem;text-decoration:none;margin-right:1rem;" title="Test this payment method">🧪 Test</a>
+          <a href="{% url 'admin_payment_settings_delete' ps.pk %}" style="color:#dc3545;font-size:0.85rem;text-decoration:none;">Delete</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div style="text-align:center;padding:3rem;background:white;border:1px solid var(--border);border-radius:12px;color:var(--muted);">
+  <p style="font-size:2rem;margin-bottom:0.5rem;">💳</p>
+  <p>No payment methods configured yet.</p>
+  <a href="{% url 'admin_payment_settings_add' %}" class="btn btn-gold" style="margin-top:1rem;display:inline-block;">Add First Method</a>
+</div>
+{% endif %}
+{% endblock %}

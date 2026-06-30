@@ -1,0 +1,88 @@
+{% extends 'mall/base.html' %}
+{% block title %}Create Account — Market{% endblock %}
+
+{% block extra_css %}
+<style>
+.auth-wrapper { max-width: 520px; margin: 0 auto; }
+.auth-card { background: white; border: 1px solid var(--border); border-radius: 16px; padding: 2.5rem; }
+.auth-logo { text-align: center; margin-bottom: 2rem; }
+.auth-logo h2 { font-family: 'Playfair Display', serif; font-size: 1.75rem; margin-bottom: 0.35rem; }
+.auth-logo p { color: var(--muted); font-size: 0.9rem; }
+.form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1rem; }
+.auth-footer { text-align: center; margin-top: 1.25rem; font-size: 0.875rem; color: var(--muted); }
+.auth-footer a { color: var(--gold); text-decoration: none; font-weight: 500; }
+.auth-divider { display:flex; align-items:center; gap:.75rem; margin:1.25rem 0 1rem; color:var(--muted); font-size:.8rem; }
+.auth-divider::before, .auth-divider::after { content:''; flex:1; height:1px; background:var(--border); }
+.btn-google {
+    display:flex; align-items:center; justify-content:center; gap:.65rem;
+    width:100%; padding:.7rem 1rem; background:#fff;
+    border:1px solid var(--border); border-radius:8px;
+    color:#3c4043; font-weight:500; font-size:.92rem;
+    text-decoration:none; transition:background .15s, box-shadow .15s;
+}
+.btn-google:hover { background:#f8f9fa; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+.help-text { font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <div class="auth-logo">
+            <h2>Create Account</h2>
+            <p>Join Market and start shopping</p>
+        </div>
+        {% include 'mall/includes/google_signin_button.html' %}
+        <div class="auth-divider"><span>or</span></div>
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label>First Name</label>
+                    {{ form.first_name }}
+                    {% if form.first_name.errors %}<div class="form-errors">{{ form.first_name.errors }}</div>{% endif %}
+                </div>
+                <div class="form-group">
+                    <label>Last Name</label>
+                    {{ form.last_name }}
+                    {% if form.last_name.errors %}<div class="form-errors">{{ form.last_name.errors }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Username</label>
+                {{ form.username }}
+                {% if form.username.errors %}<div class="form-errors">{{ form.username.errors }}</div>{% endif %}
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                {{ form.email }}
+                {% if form.email.errors %}<div class="form-errors">{{ form.email.errors }}</div>{% endif %}
+            </div>
+            <div class="form-group">
+                <label>Phone Number <span style="color:var(--muted);font-size:0.82rem;">(optional)</span></label>
+                {{ form.phone }}
+                {% if form.phone.errors %}<div class="form-errors">{{ form.phone.errors }}</div>{% endif %}
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                {{ form.password1 }}
+                {% if form.password1.errors %}<div class="form-errors">{{ form.password1.errors }}</div>{% endif %}
+                <p class="help-text">At least 8 characters, not entirely numeric.</p>
+            </div>
+            <div class="form-group">
+                <label>Confirm Password</label>
+                {{ form.password2 }}
+                {% if form.password2.errors %}<div class="form-errors">{{ form.password2.errors }}</div>{% endif %}
+            </div>
+            <button type="submit" class="btn btn-gold w-full" style="padding:0.9rem; font-size:1rem; margin-top:0.5rem;">
+                Create Account →
+            </button>
+        </form>
+
+
+    </div>
+    <div class="auth-footer">
+        Already have an account? <a href="{% url 'login' %}">Sign in</a>
+    </div>
+</div>
+{% endblock %}

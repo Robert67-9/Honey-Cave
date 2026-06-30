@@ -1,0 +1,104 @@
+{% extends "mall/admin/base_admin.html" %}
+{% block title %}Customer Feedback — Market Admin{% endblock %}
+{% block page_title %}Customer Feedback{% endblock %}
+
+{% block content %}
+
+<!-- NPS Summary -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem;">
+  <div class="card" style="padding:1.25rem;text-align:center;">
+    <div style="font-size:2rem;font-weight:700;color:var(--gold);">{{ nps_score }}</div>
+    <div style="font-size:0.78rem;color:var(--muted);margin-top:2px;">Net Promoter Score</div>
+    <div style="font-size:0.7rem;color:var(--muted);">{{ total }} response{{ total|pluralize }}</div>
+  </div>
+  <div class="card" style="padding:1.25rem;text-align:center;">
+    <div style="font-size:1.8rem;font-weight:700;color:#28a745;">{{ promoters }}</div>
+    <div style="font-size:0.78rem;color:var(--muted);">😊 Promoters (9–10)</div>
+  </div>
+  <div class="card" style="padding:1.25rem;text-align:center;">
+    <div style="font-size:1.8rem;font-weight:700;color:#ffc107;">{{ passives }}</div>
+    <div style="font-size:0.78rem;color:var(--muted);">😐 Passives (7–8)</div>
+  </div>
+  <div class="card" style="padding:1.25rem;text-align:center;">
+    <div style="font-size:1.8rem;font-weight:700;color:#dc3545;">{{ detractors }}</div>
+    <div style="font-size:0.78rem;color:var(--muted);">😞 Detractors (0–6)</div>
+  </div>
+</div>
+
+<!-- Category Averages -->
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem;">
+  {% if stats.avg_delivery %}
+  <div class="card" style="padding:1.25rem;text-align:center;">
+    <div style="font-size:1.8rem;font-weight:700;color:var(--gold);">{{ stats.avg_delivery|floatformat:1 }}★</div>
+    <div style="font-size:0.78rem;color:var(--muted);">🚚 Delivery Speed</div>
+  </div>
+  <div class="card" style="padding:1.25rem;text-align:center;">
+    <div style="font-size:1.8rem;font-weight:700;color:var(--gold);">{{ stats.avg_packaging|floatformat:1 }}★</div>
+    <div style="font-size:0.78rem;color:var(--muted);">📦 Packaging</div>
+  </div>
+  <div class="card" style="padding:1.25rem;text-align:center;">
+    <div style="font-size:1.8rem;font-weight:700;color:var(--gold);">{{ stats.avg_service|floatformat:1 }}★</div>
+    <div style="font-size:0.78rem;color:var(--muted);">🤝 Service</div>
+  </div>
+  {% else %}
+  <div class="card" style="padding:1.25rem;grid-column:1/-1;text-align:center;color:var(--muted);">No feedback submitted yet.</div>
+  {% endif %}
+</div>
+
+<!-- Feedback List -->
+<div class="card">
+  <div class="card-header"><h2>All Feedback ({{ page_obj.paginator.count }})</h2></div>
+  {% if feedbacks %}
+  <div style="display:flex;flex-direction:column;gap:0;">
+    {% for fb in feedbacks %}
+    <div style="padding:1.25rem;border-bottom:1px solid var(--border);">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.5rem;">
+        <div>
+          <span style="font-weight:600;">{{ fb.user.get_full_name|default:fb.user.username }}</span>
+          <span style="color:var(--muted);font-size:0.82rem;margin-left:8px;">Order {{ fb.order.order_number }}</span>
+          <span style="margin-left:8px;font-size:0.75rem;padding:2px 9px;border-radius:20px;font-weight:700;
+            {% if fb.nps_label == 'Promoter' %}background:#d4edda;color:#155724;
+            {% elif fb.nps_label == 'Passive' %}background:#fff3cd;color:#856404;
+            {% else %}background:#f8d7da;color:#721c24;{% endif %}">
+            {{ fb.nps_label }} (NPS {{ fb.nps_score }})
+          </span>
+        </div>
+        <span style="font-size:0.78rem;color:var(--muted);">{{ fb.created|date:"M d, Y" }}</span>
+      </div>
+
+      <div style="display:flex;gap:1.5rem;font-size:0.82rem;color:var(--muted);margin-bottom:0.5rem;">
+        <span>🚚 {{ fb.delivery_rating }}★</span>
+        <span>📦 {{ fb.packaging_rating }}★</span>
+        <span>🤝 {{ fb.service_rating }}★</span>
+      </div>
+
+      {% if fb.comment %}
+      <p style="font-size:0.88rem;margin:0 0 0.5rem;color:var(--text);">"{{ fb.comment }}"</p>
+      {% endif %}
+
+      {% if fb.photos %}
+      <div style="display:flex;gap:6px;margin-top:0.5rem;">
+        {% for photo in fb.photos %}
+        <a href="{{ photo.url }}" target="_blank">
+          <img src="{{ photo.url }}" style="width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid var(--border);">
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if page_obj.has_other_pages %}
+  <div style="display:flex;justify-content:center;gap:0.5rem;padding:1.25rem;">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="btn btn-ghost btn-sm">← Prev</a>{% endif %}
+    <span style="font-size:0.85rem;color:var(--muted);align-self:center;">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="btn btn-ghost btn-sm">Next →</a>{% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div style="padding:2rem;text-align:center;color:var(--muted);">No feedback received yet.</div>
+  {% endif %}
+</div>
+{% endblock %}

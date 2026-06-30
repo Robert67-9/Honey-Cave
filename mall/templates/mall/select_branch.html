@@ -1,0 +1,146 @@
+{% extends 'mall/base.html' %}
+{% block title %}Choose Your Branch{% endblock %}
+{% block extra_css %}
+<style>
+.brochure-wrapper{max-width:1000px;margin:0 auto}
+.brochure-hero{background:linear-gradient(135deg,#1A1410,#2e1f0e);border-radius:16px;padding:2.5rem 2.5rem 2rem;color:#fff;margin-bottom:2rem;display:grid;grid-template-columns:1fr auto;align-items:center;gap:1.5rem}
+@media(max-width:600px){.brochure-hero{grid-template-columns:1fr}}
+.brochure-hero h1{font-family:'Playfair Display',serif;font-size:1.9rem;color:var(--gold);margin:0 0 .4rem}
+.brochure-hero p{color:rgba(255,255,255,.65);font-size:.9rem;margin:0}
+.location-detect-btn{display:inline-flex;align-items:center;gap:.5rem;padding:.65rem 1.2rem;border:1.5px solid var(--gold);border-radius:8px;background:rgba(255,255,255,.08);color:#fff;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
+.location-detect-btn:hover{background:rgba(255,255,255,.18)}
+.region-strip{display:flex;flex-wrap:wrap;gap:.4rem;background:#fff;border:1px solid var(--border);border-radius:12px 12px 0 0;padding:.85rem 1rem;border-bottom:none}
+.rtab{padding:.4rem .85rem;border:1.5px solid var(--border);border-radius:20px;font-size:.78rem;font-weight:600;cursor:pointer;background:var(--cream);color:var(--muted);transition:all .15s;display:inline-flex;align-items:center;gap:.3rem}
+.rtab:hover{border-color:var(--gold-light);color:var(--dark);background:#fdf9f0}
+.rtab.active{border-color:var(--gold);background:#fdf5e0;color:var(--dark);font-weight:700}
+.rtab .tick{color:var(--gold);font-size:.7rem}
+.pamphlet-body{background:#fff;border:1px solid var(--border);border-radius:0 0 12px 12px;padding:1.25rem 1.25rem 1.5rem;margin-bottom:1rem}
+.branch-search{position:relative;margin-bottom:1.1rem}
+.branch-search input{width:100%;padding:.65rem 1rem .65rem 2.3rem;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.86rem;outline:none;box-sizing:border-box;transition:border-color .2s}
+.branch-search input:focus{border-color:var(--gold)}
+.bs-icon{position:absolute;left:.75rem;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.branch-brochure-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.85rem}
+@media(max-width:800px){.branch-brochure-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:500px){.branch-brochure-grid{grid-template-columns:1fr}}
+.branch-tile{border:1.5px solid var(--border);border-radius:10px;padding:.9rem 1rem;cursor:pointer;transition:all .15s;background:#fff;position:relative;overflow:hidden}
+.branch-tile::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--border);transition:background .15s}
+.branch-tile:hover{border-color:var(--gold-light);background:#fdfaf3;transform:translateY(-2px);box-shadow:0 5px 16px rgba(0,0,0,.07)}
+.branch-tile.selected{border-color:var(--gold);background:#fdf5e0}
+.branch-tile.selected::before{background:var(--gold)}
+.bt-header{display:flex;align-items:flex-start;justify-content:space-between;gap:.4rem;margin-bottom:.4rem}
+.bt-name{font-weight:700;font-size:.88rem;color:var(--dark);line-height:1.3}
+.bt-check{width:18px;height:18px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all .15s;font-size:.65rem;color:transparent}
+.branch-tile.selected .bt-check{border-color:var(--gold);background:var(--gold);color:#1A1410}
+.bt-addr{font-size:.76rem;color:var(--muted);line-height:1.45;margin-bottom:.55rem}
+.bt-divider{border:none;border-top:1px dashed var(--border);margin:.5rem 0}
+.bt-pills{display:flex;flex-wrap:wrap;gap:.3rem}
+.bt-pill{font-size:.68rem;padding:2px 7px;border-radius:20px;background:var(--cream);color:var(--muted);display:flex;align-items:center;gap:.25rem}
+.branch-tile.selected .bt-pill{background:#f0dfa0}
+.btype-badge{font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:20px;display:inline-block;margin-bottom:.4rem}
+.btype-main{background:#1A1410;color:var(--gold)}
+.btype-express{background:#0d6efd22;color:#0d6efd;border:1px solid #0d6efd44}
+.btype-agent{background:#19875422;color:#198754;border:1px solid #19875444}
+.no-branches{text-align:center;padding:2rem;color:var(--muted);font-size:.88rem;grid-column:1/-1}
+.confirm-bar{background:#fff;border:1px solid var(--border);border-radius:12px;padding:1rem 1.5rem;display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;box-shadow:0 -4px 20px rgba(0,0,0,.06)}
+.confirm-selected-text{font-weight:600;font-size:.9rem}
+.confirm-selected-text span{color:var(--gold)}
+</style>
+{% endblock %}
+{% block content %}
+<div class="brochure-wrapper">
+  <div class="brochure-hero">
+    <div>
+      <h1>🏪 Find Your Branch</h1>
+      <p>Pick the branch nearest to you. Your choice is remembered at checkout.</p>
+    </div>
+    <div><button class="location-detect-btn" id="detect-location-btn">📍 Detect My Location</button></div>
+  </div>
+  <div class="region-strip" id="region-tabs">
+    {% for key, name in region_choices %}
+    <button class="rtab" data-region="{{ key }}" onclick="selectRegion('{{ key }}', this)">
+      <span class="tick">✓</span>{{ name }}
+    </button>
+    {% endfor %}
+  </div>
+  <div class="pamphlet-body">
+    <div class="branch-search">
+      <span class="bs-icon">🔍</span>
+      <input type="text" id="branch-search-input" placeholder="Search by name, city or landmark…" oninput="filterBranches(this.value)" autocomplete="off">
+    </div>
+    <div class="branch-brochure-grid" id="branch-tile-grid">
+      <div class="no-branches">Select a region above to see branches.</div>
+    </div>
+  </div>
+  <form method="post" id="select-branch-form">
+    {% csrf_token %}
+    <input type="hidden" name="branch_id" id="selected-branch-id" value="">
+    <div class="confirm-bar">
+      <div class="confirm-selected-text" id="confirm-text">No branch selected yet</div>
+      <div style="display:flex;gap:.75rem;">
+        <a href="{% url 'product_list' %}" class="btn btn-outline">Skip</a>
+        <button type="submit" class="btn btn-gold" id="confirm-btn" disabled style="opacity:.45;cursor:not-allowed;">
+          Confirm Branch &amp; Start Shopping →
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+<script>
+const BRANCHES = {{ branches_json|safe }};
+let activeRegion=null,selectedBranchId=null;
+function selectRegion(region,tabEl){
+  document.querySelectorAll('.rtab').forEach(t=>t.classList.remove('active'));
+  tabEl.classList.add('active'); activeRegion=region;
+  renderTiles(region,document.getElementById('branch-search-input').value);
+}
+function filterBranches(q){if(activeRegion)renderTiles(activeRegion,q);}
+function esc(s){return(s||'').replace(/'/g,"\'").replace(/"/g,'\"');}
+function renderTiles(region,query){
+  const grid=document.getElementById('branch-tile-grid');
+  let branches=BRANCHES[region]||[];
+  if(query){const q=query.toLowerCase();branches=branches.filter(b=>b.name.toLowerCase().includes(q)||b.address.toLowerCase().includes(q)||(b.city||'').toLowerCase().includes(q)||(b.landmark||'').toLowerCase().includes(q));}
+  if(!branches.length){grid.innerHTML='<div class="no-branches">No branches found.</div>';return;}
+  const typeMap={main:'🏢 Main Branch',express:'⚡ Express Kiosk',agent:'📍 Agent Point'};
+  const clsMap={main:'btype-main',express:'btype-express',agent:'btype-agent'};
+  grid.innerHTML=branches.map(b=>`
+    <div class="branch-tile ${selectedBranchId==b.id?'selected':''}" id="tile-${b.id}" onclick="selectBranch(${b.id},'${esc(b.name)}','${esc(b.city||'')}',this)">
+      <div class="bt-header"><div class="bt-name">${b.name}</div><div class="bt-check">✓</div></div>
+      <span class="btype-badge ${clsMap[b.branch_type]||'btype-main'}">${typeMap[b.branch_type]||'🏢 Main Branch'}</span>
+      <div class="bt-addr">${b.address}${b.city?', '+b.city:''}</div>
+      <hr class="bt-divider">
+      <div class="bt-pills">
+        ${b.phone?`<span class="bt-pill">📞 ${b.phone}</span>`:''}
+        ${b.opening_hours?`<span class="bt-pill">🕐 ${b.opening_hours}</span>`:''}
+        ${b.landmark?`<span class="bt-pill">📌 ${b.landmark}</span>`:''}
+      </div>
+    </div>`).join('');
+}
+function selectBranch(id,name,city,tileEl){
+  selectedBranchId=id;
+  document.querySelectorAll('.branch-tile').forEach(c=>c.classList.remove('selected'));
+  tileEl.classList.add('selected');
+  document.getElementById('selected-branch-id').value=id;
+  document.getElementById('confirm-text').innerHTML=`Selected: <span>${name}${city?', '+city:''}</span>`;
+  const btn=document.getElementById('confirm-btn');btn.disabled=false;btn.style.opacity='1';btn.style.cursor='pointer';
+}
+document.getElementById('detect-location-btn').addEventListener('click',function(){
+  this.textContent='⏳ Detecting…';this.disabled=true;const self=this;
+  if(!navigator.geolocation){self.textContent='📍 Not supported';return;}
+  navigator.geolocation.getCurrentPosition(pos=>{
+    fetch('/api/save-location/',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRFToken':'{{ csrf_token }}'},body:`lat=${pos.coords.latitude}&lng=${pos.coords.longitude}`})
+    .then(r=>r.json()).then(data=>{
+      if(data.ok&&data.branch){
+        const b=data.branch;let branchRegion=null;
+        for(const[region,branches]of Object.entries(BRANCHES)){if(branches.some(br=>br.id==b.id)){branchRegion=region;break;}}
+        if(branchRegion){const tab=document.querySelector(`.rtab[data-region="${branchRegion}"]`);if(tab)selectRegion(branchRegion,tab);setTimeout(()=>{const tile=document.getElementById('tile-'+b.id);if(tile){tile.scrollIntoView({behavior:'smooth',block:'center'});tile.click();}},100);}
+        self.textContent=`✅ Nearest: ${b.name} (${b.distance} km)`;
+      }else{self.textContent='⚠️ No nearby branch found';self.disabled=false;}
+    }).catch(()=>{self.textContent='⚠️ Location error';self.disabled=false;});
+  },()=>{self.textContent='⚠️ Location denied';self.disabled=false;});
+});
+window.addEventListener('DOMContentLoaded',()=>{
+  const t=document.querySelector('.rtab[data-region="greater_accra"]');
+  if(t)selectRegion('greater_accra',t);
+});
+</script>
+{% endblock %}

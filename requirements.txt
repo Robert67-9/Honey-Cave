@@ -1,0 +1,49 @@
+# ─── Honey Cave Market — production requirements (Render) ──────────────────────
+# Trimmed from the full dev/Windows environment to only what the app imports
+# and needs to run on a Linux web host. The previous file pinned Windows-only
+# packages (pywin32, pywebview, pynput, pythonnet) and unrelated dev tooling
+# (flask, bottle, certbot, bandit, safety) that break or bloat the Render build.
+
+# Core framework
+Django==5.2.14
+gunicorn==25.3.0
+whitenoise==6.12.0
+
+# Database (PostgreSQL on Render)
+psycopg2-binary==2.9.11
+dj-database-url==3.1.2
+
+# Config / env
+python-decouple==3.8
+python-dotenv==1.2.2
+
+# Caching / sessions (Render Redis)
+redis==7.4.0
+django-redis==6.0.0
+
+# Media storage (persistent uploads — Render's disk is ephemeral)
+cloudinary==1.41.0
+django-cloudinary-storage==0.3.0
+
+# Images
+pillow==12.2.0
+
+# Payments / HTTP
+requests==2.34.2
+
+# Messaging (WhatsApp/SMS) — optional, safe no-op if unconfigured
+twilio==9.10.9
+
+# Admin 2FA
+pyotp==2.9.0
+qrcode==8.2
+
+# Indirect but commonly required at runtime
+asgiref==3.11.1
+sqlparse==0.5.5
+tzdata==2025.3
+certifi==2026.2.25
+urllib3==2.7.0
+charset-normalizer==3.4.6
+idna==3.16
+PyJWT==2.13.0

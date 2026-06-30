@@ -1,0 +1,153 @@
+{% extends "mall/admin/base_admin.html" %}
+{% block title %}Audit Log — Market Admin{% endblock %}
+{% block page_title %}Audit Log{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header" style="flex-wrap:wrap;gap:0.75rem;">
+    <h2 style="margin:0;">
+      Audit Log
+      <span style="font-size:0.8rem;font-weight:400;color:var(--muted);margin-left:0.5rem;">{{ total }} entr{{ total|pluralize:"y,ies" }}</span>
+    </h2>
+    <a href="?{{ request.GET.urlencode }}&export=csv" class="btn btn-ghost" style="font-size:0.82rem;">⬇ Export CSV</a>
+  </div>
+
+  
+  <div class="card-body" style="padding-bottom:0.5rem;border-bottom:1px solid var(--border);">
+    <form method="get" style="display:flex;flex-wrap:wrap;gap:0.6rem;align-items:flex-end;">
+
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <label style="font-size:0.75rem;color:var(--muted);">Category</label>
+        <select name="category" style="padding:0.38rem 0.6rem;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:0.85rem;">
+          <option value="">All categories</option>
+          {% for cat in categories %}
+          <option value="{{ cat }}" {% if category == cat %}selected{% endif %}>{{ cat|capfirst }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <label style="font-size:0.75rem;color:var(--muted);">Action</label>
+        <select name="action" style="padding:0.38rem 0.6rem;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:0.85rem;">
+          <option value="">All actions</option>
+          {% for code, label in all_actions %}
+          <option value="{{ code }}" {% if action_q == code %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      {% if is_superuser %}
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <label style="font-size:0.75rem;color:var(--muted);">Actor</label>
+        <input type="text" name="actor" value="{{ actor_q }}" placeholder="Username…"
+               style="padding:0.38rem 0.6rem;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:0.85rem;width:130px;">
+      </div>
+      {% endif %}
+
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <label style="font-size:0.75rem;color:var(--muted);">From</label>
+        <input type="date" name="date_from" value="{{ date_from }}"
+               style="padding:0.38rem 0.6rem;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:0.85rem;">
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <label style="font-size:0.75rem;color:var(--muted);">To</label>
+        <input type="date" name="date_to" value="{{ date_to }}"
+               style="padding:0.38rem 0.6rem;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:0.85rem;">
+      </div>
+
+      <div style="display:flex;gap:0.4rem;">
+        <button type="submit" class="btn btn-primary" style="height:34px;">Filter</button>
+        <a href="{% url 'admin_audit_log' %}" class="btn btn-ghost" style="height:34px;line-height:34px;padding:0 0.75rem;">Clear</a>
+      </div>
+    </form>
+  </div>
+
+  
+  <div style="overflow-x:auto;">
+    <table style="min-width:820px;">
+      <thead>
+        <tr>
+          <th style="width:160px;">Timestamp</th>
+          {% if is_superuser %}<th style="width:120px;">Actor</th>{% endif %}
+          <th style="width:80px;">IP</th>
+          <th style="width:200px;">Action</th>
+          <th>Target</th>
+          <th>Detail</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in logs %}
+        <tr>
+          <td style="font-size:0.8rem;color:var(--muted);white-space:nowrap;">
+            {{ entry.timestamp|date:"Y-m-d" }}<br>
+            <span style="font-size:0.75rem;">{{ entry.timestamp|time:"H:i:s" }}</span>
+          </td>
+
+          {% if is_superuser %}
+          <td>
+            {% if entry.actor %}
+            <a href="{% url 'admin_user_detail' entry.actor.pk %}" style="color:var(--gold);font-size:0.85rem;">
+              {{ entry.actor.username }}
+            </a>
+            {% else %}
+            <span style="color:var(--muted);font-size:0.82rem;">—</span>
+            {% endif %}
+          </td>
+          {% endif %}
+
+          <td style="font-size:0.78rem;color:var(--muted);font-family:monospace;">
+            {{ entry.ip_address|default:"—" }}
+          </td>
+
+          <td>
+            <span style="display:inline-flex;align-items:center;gap:5px;font-size:0.82rem;">
+              <span>{{ entry.icon }}</span>
+              <span class="badge {% if 'delete' in entry.action %}badge-inactive{% elif 'create' in entry.action %}badge-active{% else %}badge-pending{% endif %}"
+                    style="font-size:0.72rem;padding:2px 7px;">
+                {{ entry.get_action_display }}
+              </span>
+            </span>
+          </td>
+
+          <td style="font-size:0.85rem;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+              title="{{ entry.target_repr }}">
+            {{ entry.target_repr|default:"—" }}
+          </td>
+
+          <td style="font-size:0.82rem;color:var(--muted);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+              title="{{ entry.detail }}">
+            {{ entry.detail|default:"—" }}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="{% if is_superuser %}6{% else %}5{% endif %}"
+              style="text-align:center;padding:2.5rem;color:var(--muted);">
+            No log entries found.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  
+  {% if page_obj.has_other_pages %}
+  <div style="display:flex;justify-content:center;align-items:center;gap:0.5rem;padding:1.25rem;">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}&category={{ category }}&action={{ action_q }}&actor={{ actor_q }}&date_from={{ date_from }}&date_to={{ date_to }}"
+       class="btn btn-ghost btn-sm">← Prev</a>
+    {% endif %}
+    <span style="font-size:0.85rem;color:var(--muted);">
+      Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+    </span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}&category={{ category }}&action={{ action_q }}&actor={{ actor_q }}&date_from={{ date_from }}&date_to={{ date_to }}"
+       class="btn btn-ghost btn-sm">Next →</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

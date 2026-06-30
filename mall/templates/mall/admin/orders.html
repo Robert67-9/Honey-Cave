@@ -1,0 +1,77 @@
+{% extends "mall/admin/base_admin.html" %}
+{% block title %}Orders — Market Admin{% endblock %}
+{% block page_title %}Orders{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2>All Orders ({{ page_obj.paginator.count }})</h2>
+        <form method="get" class="filters">
+            <select name="status" onchange="this.form.submit()">
+                <option value="">All Statuses</option>
+                {% for val, label in status_choices %}
+                <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            {% if status_filter %}<a href="{% url 'admin_orders' %}" class="btn btn-ghost btn-sm">Clear</a>{% endif %}
+        </form>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Order No.</th>
+                <th>Customer</th>
+                <th>Name</th>
+                <th>Total</th>
+                <th>Fulfillment</th>
+                <th>Status</th>
+                <th>Paid</th>
+                <th>Region</th>
+                <th>Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td><a href="{% url 'admin_order_detail' order.pk %}" style="color:var(--gold);font-weight:700;">{{ order.order_number }}</a></td>
+                <td>{{ order.user.username }}</td>
+                <td>{{ order.full_name }}</td>
+                <td style="font-weight:600;">GH₵ {{ order.total_price }}</td>
+                <td>
+                    {% if order.fulfillment_type == 'delivery' %}
+                    <span style="background:#cce5ff;color:#004085;padding:2px 9px;border-radius:20px;font-size:0.72rem;font-weight:700;">🛵 Delivery</span>
+                    {% else %}
+                    <span style="background:#d4edda;color:#155724;padding:2px 9px;border-radius:20px;font-size:0.72rem;font-weight:700;">🏪 Pickup</span>
+                    {% endif %}
+                </td>
+                <td><span class="badge badge-{{ order.status }}">{{ order.status }}</span></td>
+                <td><span class="badge {% if order.paid %}badge-paid{% else %}badge-unpaid{% endif %}">{% if order.paid %}Paid{% else %}Unpaid{% endif %}</span></td>
+                <td style="font-size:0.82rem;">📍 {{ order.get_region_display_name }}</td>
+                <td style="color:var(--muted);font-size:0.82rem;">{{ order.created|date:"M d, Y" }}</td>
+                <td>
+                    <div style="display:flex;gap:0.4rem;">
+                        <a href="{% url 'admin_order_detail' order.pk %}" class="btn btn-ghost btn-sm">View</a>
+                        <a href="{% url 'admin_order_delete' order.pk %}" class="btn btn-danger btn-sm">Delete</a>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--muted);">No orders found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if page_obj.has_other_pages %}
+    <div style="display:flex;justify-content:center;align-items:center;gap:0.5rem;padding:1.25rem;">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="btn btn-ghost btn-sm">← Prev</a>
+        {% endif %}
+        <span style="font-size:0.85rem;color:var(--muted);">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="btn btn-ghost btn-sm">Next →</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

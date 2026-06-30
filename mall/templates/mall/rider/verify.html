@@ -1,0 +1,31 @@
+{% extends 'mall/rider/base.html' %}
+{% block title %}Enter code — Rider Portal{% endblock %}
+{% block content %}
+<div style="max-width: 420px; margin: 3rem auto;">
+  <div class="card">
+    <h1 style="text-align:center; margin-bottom: 0.4rem;">Enter your code</h1>
+    <p style="text-align:center; color: var(--muted); font-size: 0.88rem; margin-bottom: 1.5rem;">
+      We sent a 6-digit code to your phone. It expires in {{ otp.EXPIRY_MINUTES|default:10 }} minutes.
+    </p>
+
+    <form method="post">
+      {% csrf_token %}
+      <input type="text" name="code" inputmode="numeric" pattern="[0-9]{6}"
+             maxlength="6" required autofocus autocomplete="one-time-code"
+             placeholder="• • • • • •" class="code-input">
+      <button type="submit" class="btn btn-gold" style="width:100%; padding: 0.95rem; font-size:.95rem;">
+        Verify &amp; Sign In
+      </button>
+    </form>
+
+    <div style="text-align:center; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+      <p style="color: var(--muted); font-size: 0.82rem; margin: 0 0 .35rem;">
+        Didn't receive the code?
+      </p>
+      <a href="{% url 'rider_login' %}" style="color: var(--gold); font-size: 0.85rem; font-weight: 600; text-decoration: none;">
+        Request a new code
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends 'mall/fulfillment_officer/base.html' %}
+{% block title %}Riders — Fulfillment Officer{% endblock %}
+{% block content %}
+
+<div style="display:flex; justify-content:space-between; align-items:start; gap:1rem; flex-wrap:wrap; margin-bottom:1.25rem;">
+  <div>
+    <h1 style="font-family:'Playfair Display',serif; margin:0;">Rider Roster</h1>
+    <p style="color:var(--muted); margin:.25rem 0 0; font-size:.92rem;">
+      Riders you can dispatch from your branches.
+      {% if branches %}
+      Scoped to: {% for b in branches %}<strong>{{ b.name }}</strong>{% if not forloop.last %}, {% endif %}{% endfor %}.
+      {% endif %}
+    </p>
+  </div>
+  <a href="{% url 'fulfillment_officer_rider_add' %}"
+     style="background:var(--gold,#C9A84C); color:#1A1410; padding:.65rem 1.15rem; border-radius:8px; font-weight:600; font-size:.9rem; text-decoration:none; white-space:nowrap;">
+    + Add Rider
+  </a>
+</div>
+
+{% if not branches %}
+<div style="background:#fff3cd; border:1px solid #ffe082; padding:1rem; border-radius:8px; color:#6b5b00;">
+  ⚠️ You have no approved branches. Visit <a href="{% url 'fulfillment_officer_branches' %}" style="color:inherit; font-weight:600;">My Branches</a> to request one. You can't add riders until you manage at least one branch.
+</div>
+{% else %}
+
+{% if riders %}
+<div style="background:#fff; border:1px solid #e7e2d8; border-radius:10px; overflow:hidden;">
+  <table style="width:100%; border-collapse:collapse; font-size:.9rem;">
+    <thead>
+      <tr style="background:#fafafa; text-align:left;">
+        <th style="padding:.7rem .85rem; font-weight:600; font-size:.78rem; text-transform:uppercase; color:var(--muted); letter-spacing:.5px;">Rider</th>
+        <th style="padding:.7rem .85rem; font-weight:600; font-size:.78rem; text-transform:uppercase; color:var(--muted); letter-spacing:.5px;">Phone</th>
+        <th style="padding:.7rem .85rem; font-weight:600; font-size:.78rem; text-transform:uppercase; color:var(--muted); letter-spacing:.5px;">Vehicle</th>
+        <th style="padding:.7rem .85rem; font-weight:600; font-size:.78rem; text-transform:uppercase; color:var(--muted); letter-spacing:.5px;">Branches</th>
+        <th style="padding:.7rem .85rem; font-weight:600; font-size:.78rem; text-transform:uppercase; color:var(--muted); letter-spacing:.5px;">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in riders %}
+      <tr style="border-top:1px solid #f0ebe2;">
+        <td style="padding:.65rem .85rem; font-weight:600;">{{ r.name }}</td>
+        <td style="padding:.65rem .85rem; font-family:monospace; font-size:.85rem;">
+          <a href="tel:{{ r.phone }}" style="color:var(--gold,#C9A84C); text-decoration:none;">{{ r.phone }}</a>
+        </td>
+        <td style="padding:.65rem .85rem;">{{ r.get_vehicle_type_display|default:r.vehicle_type|default:"—" }}</td>
+        <td style="padding:.65rem .85rem; font-size:.82rem; color:var(--muted);">
+          {% for b in r.branches.all %}{{ b.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+        </td>
+        <td style="padding:.65rem .85rem;">
+          {% if not r.is_active %}
+          <span style="background:#f8d7da; color:#721c24; padding:.15rem .55rem; border-radius:999px; font-size:.72rem; font-weight:600;">Inactive</span>
+          {% elif r.is_verified %}
+          <span style="background:#d4edda; color:#155724; padding:.15rem .55rem; border-radius:999px; font-size:.72rem; font-weight:600;">✓ Verified</span>
+          {% else %}
+          <span style="background:#fff3cd; color:#856404; padding:.15rem .55rem; border-radius:999px; font-size:.72rem; font-weight:600;" title="Awaiting admin verification">⏳ Pending</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<p style="margin-top:1rem; font-size:.82rem; color:var(--muted);">
+  Riders you add are <strong>Pending</strong> until admin verifies them — but you can dispatch to them right away.
+  Pending riders will appear in your dispatch dropdown with a ⏳ badge.
+</p>
+{% else %}
+<div style="text-align:center; padding:2.5rem 1rem; color:var(--muted); background:#fff; border:1px dashed #e7e2d8; border-radius:10px;">
+  <div style="font-size:2.5rem; margin-bottom:.5rem;">🛵</div>
+  <p style="margin:0 0 1rem;">No riders in your roster yet.</p>
+  <a href="{% url 'fulfillment_officer_rider_add' %}"
+     style="background:var(--gold,#C9A84C); color:#1A1410; padding:.65rem 1.15rem; border-radius:8px; font-weight:600; font-size:.9rem; text-decoration:none;">
+    + Add your first rider
+  </a>
+</div>
+{% endif %}
+
+{% endif %}
+
+{% endblock %}

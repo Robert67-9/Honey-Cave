@@ -1,0 +1,121 @@
+{% extends 'mall/base.html' %}
+{% block title %}Contact Us — Market{% endblock %}
+
+{% block extra_css %}
+<style>
+.contact-layout { display: grid; grid-template-columns: 1fr 400px; gap: 2.5rem; max-width: 900px; margin: 0 auto; }
+@media (max-width: 800px) { .contact-layout { grid-template-columns: 1fr; } }
+.contact-card { background: white; border: 1px solid var(--border); border-radius: 14px; padding: 2rem; }
+.info-item { display: flex; gap: 0.75rem; padding: 1rem 0; border-bottom: 1px solid var(--border); }
+.info-item:last-child { border-bottom: none; }
+.info-icon { font-size: 1.4rem; flex-shrink: 0; }
+.info-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 2px; }
+.info-value { font-weight: 600; font-size: 0.9rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header" style="text-align:center;">
+  <p class="eyebrow">✦ Get In Touch ✦</p>
+  <h1>Contact Us</h1>
+  <p>We're here to help. Send us a message and we'll respond within 24 hours.</p>
+</div>
+
+<div class="contact-layout">
+  <!-- Form -->
+  <div class="contact-card">
+    <h2 style="font-family:'Playfair Display',serif;font-size:1.3rem;margin-bottom:1.5rem;">Send a Message</h2>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div class="form-group">
+          <label>Your Name</label>
+          {{ form.name }}
+          {% if form.name.errors %}<div class="form-errors">{{ form.name.errors }}</div>{% endif %}
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          {{ form.email }}
+          {% if form.email.errors %}<div class="form-errors">{{ form.email.errors }}</div>{% endif %}
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Subject</label>
+        {{ form.subject }}
+        {% if form.subject.errors %}<div class="form-errors">{{ form.subject.errors }}</div>{% endif %}
+      </div>
+      <div class="form-group">
+        <label>Message</label>
+        {{ form.message }}
+        {% if form.message.errors %}<div class="form-errors">{{ form.message.errors }}</div>{% endif %}
+      </div>
+      <button type="submit" class="btn btn-gold" style="width:100%;margin-top:0.5rem;">Send Message →</button>
+    </form>
+  </div>
+
+  <!-- Info -->
+  <div>
+    <div class="contact-card" style="margin-bottom:1.5rem;">
+      <h3 style="font-family:'Playfair Display',serif;margin-bottom:1rem;">Contact Information</h3>
+      {% if site_settings.phone_primary or site_settings.phone_secondary %}
+      <div class="info-item">
+        <span class="info-icon">📞</span>
+        <div>
+          <div class="info-label">Phone</div>
+          <div class="info-value">
+            {% if site_settings.phone_primary %}
+              <a href="tel:{{ site_settings.phone_primary|cut:' ' }}" style="color:inherit;text-decoration:none;">{{ site_settings.phone_primary }}</a>
+            {% endif %}
+            {% if site_settings.phone_secondary %}
+              <br><a href="tel:{{ site_settings.phone_secondary|cut:' ' }}" style="color:inherit;text-decoration:none;">{{ site_settings.phone_secondary }}</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+      {% if site_settings.whatsapp %}
+      <div class="info-item">
+        <span class="info-icon">💬</span>
+        <div>
+          <div class="info-label">WhatsApp</div>
+          <div class="info-value"><a href="https://wa.me/{{ site_settings.whatsapp }}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">Chat with us</a></div>
+        </div>
+      </div>
+      {% endif %}
+      {% if site_settings.email %}
+      <div class="info-item">
+        <span class="info-icon">✉️</span>
+        <div>
+          <div class="info-label">Email</div>
+          <div class="info-value"><a href="mailto:{{ site_settings.email }}" style="color:inherit;text-decoration:none;">{{ site_settings.email }}</a></div>
+        </div>
+      </div>
+      {% endif %}
+      {% if site_settings.hours_weekday or site_settings.hours_sunday %}
+      <div class="info-item">
+        <span class="info-icon">🕐</span>
+        <div>
+          <div class="info-label">Hours</div>
+          <div class="info-value">
+            {% if site_settings.hours_weekday %}{{ site_settings.hours_weekday }}{% endif %}
+            {% if site_settings.hours_weekday and site_settings.hours_sunday %}<br>{% endif %}
+            {% if site_settings.hours_sunday %}{{ site_settings.hours_sunday }}{% endif %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+      {% if site_settings.head_office %}
+      <div class="info-item">
+        <span class="info-icon">📍</span>
+        <div><div class="info-label">Head Office</div><div class="info-value">{{ site_settings.head_office }}</div></div>
+      </div>
+      {% endif %}
+    </div>
+    <div class="contact-card" style="background:linear-gradient(135deg,#1A1410,#2e1f0e);color:white;">
+      <p style="font-size:0.85rem;color:rgba(255,255,255,.6);margin-bottom:0.5rem;">Find a branch near you</p>
+      <p style="font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:1rem;">We have branches across all 16 Ghana regions.</p>
+      <a href="{% url 'branches' %}" class="btn btn-gold" style="font-size:0.85rem;">View All Branches →</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

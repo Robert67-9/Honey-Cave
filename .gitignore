@@ -1,0 +1,45 @@
+# ── Secrets — NEVER commit these ─────────────────────────────────────────────
+.env
+*.key
+*.pem
+*.p12
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ── Virtual environments (the main cause of a giant repo — never commit) ──────
+venv/
+.venv/
+env/
+ENV/
+
+# ── Django ────────────────────────────────────────────────────────────────────
+db.sqlite3
+db.sqlite3-journal
+staticfiles/
+# NOTE: media/ is intentionally NOT ignored. You serve product & category
+# images straight from the repo (no Cloudinary), so these files MUST be
+# committed or images will be broken on Render. If you later switch to a
+# persistent disk or object store, add /media/ back here.
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+.dockerignore
+
+# ── SSL certs (generated locally) ────────────────────────────────────────────
+nginx/ssl/*.pem
+nginx/ssl/*.crt
+
+# ── IDE / OS ──────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

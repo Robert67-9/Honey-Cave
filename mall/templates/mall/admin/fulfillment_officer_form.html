@@ -1,0 +1,279 @@
+{% extends "mall/admin/base_admin.html" %}
+{% block title %}{{ action }} Fulfillment Officer — Market Admin{% endblock %}
+{% block page_title %}{{ action }} Fulfillment Officer{% endblock %}
+
+{% block content %}
+<p style="color:var(--muted);font-size:.88rem;margin-bottom:1.5rem;">
+    <a href="{% url 'admin_fulfillment_officers' %}" style="color:var(--muted);text-decoration:none;">← Back to all fulfillment officers</a>
+</p>
+
+<div style="max-width:520px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem;">
+
+    {% if action == 'Add' %}
+    <div style="background:#e3f2fd;border:1px solid #bbdefb;border-radius:8px;padding:.7rem 1rem;margin-bottom:1.5rem;font-size:.83rem;color:#0d47a1;">
+        🔐 Login username and password will be generated automatically. <strong>Copy and share both with the fulfillment officer after saving</strong> — the password won't be displayed again.
+    </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        {% if action == 'Add' %}
+        
+        <div style="margin-bottom:1.1rem;">
+            <label class="form-label">Full Name *</label>
+            <input type="text" name="full_name" class="form-input" maxlength="120" required
+                   placeholder="e.g. Kwame Asante" autofocus>
+            <p style="font-size:.78rem;color:var(--muted);margin:.3rem 0 0;">
+                We'll generate a username from this automatically.
+            </p>
+        </div>
+
+        <div style="margin-bottom:1.1rem;">
+            <label class="form-label">Phone *</label>
+            <input type="tel" name="phone" class="form-input" maxlength="30" required
+                   placeholder="+233 24 123 4567">
+        </div>
+
+        <div style="margin-bottom:1.1rem;">
+            <label class="form-label">Email <span style="font-weight:400;color:var(--muted);">(optional)</span></label>
+            <input type="email" name="email" class="form-input" maxlength="254"
+                   placeholder="fulfillment officer@example.com">
+        </div>
+
+        <div style="margin-bottom:1.1rem;">
+            <label class="form-label">Branch *</label>
+            <select name="branch_id" class="form-input" required>
+                <option value="">— Select a branch —</option>
+                {% for b in branches_available %}
+                <option value="{{ b.id }}">{{ b.name }} · {{ b.get_region_display }}</option>
+                {% endfor %}
+            </select>
+            {% if not branches_available %}
+            <p style="font-size:.78rem;color:#c62828;margin:.3rem 0 0;">
+                ⚠ All active branches already have fulfillment officers. Free up a branch first or add a new one.
+            </p>
+            {% endif %}
+        </div>
+
+        {% else %}
+        
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+            <div>
+                <label class="form-label">First Name *</label>
+                <input type="text" name="first_name" class="form-input" maxlength="60" required
+                       value="{{ fulfillment_officer.first_name|default:'' }}">
+            </div>
+            <div>
+                <label class="form-label">Last Name</label>
+                <input type="text" name="last_name" class="form-input" maxlength="60"
+                       value="{{ fulfillment_officer.last_name|default:'' }}">
+            </div>
+        </div>
+
+        <div style="margin-top:1rem;">
+            <label class="form-label">Username (login)</label>
+            <input type="text" class="form-input" value="{{ fulfillment_officer.username }}" disabled
+                   style="background:#fafafa;color:var(--muted);">
+            <p style="font-size:.78rem;color:var(--muted);margin:.3rem 0 0;">
+                Username cannot be changed after creation.
+            </p>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem;">
+            <div>
+                <label class="form-label">Phone *</label>
+                <input type="tel" name="phone" class="form-input" maxlength="30" required
+                       value="{{ fulfillment_officer.profile.phone|default:'' }}">
+            </div>
+            <div>
+                <label class="form-label">Email</label>
+                <input type="email" name="email" class="form-input" maxlength="254"
+                       value="{{ fulfillment_officer.email|default:'' }}">
+            </div>
+        </div>
+
+        <div style="margin-top:1rem;">
+            <label class="form-label">Assign to Branch</label>
+            <select name="branch_id" class="form-input">
+                <option value="0">— No branch —</option>
+                {% for b in branches_available %}
+                <option value="{{ b.id }}"
+                        {% if current_branch and current_branch.id == b.id %}selected{% endif %}>
+                    {{ b.name }} · {{ b.get_region_display }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border);">
+            <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;">
+                <input type="checkbox" name="is_active" value="1"
+                       {% if fulfillment_officer.is_active %}checked{% endif %}>
+                <span>Active — can log in to the fulfillment officer portal</span>
+            </label>
+        </div>
+
+        <div style="margin-top:1rem;">
+            <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;">
+                <input type="checkbox" name="can_upload_products" value="1"
+                       {% if fulfillment_officer.profile.can_upload_products %}checked{% endif %}>
+                <span>Can upload products — allows this officer to add products and images from the officer portal</span>
+            </label>
+        </div>
+
+        <!-- ── Assign products to this officer ──────────────────────────── -->
+        <div style="margin-top:1.5rem;padding-top:1.2rem;border-top:1px solid var(--border);">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:.5rem;">
+                <label class="form-label" style="margin:0;">
+                    Assigned products
+                    <span style="font-weight:400;color:var(--muted);">— products this officer is responsible for</span>
+                </label>
+                <span style="font-size:.8rem;color:var(--muted);">
+                    <strong id="ap-count">0</strong> selected
+                </span>
+            </div>
+
+            <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.6rem;">
+                <input type="text" id="ap-search" placeholder="🔍 Search products…" autocomplete="off"
+                       class="form-input" style="flex:1;min-width:200px;">
+                <button type="button" class="btn btn-ghost" onclick="apSelectAll(true)" style="padding:.45rem .8rem;font-size:.82rem;">Select all</button>
+                <button type="button" class="btn btn-ghost" onclick="apSelectAll(false)" style="padding:.45rem .8rem;font-size:.82rem;">Clear</button>
+            </div>
+
+            <div id="ap-list" style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;background:var(--surface,#fff);">
+                {% for p in all_products %}
+                <label class="ap-row"
+                       data-name="{{ p.name|lower }} {{ p.category.name|lower }}"
+                       style="display:flex;align-items:center;gap:.7rem;padding:.6rem .9rem;border-bottom:1px solid var(--border);cursor:pointer;">
+                    <input type="checkbox" class="ap-cb" name="assigned_products" value="{{ p.id }}"
+                           {% if p.id in assigned_product_ids %}checked{% endif %}
+                           onchange="apUpdateCount()">
+                    <span style="flex:1;min-width:0;">
+                        <span style="display:block;font-weight:600;font-size:.9rem;color:var(--dark);">{{ p.name }}</span>
+                        <span style="display:block;font-size:.76rem;color:var(--muted);">{{ p.category.name }} · GH₵ {{ p.price }}{% if not p.available %} · <span style="color:#b00;">unavailable</span>{% endif %}</span>
+                    </span>
+                </label>
+                {% empty %}
+                <p style="padding:1rem;color:var(--muted);font-size:.85rem;margin:0;">No products found. Add products first.</p>
+                {% endfor %}
+            </div>
+            <p id="ap-noresults" style="display:none;color:var(--muted);font-size:.82rem;margin:.6rem 0 0;">No products match your search.</p>
+        </div>
+        {% endif %}
+
+        <div style="display:flex;gap:.6rem;margin-top:2rem;">
+            <button type="submit" class="btn btn-gold">
+                {% if action == 'Add' %}Register Fulfillment Officer{% else %}Save Changes{% endif %}
+            </button>
+            <a href="{% url 'admin_fulfillment_officers' %}" class="btn btn-ghost">Cancel</a>
+        </div>
+    </form>
+</div>
+
+{% if action == 'Edit' %}
+<!-- ── Upload Access & Payment ─────────────────────────────────────────────── -->
+<div style="max-width:680px;margin-top:1.5rem;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem;">
+  <h3 style="margin-top:0;font-size:1rem;">🧾 Upload Access &amp; Payment</h3>
+
+  <div style="margin-bottom:1rem;font-size:.9rem;">
+    Current status:
+    {% if can_upload_now %}
+      <strong style="color:#1b7e3a;">✅ Can upload</strong>
+      {% if upload_req and upload_req.status == 'paid' %}(paid GH₵{{ upload_req.amount_paid }}){% elif upload_req and upload_req.status == 'approved_free' %}(free access){% endif %}
+    {% elif upload_req and upload_req.status == 'payment_required' %}
+      <strong style="color:#b8860b;">💳 Awaiting payment of GH₵{{ upload_req.amount }}</strong>
+    {% elif upload_req and upload_req.status == 'pending' %}
+      <strong style="color:#b8860b;">⏳ Officer requested — awaiting your decision</strong>
+    {% else %}
+      <strong style="color:#b3261e;">🚫 Cannot upload</strong>
+    {% endif %}
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:1.5rem;align-items:flex-end;">
+    <!-- Require payment -->
+    <form method="post" action="{% url 'admin_officer_upload_access_action' fulfillment_officer.pk %}"
+          style="display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap;">
+      {% csrf_token %}
+      <input type="hidden" name="upload_action" value="require_payment">
+      <label style="font-size:.8rem;color:var(--muted);display:flex;flex-direction:column;gap:.2rem;">
+        Set price (GH₵)
+        <input type="number" name="upload_amount" step="0.01" min="1" placeholder="50.00" required
+               style="padding:.45rem .6rem;border:1px solid var(--border);border-radius:7px;width:120px;">
+      </label>
+      <button type="submit" class="btn btn-gold btn-sm">Require Payment</button>
+    </form>
+
+    <!-- Grant free -->
+    <form method="post" action="{% url 'admin_officer_upload_access_action' fulfillment_officer.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="upload_action" value="approve_free">
+      <button type="submit" class="btn btn-sm" style="background:#1b7e3a;color:#fff;">Grant Free Access</button>
+    </form>
+
+    {% if can_upload_now %}
+    <!-- Revoke -->
+    <form method="post" action="{% url 'admin_officer_upload_access_action' fulfillment_officer.pk %}"
+          onsubmit="return confirm('Revoke upload access for this officer?');">
+      {% csrf_token %}
+      <input type="hidden" name="upload_action" value="revoke">
+      <button type="submit" class="btn btn-danger btn-sm">Revoke Access</button>
+    </form>
+    {% endif %}
+  </div>
+  <p style="font-size:.8rem;color:var(--muted);margin-top:.8rem;margin-bottom:0;">
+    <strong>Require Payment</strong>: the officer sees a "Pay GH₵X" button on their Upload Access page and can upload only after paying.
+    <strong>Grant Free Access</strong> unlocks uploads immediately at no charge (same as the checkbox above).
+  </p>
+</div>
+{% endif %}
+
+{% if action == 'Edit' %}
+<div style="max-width:680px;margin-top:1.5rem;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem;">
+    <h3 style="margin-top:0;font-size:1rem;">Other actions</h3>
+    <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
+        <a href="{% url 'admin_fulfillment_officer_reset_password' fulfillment_officer.pk %}" class="btn btn-ghost btn-sm" style="color:#1976d2;">🔑 Reset Password</a>
+        {% if fulfillment_officer.is_active %}
+        <a href="{% url 'admin_fulfillment_officer_deactivate' fulfillment_officer.pk %}" class="btn btn-danger btn-sm">⛔ Deactivate</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{% if action == 'Edit' %}
+<script>
+(function () {
+  function cbs() { return Array.prototype.slice.call(document.querySelectorAll('.ap-cb')); }
+  window.apUpdateCount = function () {
+    var n = cbs().filter(function (c) { return c.checked; }).length;
+    var el = document.getElementById('ap-count');
+    if (el) el.textContent = n;
+  };
+  window.apSelectAll = function (state) {
+    // Only toggle rows currently visible (respects the search filter).
+    cbs().forEach(function (c) {
+      var row = c.closest('.ap-row');
+      if (row && row.style.display !== 'none') c.checked = state;
+    });
+    apUpdateCount();
+  };
+  var search = document.getElementById('ap-search');
+  if (search) {
+    search.addEventListener('input', function () {
+      var q = this.value.trim().toLowerCase();
+      var anyVisible = false;
+      document.querySelectorAll('.ap-row').forEach(function (row) {
+        var hit = !q || (row.getAttribute('data-name') || '').indexOf(q) !== -1;
+        row.style.display = hit ? '' : 'none';
+        if (hit) anyVisible = true;
+      });
+      var nr = document.getElementById('ap-noresults');
+      if (nr) nr.style.display = anyVisible ? 'none' : 'block';
+    });
+  }
+  apUpdateCount();
+})();
+</script>
+{% endif %}
+
+{% endblock %}

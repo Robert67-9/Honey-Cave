@@ -1,0 +1,124 @@
+{% if user.is_authenticated %}
+<style>
+#wl-toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(60px);
+  background: #1A1410;
+  color: #fff;
+  padding: .6rem 1.25rem;
+  border-radius: 30px;
+  font-size: .88rem;
+  font-weight: 500;
+  white-space: nowrap;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .25s, transform .25s;
+}
+#wl-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+</style>
+<div id="wl-toast"></div>
+
+<script>
+(function() {
+  var CSRF = '{{ csrf_token }}';
+  var toastTimer;
+
+  function showToast(msg) {
+    var t = document.getElementById('wl-toast');
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function() { t.classList.remove('show'); }, 2200);
+  }
+
+  function updateHeart(btn, wishlisted) {
+    btn.innerHTML         = wishlisted ? '&#9829;' : '&#9825;';
+    btn.style.color       = wishlisted ? '#e74c3c' : 'var(--muted)';
+    btn.style.borderColor = wishlisted ? '#e74c3c' : 'var(--border)';
+    btn.style.background  = wishlisted ? '#fff0ef' : '';
+    btn.dataset.wishlisted = wishlisted ? '1' : '0';
+    btn.title             = wishlisted ? 'Remove from Watchlist' : 'Add to Watchlist';
+    btn.setAttribute('aria-pressed', wishlisted ? 'true' : 'false');
+  }
+
+  function refreshBadge() {
+    fetch('/api/wishlist/count/')
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var badge = document.getElementById('wl-count');
+        if (!badge) return;
+        badge.textContent   = d.count || '';
+        badge.style.display = d.count > 0 ? 'inline' : 'none';
+      }).catch(function() {});
+  }
+
+  function attachHearts() {
+    document.querySelectorAll('.wishlist-heart-btn').forEach(function(btn) {
+      updateHeart(btn, btn.dataset.wishlisted === '1');
+      if (btn.dataset.heartBound) return;
+      btn.dataset.heartBound = '1';
+
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var b = this;
+        var pid = b.dataset.productId;
+        var addingNow = b.dataset.wishlisted !== '1';
+
+        updateHeart(b, addingNow);
+
+        fetch('/wishlist/toggle/' + pid + '/', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' },
+        })
+        .then(function(r) {
+          if (!r.ok) throw new Error('server');
+          return r.json();
+        })
+        .then(function(data) {
+          if (!data.ok) {
+            updateHeart(b, !addingNow);
+            showToast('Something went wrong. Please try again.');
+          } else {
+            updateHeart(b, data.wishlisted);
+            showToast(data.wishlisted ? '\u2665 Added to Watchlist' : '\u2661 Removed from Watchlist');
+            refreshBadge();
+          }
+        })
+        .catch(function() {
+          updateHeart(b, !addingNow);
+          showToast('Could not update Watchlist. Check your connection.');
+        });
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', attachHearts);
+  } else {
+    attachHearts();
+  }
+  window.attachWishlistHearts = attachHearts;
+  document.addEventListener('DOMContentLoaded', refreshBadge);
+})();
+</script>
+{% else %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.wishlist-heart-btn').forEach(function(btn) {
+    btn.title = 'Log in to add to Watchlist';
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      window.location.href = '/login/?next=' + encodeURIComponent(window.location.pathname);
+    });
+  });
+});
+</script>
+{% endif %}

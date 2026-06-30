@@ -1,0 +1,125 @@
+{% extends 'mall/base.html' %}
+{% block title %}Review Your Order {{ order.order_number }} — Market{% endblock %}
+
+{% block extra_css %}
+<style>
+.review-page-header { max-width:700px;margin:0 auto 2rem;text-align:center; }
+.item-review-card {
+  background:white;border:1px solid var(--border);border-radius:14px;
+  padding:1.75rem;margin-bottom:1.5rem;max-width:700px;margin-left:auto;margin-right:auto;
+}
+.item-review-card h3 { font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:1.25rem; }
+.item-preview {
+  display:flex;align-items:center;gap:1rem;
+  background:var(--cream);border-radius:10px;padding:0.9rem 1.1rem;
+  margin-bottom:1.25rem;
+}
+.item-preview img { width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--border); }
+.item-preview-placeholder { width:56px;height:56px;border-radius:8px;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:1.5rem; }
+.item-name  { font-weight:700;font-size:0.95rem; }
+.item-meta  { font-size:0.8rem;color:var(--muted);margin-top:0.15rem; }
+
+.star-picker { display:flex;flex-direction:row-reverse;gap:0.2rem;justify-content:flex-end;margin-bottom:0.35rem; }
+.star-picker input[type=radio] { display:none; }
+.star-picker label { font-size:1.8rem;cursor:pointer;color:#ddd;transition:color 0.12s;line-height:1; }
+.star-picker input[type=radio]:checked ~ label,
+.star-picker label:hover,
+.star-picker label:hover ~ label { color:var(--gold); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="review-page-header">
+  <p class="eyebrow">✦ Verified Purchase ✦</p>
+  <h1>Review Your Order</h1>
+  <p style="color:var(--muted);">
+    Order {{ order.order_number }} · {{ order.created|date:"d M Y" }} · {{ order.items.count }} item{{ order.items.count|pluralize }}
+  </p>
+  <p>Your feedback helps other shoppers and improves our service.</p>
+</div>
+
+{% if pending_items %}
+<form method="post" novalidate>
+  {% csrf_token %}
+
+  {% for entry in pending_items %}
+  {% with item=entry.item product=entry.product form=entry.form %}
+  <div class="item-review-card">
+    <!-- Product preview -->
+    <div class="item-preview">
+      {% if product.image %}
+      <img src="{{ product.image.url }}" alt="{{ product.name }}">
+      {% elif product.image_url %}
+      <img src="{{ product.image_url }}" alt="{{ product.name }}">
+      {% else %}
+      <div class="item-preview-placeholder">🛍️</div>
+      {% endif %}
+      <div>
+        <div class="item-name">{{ product.name }}</div>
+        <div class="item-meta">Qty {{ item.quantity }} · GH₵ {{ item.get_total_price }}</div>
+        <div class="item-meta" style="color:var(--green);font-weight:600;">✓ Verified Purchase</div>
+      </div>
+    </div>
+
+    <h3>How would you rate {{ product.name }}?</h3>
+
+    <!-- Star picker -->
+    <div class="form-group" style="margin-bottom:1.1rem;">
+      <div class="star-picker">
+        <input type="radio" name="{{ form.rating.html_name }}" id="{{ form.prefix }}_s5" value="5">
+        <label for="{{ form.prefix }}_s5" title="5 — Excellent">★</label>
+        <input type="radio" name="{{ form.rating.html_name }}" id="{{ form.prefix }}_s4" value="4">
+        <label for="{{ form.prefix }}_s4" title="4 — Good">★</label>
+        <input type="radio" name="{{ form.rating.html_name }}" id="{{ form.prefix }}_s3" value="3">
+        <label for="{{ form.prefix }}_s3" title="3 — Average">★</label>
+        <input type="radio" name="{{ form.rating.html_name }}" id="{{ form.prefix }}_s2" value="2">
+        <label for="{{ form.prefix }}_s2" title="2 — Poor">★</label>
+        <input type="radio" name="{{ form.rating.html_name }}" id="{{ form.prefix }}_s1" value="1">
+        <label for="{{ form.prefix }}_s1" title="1 — Terrible">★</label>
+      </div>
+      <div style="font-size:0.75rem;color:var(--muted);" id="hint_{{ form.prefix }}">Click a star to rate</div>
+      {% if form.rating.errors %}<div class="form-errors">{{ form.rating.errors }}</div>{% endif %}
+    </div>
+
+    <div class="form-group">
+      <label>Headline <span style="font-size:0.75rem;color:var(--muted);">(optional)</span></label>
+      {{ form.title }}
+      {% if form.title.errors %}<div class="form-errors">{{ form.title.errors }}</div>{% endif %}
+    </div>
+
+    <div class="form-group">
+      <label>Your Review <span style="color:var(--red);">*</span></label>
+      {{ form.comment }}
+      {% if form.comment.errors %}<div class="form-errors">{{ form.comment.errors }}</div>{% endif %}
+    </div>
+  </div>
+  {% endwith %}
+  {% endfor %}
+
+  <div style="max-width:700px;margin:0 auto;display:flex;gap:1rem;flex-wrap:wrap;">
+    <button type="submit" class="btn btn-gold">Submit {{ pending_items|length }} Review{{ pending_items|length|pluralize }} →</button>
+    <a href="{% url 'my_orders' %}" class="btn btn-outline">Skip for Now</a>
+  </div>
+</form>
+
+{% else %}
+<div style="max-width:500px;margin:0 auto;text-align:center;padding:3rem;">
+  <div style="font-size:3rem;margin-bottom:1rem;">✅</div>
+  <h2 style="font-family:'Playfair Display',serif;margin-bottom:0.5rem;">All caught up!</h2>
+  <p style="color:var(--muted);">You've already reviewed all items in this order.</p>
+  <a href="{% url 'my_orders' %}" class="btn btn-gold mt-2">Back to My Orders</a>
+</div>
+{% endif %}
+
+<script>
+const starHints = {5:'Excellent',4:'Good',3:'Average',2:'Poor',1:'Terrible'};
+document.querySelectorAll('.star-picker input[type=radio]').forEach(r => {
+  r.addEventListener('change', () => {
+    // find the hint element for this card
+    const card = r.closest('.item-review-card');
+    const hint = card ? card.querySelector('[id^="hint_"]') : null;
+    if (hint) hint.textContent = starHints[r.value] || '';
+  });
+});
+</script>
+{% endblock %}

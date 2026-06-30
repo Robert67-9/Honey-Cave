@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>2FA Verification — Market Admin</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: #1A1410; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .card { background: #fff; border-radius: 16px; padding: 2.5rem 2rem; width: 100%; max-width: 380px; text-align: center; }
+    .logo { font-family: Georgia, serif; font-size: 1.5rem; font-weight: 700; color: #C9A84C; margin-bottom: 0.5rem; letter-spacing: 2px; }
+    .subtitle { font-size: 0.85rem; color: #7A6E64; margin-bottom: 2rem; }
+    label { display: block; font-size: 0.85rem; color: #5a5047; margin-bottom: 0.5rem; text-align: left; }
+    input { width: 100%; padding: 0.75rem 1rem; border: 1.5px solid #E8E0D4; border-radius: 8px; font-size: 1.4rem; letter-spacing: 6px; text-align: center; margin-bottom: 1rem; outline: none; }
+    input:focus { border-color: #C9A84C; }
+    .btn { width: 100%; padding: 0.85rem; background: #C9A84C; color: #1A1410; font-weight: 700; border: none; border-radius: 8px; cursor: pointer; font-size: 0.95rem; }
+    .btn:hover { background: #b8933d; }
+    .error { background: #fff0f0; border: 1px solid #f5c6cb; border-radius: 8px; padding: 0.65rem 1rem; margin-bottom: 1rem; color: #721c24; font-size: 0.85rem; }
+    .back { display: block; margin-top: 1rem; font-size: 0.82rem; color: #7A6E64; text-decoration: none; }
+    .back:hover { color: #C9A84C; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">MARKET</div>
+    <div class="subtitle">Enter your authenticator code to continue</div>
+
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <label for="token">6-digit code</label>
+      <input type="text" id="token" name="token" maxlength="6"
+             inputmode="numeric" autocomplete="one-time-code"
+             placeholder="000000" autofocus required>
+      <button type="submit" class="btn">Verify</button>
+    </form>
+    <a href="{% url 'admin_login' %}" class="back">← Back to login</a>
+  </div>
+</body>
+</html>

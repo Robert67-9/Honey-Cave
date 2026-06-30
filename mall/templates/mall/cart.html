@@ -1,0 +1,243 @@
+{% extends 'mall/base.html' %}
+{% block title %}My Cart — Market{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Mobile-first cart layout ─────────────────────────────────────────── */
+
+/* Stack on mobile: summary on top, items below */
+.cart-layout {
+    display: flex;
+    flex-direction: column-reverse;   /* summary above items on mobile */
+    gap: 1rem;
+}
+@media (min-width: 700px) {
+    .cart-layout {
+        display: grid;
+        grid-template-columns: 1fr 320px;
+        gap: 1.5rem;
+        flex-direction: unset;
+    }
+}
+@media (min-width: 960px) {
+    .cart-layout { grid-template-columns: 1fr 340px; gap: 2rem; }
+}
+
+.cart-item {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.9rem;
+    display: grid;
+    grid-template-columns: 68px 1fr;
+    grid-template-rows: auto auto;
+    gap: 0 0.85rem;
+    margin-bottom: 0.75rem;
+    position: relative;
+}
+@media (min-width: 520px) {
+    .cart-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.1rem;
+    }
+}
+.cart-item-img {
+    width: 68px; height: 68px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: var(--bg-elevated);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    grid-row: 1 / 3;
+}
+@media (min-width: 520px) {
+    .cart-item-img { width: 80px; height: 80px; }
+}
+.cart-item-info { flex: 1; min-width: 0; }
+.cart-item-name {
+    font-family: 'Playfair Display', serif;
+    font-weight: 600;
+    font-size: 0.92rem;
+    margin-bottom: 0.15rem;
+    text-decoration: none;
+    color: var(--dark);
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.cart-item-name:hover { color: var(--gold); }
+.cart-item-category {
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Row 2 on mobile: qty form + price + remove */
+.cart-item-actions {
+    grid-column: 2;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.4rem;
+}
+.cart-item-price {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--gold);
+    margin-left: auto;
+}
+.qty-form { display: flex; align-items: center; gap: 0.35rem; }
+.qty-form input {
+    width: 48px;
+    padding: 0.35rem 0.4rem;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    text-align: center;
+    font-size: 0.85rem;
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+}
+
+/* Summary card */
+.summary-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.1rem 1.25rem;
+}
+@media (min-width: 700px) {
+    .summary-card { position: sticky; top: 76px; padding: 1.5rem; }
+}
+.summary-card h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid var(--border);
+}
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    margin-bottom: 0.6rem;
+    gap: 0.5rem;
+}
+.summary-row span:first-child {
+    color: var(--muted);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.summary-row.total {
+    font-size: 1rem;
+    font-weight: 700;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--border);
+    margin-top: 0.35rem;
+}
+.summary-row.total span:first-child { color: var(--text); }
+.summary-row.total .amount { color: var(--gold); }
+
+.empty-cart { text-align: center; padding: 3.5rem 1rem; }
+.empty-cart .icon { font-size: 4rem; display: block; margin-bottom: 0.75rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% load promotions %}
+<div class="page-header">
+    <p class="eyebrow">✦ Review Order ✦</p>
+    <h1>My Cart</h1>
+</div>
+
+{% if cart_items %}
+<div class="cart-layout">
+    <div>
+        {% for item in cart_items %}
+        <div class="cart-item">
+            <div class="cart-item-img">
+                {% if item.product.image %}
+                <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">
+                {% elif item.product.image_url %}
+                <img src="{{ item.product.image_url }}" alt="{{ item.product.name }}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">
+                {% else %}
+                🛍️
+                {% endif %}
+            </div>
+            <div class="cart-item-info">
+                <a href="{% url 'product_detail' item.product.slug %}" class="cart-item-name">{{ item.product.name }}</a>
+                <p class="cart-item-category">{{ item.product.category.name }}</p>
+                <p style="font-size:0.78rem; color:var(--muted); margin-top:0.1rem;">GH₵ {{ item.product.price }} each</p>
+            </div>
+            <div class="cart-item-actions">
+                <form action="{% url 'update_cart' item.product.id %}" method="post" class="qty-form">
+                    {% csrf_token %}
+                    <input type="number" name="quantity" value="{{ item.quantity }}" min="0" max="99">
+                    <button type="submit" class="btn btn-outline btn-sm">Update</button>
+                </form>
+                <span class="cart-item-price">GH₵ {{ item.total }}</span>
+                <form action="{% url 'remove_from_cart' item.product.id %}" method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-sm">✕</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+
+        <div class="mt-2">
+            <a href="{% url 'product_list' %}" class="btn btn-outline">← Continue Shopping</a>
+        </div>
+    </div>
+
+    <!-- Summary -->
+    <div>
+        <div class="summary-card">
+            <h3>Order Summary</h3>
+            {% for item in cart_items %}
+            <div class="summary-row">
+                <span>{{ item.product.name|truncatewords:4 }} ×{{ item.quantity }}</span>
+                <span>GH₵ {{ item.total }}</span>
+            </div>
+            {% endfor %}
+            <div class="summary-row">
+                <span>Shipping</span>
+                <span style="color:var(--green);">{% if total >= 50 %}Free{% else %}0{% endif %}</span>
+            </div>
+            <div class="summary-row total">
+                <span>Total</span>
+                <span class="amount">GH₵ {{ total }}</span>
+            </div>
+            <a href="{% url 'checkout' %}" class="btn btn-gold w-full mt-2" style="padding:0.9rem; font-size:1rem;">
+                Proceed to Checkout →
+            </a>
+            {% if not user.is_authenticated %}
+            <p class="text-muted mt-1" style="font-size:0.8rem; text-align:center;">You'll need to <a href="{% url 'login' %}" style="color:var(--gold);">login</a> to checkout.</p>
+            {% endif %}
+        </div>
+
+        
+        {% promotions_for 'cart_banner' %}
+    </div>
+</div>
+
+{% else %}
+<div class="empty-cart">
+    <span class="icon">🛒</span>
+    <h2 style="font-family:'Playfair Display',serif; margin-bottom:0.5rem;">Your cart is empty</h2>
+    <p class="text-muted">Looks like you haven't added anything yet.</p>
+    <a href="{% url 'product_list' %}" class="btn btn-gold mt-3">Start Shopping</a>
+</div>
+{% endif %}
+{% endblock %}

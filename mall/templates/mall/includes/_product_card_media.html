@@ -1,0 +1,41 @@
+{% comment %}
+Product card media: shows the main image plus any gallery images as a small
+swipeable carousel with dots. Single-image products render with no dots and
+behave like a normal linked image. Only the first image loads eagerly; the
+rest are lazy-loaded to keep grids light on mobile data.
+
+Usage:  {% include 'mall/includes/_product_card_media.html' with product=product %}
+{% endcomment %}
+{% with gallery=product.gallery.all %}
+<div class="product-card-media{% if gallery and product.image or gallery and product.image_url or gallery|length > 1 %} has-carousel{% endif %}">
+  <a href="{% url 'product_detail' product.slug %}" class="pcard-link" aria-label="{{ product.name }}">
+    {% if product.image or product.image_url or gallery %}
+    <div class="pcard-track">
+      {% if product.image %}
+        <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-card-img">
+      {% elif product.image_url %}
+        <img src="{{ product.image_url }}" alt="{{ product.name }}" class="product-card-img">
+      {% endif %}
+      {% for img in gallery %}
+        <img {% if not product.image and not product.image_url and forloop.first %}src{% else %}data-src{% endif %}="{{ img.image.url }}"
+             alt="{{ img.alt_text|default:product.name }}" class="product-card-img" loading="lazy">
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="product-card-img-placeholder">🛍️</div>
+    {% endif %}
+  </a>
+
+  {% comment %} Dots: rendered in the same order as the slides; JS maps by position. {% endcomment %}
+  {% if gallery and product.image or gallery and product.image_url or gallery|length > 1 %}
+  <div class="pcard-dots" aria-hidden="true">
+    {% if product.image or product.image_url %}
+      <button type="button" class="pcard-dot is-active"></button>
+    {% endif %}
+    {% for img in gallery %}
+      <button type="button" class="pcard-dot{% if not product.image and not product.image_url and forloop.first %} is-active{% endif %}"></button>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endwith %}

@@ -1,0 +1,154 @@
+{% extends "mall/admin/base_admin.html" %}
+{% block title %}{{ action }} Promotion — Market Admin{% endblock %}
+{% block page_title %}{{ action }} Promotion{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:820px;">
+  <div class="card-header">
+    <h2>{{ action }} Promotion</h2>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" style="padding:1.5rem;display:flex;flex-direction:column;gap:1.1rem;">
+    {% csrf_token %}
+
+    <div>
+      <label class="form-label">Title <span style="color:#dc3545;">*</span></label>
+      <input type="text" name="title" maxlength="120" required
+             value="{{ promotion.title|default:'' }}"
+             placeholder="e.g. 20% off all fashion this weekend"
+             class="form-input">
+    </div>
+
+    <div>
+      <label class="form-label">Subtitle <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
+      <input type="text" name="subtitle" maxlength="240"
+             value="{{ promotion.subtitle|default:'' }}"
+             placeholder="Supporting line shown below the headline"
+             class="form-input">
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div>
+        <label class="form-label">Placement <span style="color:#dc3545;">*</span></label>
+        <select name="placement" required class="form-input">
+          {% for val, label in placement_choices %}
+            <option value="{{ val }}" {% if promotion.placement == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <p style="font-size:.75rem;color:var(--muted);margin-top:.3rem;">
+          Where on the site the banner will appear.
+        </p>
+      </div>
+      <div>
+        <label class="form-label">Priority</label>
+        <input type="number" name="priority" min="0" max="999"
+               value="{{ promotion.priority|default:0 }}" class="form-input">
+        <p style="font-size:.75rem;color:var(--muted);margin-top:.3rem;">
+          Higher = shows first when multiple promos share a placement.
+        </p>
+      </div>
+    </div>
+
+    <div>
+      <label class="form-label">Link URL <span style="color:var(--muted);font-weight:400;">(where the banner takes customers)</span></label>
+      <input type="text" name="link_url" maxlength="500"
+             value="{{ promotion.link_url|default:'' }}"
+             placeholder="e.g. /products/?category=fashion"
+             class="form-input">
+      <p style="font-size:.75rem;color:var(--muted);margin-top:.3rem;">
+        Use site paths like <code>/products/</code> or <code>/products/?category=electronics</code>.
+      </p>
+    </div>
+
+    <div>
+      <label class="form-label">Button Text</label>
+      <input type="text" name="cta_text" maxlength="40"
+             value="{{ promotion.cta_text|default:'Shop Now' }}"
+             placeholder="Shop Now" class="form-input">
+      <p style="font-size:.75rem;color:var(--muted);margin-top:.3rem;">
+        Leave blank to hide the button and make the whole banner clickable.
+      </p>
+    </div>
+
+    <div>
+      <label class="form-label">Banner Image</label>
+      {% if promotion.image %}
+      <div style="margin-bottom:.6rem;">
+        <img src="{{ promotion.image.url }}" alt=""
+             style="max-width:100%;max-height:180px;border-radius:8px;border:1px solid var(--border);">
+      </div>
+      {% endif %}
+      <input type="file" name="image" accept="image/*" class="form-input">
+      <p style="font-size:.75rem;color:var(--muted);margin-top:.3rem;">
+        <strong>Hero carousel:</strong> 1200×500 landscape JPG/PNG ·
+        <strong>Strip banners:</strong> 1200×250 ·
+        <strong>Cart cards:</strong> image optional (use background colour instead).
+      </p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div>
+        <label class="form-label">Background Colour <span style="color:var(--muted);font-weight:400;">(if no image)</span></label>
+        <input type="text" name="bg_color" maxlength="20"
+               value="{{ promotion.bg_color|default:'' }}"
+               placeholder="#C9A84C" class="form-input">
+      </div>
+      <div>
+        <label class="form-label">Text Colour <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
+        <input type="text" name="text_color" maxlength="20"
+               value="{{ promotion.text_color|default:'' }}"
+               placeholder="#FFFFFF" class="form-input">
+      </div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:.4rem 0;">
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div>
+        <label class="form-label">Start Date / Time <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
+        <input type="datetime-local" name="starts_at"
+               value="{% if promotion.starts_at %}{{ promotion.starts_at|date:'Y-m-d\TH:i' }}{% endif %}"
+               class="form-input">
+        <p style="font-size:.75rem;color:var(--muted);margin-top:.3rem;">Leave blank to start immediately.</p>
+      </div>
+      <div>
+        <label class="form-label">End Date / Time <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
+        <input type="datetime-local" name="ends_at"
+               value="{% if promotion.ends_at %}{{ promotion.ends_at|date:'Y-m-d\TH:i' }}{% endif %}"
+               class="form-input">
+        <p style="font-size:.75rem;color:var(--muted);margin-top:.3rem;">Leave blank for no end date.</p>
+      </div>
+    </div>
+
+    <div>
+      <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;">
+        <input type="checkbox" name="is_active"
+               {% if promotion.is_active or not promotion %}checked{% endif %}>
+        <span>Active (uncheck to pause without deleting)</span>
+      </label>
+    </div>
+
+    {% if promotion %}
+    <div style="background:#FAF7F2;padding:.9rem 1.1rem;border-radius:8px;font-size:.85rem;">
+      <div><strong>Impressions:</strong> {{ promotion.impressions }}</div>
+      <div><strong>Clicks:</strong> {{ promotion.clicks }}</div>
+      <div><strong>Click-through rate:</strong> {{ promotion.ctr }}%</div>
+    </div>
+    {% endif %}
+
+    <div style="display:flex;gap:0.6rem;margin-top:0.4rem;">
+      <button type="submit" class="btn btn-gold">{{ action }} Promotion</button>
+      <a href="{% url 'admin_promotions' %}" class="btn btn-ghost">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<style>
+.form-label { display:block;font-size:.82rem;font-weight:600;margin-bottom:.4rem;color:var(--text); }
+.form-input {
+  width:100%;padding:.55rem .75rem;border:1px solid var(--border);
+  border-radius:6px;font-size:.9rem;font-family:inherit;
+}
+.form-input:focus { outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,.15); }
+</style>
+{% endblock %}

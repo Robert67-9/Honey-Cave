@@ -1,0 +1,64 @@
+{% extends 'mall/base.html' %}
+
+{% block title %}Payment Status — {{ SITE_NAME|default:'Honey Cave Market' }}{% endblock %}
+
+{% block content %}
+<div style="max-width:560px;margin:3rem auto;padding:0 1rem;">
+  <div style="background:#fff;border:1px solid var(--border,#e8dfc9);border-radius:14px;padding:2.2rem 1.8rem;text-align:center;box-shadow:0 4px 18px rgba(0,0,0,0.05);">
+
+    {% if verified %}
+      <div style="font-size:3rem;line-height:1;">✅</div>
+      <h1 style="margin:0.8rem 0 0.4rem;font-size:1.5rem;">Payment Received</h1>
+      {% if amount_ghs %}
+      <p style="margin:0;color:var(--muted,#7a6a4f);">Amount: <strong>GH₵ {{ amount_ghs|floatformat:2 }}</strong></p>
+      {% endif %}
+      <p style="margin:0.8rem 0 0;color:var(--muted,#7a6a4f);font-size:0.92rem;line-height:1.6;">
+        Your payment was verified successfully. Keep this reference safe:
+      </p>
+      <div style="margin:0.9rem auto;display:inline-block;background:#faf6ee;border:1px dashed var(--gold,#C9A84C);border-radius:8px;padding:0.55rem 1rem;font-weight:700;letter-spacing:0.5px;">
+        {{ reference }}
+      </div>
+      <p style="margin:0.4rem 0 1.4rem;color:var(--muted,#7a6a4f);font-size:0.88rem;line-height:1.6;">
+        If your order doesn't appear under <em>My Orders</em> within a few minutes,
+        our team has already been notified and will complete it for you — or contact
+        support quoting the reference above.
+      </p>
+      <div style="display:flex;gap:0.7rem;justify-content:center;flex-wrap:wrap;">
+        <a href="{% url 'my_orders' %}"
+           style="background:var(--gold,#C9A84C);color:#1d1405;padding:0.65rem 1.3rem;border-radius:8px;font-weight:700;text-decoration:none;">
+          View My Orders
+        </a>
+        <a href="{% url 'product_list' %}"
+           style="border:1px solid var(--border,#e8dfc9);padding:0.65rem 1.3rem;border-radius:8px;font-weight:600;text-decoration:none;color:inherit;">
+          Continue Shopping
+        </a>
+      </div>
+
+    {% else %}
+      <div style="font-size:3rem;line-height:1;">⚠️</div>
+      <h1 style="margin:0.8rem 0 0.4rem;font-size:1.5rem;">Payment Not Confirmed</h1>
+      <p style="margin:0;color:var(--muted,#7a6a4f);font-size:0.92rem;line-height:1.6;">
+        {{ error_message|default:'We could not verify this payment.' }}
+      </p>
+      <div style="margin:0.9rem auto;display:inline-block;background:#fdecea;border:1px dashed #b3261e;border-radius:8px;padding:0.55rem 1rem;font-weight:700;letter-spacing:0.5px;">
+        {{ reference }}
+      </div>
+      <p style="margin:0.4rem 0 1.4rem;color:var(--muted,#7a6a4f);font-size:0.88rem;line-height:1.6;">
+        If money left your account, don't pay again — contact support with the
+        reference above and we'll sort it out.
+      </p>
+      <div style="display:flex;gap:0.7rem;justify-content:center;flex-wrap:wrap;">
+        <a href="{% url 'cart' %}"
+           style="background:var(--gold,#C9A84C);color:#1d1405;padding:0.65rem 1.3rem;border-radius:8px;font-weight:700;text-decoration:none;">
+          Back to Cart
+        </a>
+        <a href="{% url 'contact' %}"
+           style="border:1px solid var(--border,#e8dfc9);padding:0.65rem 1.3rem;border-radius:8px;font-weight:600;text-decoration:none;color:inherit;">
+          Contact Support
+        </a>
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

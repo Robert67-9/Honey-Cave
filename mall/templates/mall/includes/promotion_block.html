@@ -1,0 +1,163 @@
+{% comment %}
+─── Internal Promotion Block ────────────────────────────────────────────
+Rendered by the promotions_for template tag.
+Design adapts based on placement:
+  - home_hero     : rotating carousel, full-width, large
+  - home_strip    : single horizontal strip, mid-page
+  - products_top  : compact banner above product grid
+  - cart_banner   : upsell card in cart sidebar
+  - checkout      : small note at top of checkout sidebar
+All links go through /promo/<id>/ so clicks are tracked server-side.
+───────────────────────────────────────────────────────────────────────────
+{% endcomment %}
+{% if promotions %}
+
+{% if placement == 'home_hero' %}
+<div class="promo-hero-wrap" id="promo-hero-{{ placement }}">
+  <div class="promo-hero-track">
+    {% for promo in promotions %}
+    <a href="{% url 'promotion_click' promo.pk %}" class="promo-hero-slide"
+       style="{% if promo.image %}background-image:url('{{ promo.image.url }}');{% elif promo.bg_color %}background:{{ promo.bg_color }};{% else %}background:linear-gradient(135deg,#1A1410,#3a2f24);{% endif %}{% if promo.text_color %}color:{{ promo.text_color }};{% endif %}">
+      <div class="promo-hero-content">
+        <h3>{{ promo.title }}</h3>
+        {% if promo.subtitle %}<p>{{ promo.subtitle }}</p>{% endif %}
+        {% if promo.cta_text %}<span class="promo-hero-cta">{{ promo.cta_text }} →</span>{% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% if promotions|length > 1 %}
+  <div class="promo-hero-dots">
+    {% for promo in promotions %}
+    <button type="button" class="promo-hero-dot {% if forloop.first %}active{% endif %}"
+            data-slide="{{ forloop.counter0 }}" aria-label="Slide {{ forloop.counter }}"></button>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+<style>
+.promo-hero-wrap { position:relative; margin:1.5rem 0 2rem; border-radius:16px; overflow:hidden; }
+.promo-hero-track { display:flex; transition:transform .5s ease; }
+.promo-hero-slide {
+  flex:0 0 100%; min-height:280px; padding:2.5rem 2rem; display:flex; align-items:center;
+  color:#fff; text-decoration:none; background-size:cover; background-position:center;
+  position:relative;
+}
+.promo-hero-slide::before {
+  content:''; position:absolute; inset:0; background:linear-gradient(90deg,rgba(0,0,0,.55) 0%,rgba(0,0,0,.15) 70%);
+}
+.promo-hero-content { position:relative; z-index:1; max-width:520px; }
+.promo-hero-content h3 {
+  font-family:'Playfair Display',serif; font-size:2rem; line-height:1.15; margin:0 0 .6rem;
+  font-weight:700;
+}
+.promo-hero-content p { font-size:1rem; margin:0 0 1.2rem; opacity:.95; }
+.promo-hero-cta {
+  display:inline-block; background:var(--gold); color:#1A1410; padding:.7rem 1.4rem;
+  border-radius:8px; font-weight:700; font-size:.9rem; letter-spacing:.5px;
+}
+.promo-hero-dots {
+  position:absolute; bottom:14px; left:50%; transform:translateX(-50%);
+  display:flex; gap:.45rem; z-index:2;
+}
+.promo-hero-dot {
+  width:10px; height:10px; border-radius:50%; border:none; cursor:pointer;
+  background:rgba(255,255,255,.45); transition:background .2s, transform .2s;
+}
+.promo-hero-dot.active { background:#fff; transform:scale(1.15); }
+@media(max-width:700px){
+  .promo-hero-slide { min-height:220px; padding:1.8rem 1.4rem; }
+  .promo-hero-content h3 { font-size:1.4rem; }
+}
+</style>
+{% if promotions|length > 1 %}
+<script>
+(function(){
+  var wrap  = document.getElementById('promo-hero-{{ placement }}');
+  if (!wrap) return;
+  var track = wrap.querySelector('.promo-hero-track');
+  var dots  = wrap.querySelectorAll('.promo-hero-dot');
+  var total = dots.length;
+  var idx   = 0;
+  var timer = null;
+  function go(i){
+    idx = (i + total) % total;
+    track.style.transform = 'translateX(-' + (idx * 100) + '%)';
+    dots.forEach(function(d,k){ d.classList.toggle('active', k === idx); });
+  }
+  dots.forEach(function(d){
+    d.addEventListener('click', function(){
+      go(parseInt(d.dataset.slide,10));
+      restart();
+    });
+  });
+  function restart(){
+    if (timer) clearInterval(timer);
+    timer = setInterval(function(){ go(idx + 1); }, 6000);
+  }
+  restart();
+  // Pause auto-rotate when user hovers
+  wrap.addEventListener('mouseenter', function(){ if (timer) clearInterval(timer); });
+  wrap.addEventListener('mouseleave', restart);
+})();
+</script>
+{% endif %}
+
+{% elif placement == 'home_strip' or placement == 'products_top' %}
+{% with promo=promotions.0 %}
+<a href="{% url 'promotion_click' promo.pk %}" class="promo-strip"
+   style="{% if promo.image %}background-image:url('{{ promo.image.url }}');{% elif promo.bg_color %}background:{{ promo.bg_color }};{% else %}background:var(--dark);{% endif %}{% if promo.text_color %}color:{{ promo.text_color }};{% endif %}">
+  <div class="promo-strip-inner">
+    <div>
+      <strong>{{ promo.title }}</strong>
+      {% if promo.subtitle %}<span class="promo-strip-sub">{{ promo.subtitle }}</span>{% endif %}
+    </div>
+    {% if promo.cta_text %}<span class="promo-strip-cta">{{ promo.cta_text }} →</span>{% endif %}
+  </div>
+</a>
+<style>
+.promo-strip {
+  display:block; margin:1.2rem 0; border-radius:12px; overflow:hidden;
+  text-decoration:none; color:#fff; background-size:cover; background-position:center;
+  position:relative; min-height:90px;
+}
+.promo-strip::before {
+  content:''; position:absolute; inset:0; background:rgba(0,0,0,.35);
+}
+.promo-strip-inner {
+  position:relative; z-index:1; padding:1rem 1.4rem;
+  display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;
+}
+.promo-strip strong { font-size:1.05rem; font-weight:700; }
+.promo-strip-sub { display:inline-block; margin-left:.6rem; opacity:.85; font-size:.88rem; }
+.promo-strip-cta {
+  background:var(--gold); color:#1A1410; padding:.4rem 1rem; border-radius:6px;
+  font-weight:700; font-size:.82rem; white-space:nowrap;
+}
+@media(max-width:600px){
+  .promo-strip-sub { display:block; margin:.3rem 0 0; }
+}
+</style>
+{% endwith %}
+
+{% elif placement == 'cart_banner' or placement == 'checkout' %}
+{% with promo=promotions.0 %}
+<a href="{% url 'promotion_click' promo.pk %}" class="promo-sidecard"
+   style="{% if promo.bg_color %}background:{{ promo.bg_color }};{% endif %}{% if promo.text_color %}color:{{ promo.text_color }};{% endif %}">
+  <div style="font-weight:700;font-size:.92rem;">{{ promo.title }}</div>
+  {% if promo.subtitle %}<div style="font-size:.82rem;opacity:.85;margin-top:.25rem;">{{ promo.subtitle }}</div>{% endif %}
+  {% if promo.cta_text %}<div style="margin-top:.6rem;font-size:.82rem;font-weight:700;color:var(--gold);">{{ promo.cta_text }} →</div>{% endif %}
+</a>
+<style>
+.promo-sidecard {
+  display:block; padding:.95rem 1.05rem; border-radius:10px;
+  background:#FAF7F2; color:#1A1410; text-decoration:none;
+  border:1px solid var(--border); margin:1rem 0;
+  transition:transform .15s, box-shadow .15s;
+}
+.promo-sidecard:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.06); }
+</style>
+{% endwith %}
+
+{% endif %}
+{% endif %}

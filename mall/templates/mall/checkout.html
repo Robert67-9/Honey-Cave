@@ -1,0 +1,1585 @@
+{% extends 'mall/base.html' %}
+{% block title %}Checkout — Market{% endblock %}
+
+{% block extra_css %}
+<style>
+.checkout-layout { display: grid; grid-template-columns: 1fr 390px; gap: 2rem; }
+@media (max-width: 900px) { .checkout-layout { grid-template-columns: 1fr; } }
+
+.checkout-section {
+    background: white; border: 1px solid var(--border);
+    border-radius: 14px; padding: 2rem; margin-bottom: 1.5rem;
+}
+.checkout-section h2 {
+    font-family: 'Playfair Display', serif; font-size: 1.2rem;
+    margin-bottom: 1.5rem; padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 0.6rem;
+}
+.form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 600px) { .form-grid-2 { grid-template-columns: 1fr; } }
+
+/* ── Step indicator ── */
+.step-indicator { display: flex; gap: 0; margin-bottom: 2.5rem; justify-content: center; }
+.step { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+.step.active { color: var(--dark); }
+.step-dot { width: 28px; height: 28px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; }
+.step.active .step-dot { background: var(--gold); color: var(--dark); }
+.step-line { width: 60px; height: 1px; background: var(--border); margin: 0 0.5rem; }
+
+/* ── Fulfillment type picker ── */
+.fulfillment-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0; }
+@media (max-width:500px) { .fulfillment-grid { grid-template-columns: 1fr; } }
+.fulfill-card {
+    border: 2px solid var(--border); border-radius: 12px; padding: 1.2rem 1.1rem;
+    cursor: pointer; transition: all .18s; position: relative; user-select: none;
+}
+.fulfill-card:hover  { border-color: var(--gold-light); background: #fdfaf4; }
+.fulfill-card.active { border-color: var(--gold); background: #fdf5e0; }
+.fulfill-card input[type=radio] { position: absolute; opacity: 0; pointer-events: none; }
+.fc-icon  { font-size: 2rem; margin-bottom: 0.5rem; display: block; }
+.fc-title { font-weight: 700; font-size: 0.95rem; margin-bottom: 0.2rem; }
+.fc-desc  { font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+.fc-badge {
+    display: inline-block; font-size: 0.68rem; font-weight: 700; padding: 2px 8px;
+    border-radius: 20px; margin-top: 0.5rem;
+}
+.fc-badge.free   { background: #d4edda; color: #155724; }
+.fc-badge.fee    { background: #fff3cd; color: #856404; }
+
+/* ── Branch type filter ── */
+.btype-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.2rem; flex-wrap: wrap; }
+.btype-tab {
+    padding: 0.4rem 1rem; border: 1.5px solid var(--border); border-radius: 20px;
+    font-size: 0.8rem; font-weight: 600; cursor: pointer; background: white;
+    color: var(--muted); transition: all .15s; user-select: none;
+}
+.btype-tab:hover  { border-color: var(--gold-light); color: var(--dark); }
+.btype-tab.active { border-color: var(--gold); background: #fdf5e0; color: var(--dark); }
+
+/* ── Region tabs ── */
+.region-tabs {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.5rem; margin-bottom: 1.5rem;
+}
+.region-tab {
+    padding: 0.6rem 0.9rem; border: 1.5px solid var(--border); border-radius: 9px;
+    font-size: 0.82rem; cursor: pointer; background: white; transition: all .15s;
+    display: flex; align-items: center; gap: 0.5rem; color: var(--dark); user-select: none;
+}
+.region-tab:hover  { border-color: var(--gold-light); background: #fdf9f0; }
+.region-tab.active { border-color: var(--gold); background: #fdf5e0; font-weight: 600; }
+.region-tab .rtick { color: var(--gold); display: none; }
+.region-tab.active .rtick { display: inline; }
+
+/* ── Branch cards ── */
+.branch-panel { display: none; }
+.branch-panel.visible { display: block; }
+.branch-search { position: relative; margin-bottom: 1rem; }
+.branch-search input {
+    width: 100%; padding: 0.7rem 1rem 0.7rem 2.4rem;
+    border: 1.5px solid var(--border); border-radius: 8px;
+    font-family: 'DM Sans', sans-serif; font-size: 0.88rem; outline: none;
+    transition: border-color .2s;
+}
+.branch-search input:focus { border-color: var(--gold); }
+.branch-search-icon { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+
+.branch-grid { display: flex; flex-direction: column; gap: 0.6rem; }
+.branch-card {
+    border: 1.5px solid var(--border); border-radius: 10px; padding: 1rem 1.1rem;
+    cursor: pointer; transition: all .15s; display: flex; align-items: flex-start;
+    gap: 0.9rem; background: white;
+}
+.branch-card:hover   { border-color: var(--gold-light); background: #fdfaf3; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.06); }
+.branch-card.selected { border-color: var(--gold); background: #fdf5e0; }
+.branch-radio {
+    width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border);
+    flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+}
+.branch-card.selected .branch-radio { border-color: var(--gold); background: var(--gold); }
+.branch-card.selected .branch-radio::after { content:''; width:6px; height:6px; border-radius:50%; background:white; display:block; }
+.branch-info { flex: 1; }
+.branch-name { font-weight: 700; font-size: 0.92rem; margin-bottom: 0.2rem; }
+.branch-addr { font-size: 0.8rem; color: var(--muted); line-height: 1.5; }
+.branch-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+.branch-pill { font-size: 0.72rem; padding: 2px 9px; border-radius: 20px; background: var(--cream); color: var(--muted); display: flex; align-items: center; gap: 0.3rem; }
+.branch-card.selected .branch-pill { background: #f5e8c0; }
+.btype-badge {
+    font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 20px;
+    flex-shrink: 0; margin-top: 2px; white-space: nowrap;
+}
+.btype-main    { background: #1A1410; color: var(--gold); }
+.btype-express { background: #0d6efd22; color: #0d6efd; border: 1px solid #0d6efd44; }
+.btype-agent   { background: #19875422; color: #198754; border: 1px solid #19875444; }
+
+.no-branches { text-align: center; padding: 2rem; color: var(--muted); font-size: 0.88rem; }
+
+/* ── Selected branch banner ── */
+.selected-branch-banner {
+    display: none; align-items: center; gap: 0.75rem;
+    background: linear-gradient(135deg, #1A1410 0%, #2e1f0e 100%);
+    border-radius: 10px; padding: 1rem 1.2rem; margin-bottom: 1.2rem; color: white;
+}
+.selected-branch-banner.show { display: flex; }
+.sbb-icon { font-size: 1.6rem; flex-shrink: 0; }
+.sbb-name { font-weight: 700; font-size: 0.95rem; }
+.sbb-addr { font-size: 0.78rem; color: rgba(255,255,255,.6); margin-top: 1px; }
+.sbb-meta { font-size: 0.72rem; color: rgba(255,255,255,.5); margin-top: 2px; }
+.sbb-fee  { margin-left: auto; text-align: right; flex-shrink: 0; }
+.sbb-fee-label  { font-size: 0.68rem; color: rgba(255,255,255,.5); text-transform: uppercase; letter-spacing: .5px; }
+.sbb-fee-amount { font-size: 1rem; font-weight: 700; color: var(--gold); }
+
+/* ── Delivery address panel ── */
+.delivery-panel { display: none; margin-top: 1.25rem; }
+.delivery-panel.show { display: block; }
+.delivery-note {
+    background: #fdf5e0; border: 1.5px solid #f0c96e; border-radius: 8px;
+    padding: 0.8rem 1rem; font-size: 0.82rem; color: #7a5c00;
+    margin-bottom: 0.9rem;
+}
+
+/* ── Order summary ── */
+.order-review-card {
+    background: white; border: 1px solid var(--border);
+    border-radius: 14px; padding: 1.75rem; position: sticky; top: 90px;
+}
+.order-review-card h3 { font-family: 'Playfair Display', serif; font-size: 1.2rem; margin-bottom: 1.25rem; padding-bottom: .75rem; border-bottom: 1px solid var(--border); }
+.order-item { display: flex; justify-content: space-between; align-items: center; padding: .6rem 0; font-size: .875rem; border-bottom: 1px solid var(--cream); }
+.order-item:last-child { border-bottom: none; }
+.order-item-name { color: var(--dark); font-weight: 500; }
+.order-item-qty  { color: var(--muted); font-size: .8rem; }
+.summary-row  { display: flex; justify-content: space-between; font-size: .88rem; padding: .35rem 0; color: var(--muted); }
+.summary-row.dark { color: var(--dark); font-weight: 500; }
+.total-row { display: flex; justify-content: space-between; font-size: 1.15rem; font-weight: 700; margin-top: .75rem; padding-top: .75rem; border-top: 2px solid var(--dark); }
+.total-row .amount { color: var(--gold); }
+.promo-code-box {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px dashed var(--border);
+}
+#promo-code-input:focus {
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(201,168,76,.15);
+}
+#promo-apply-btn:hover { background: var(--gold); color: var(--dark); }
+#promo-apply-btn:disabled { opacity: .5; cursor: not-allowed; }
+.fulfillment-badge {
+    display: inline-flex; align-items: center; gap: .3rem;
+    font-size: .72rem; font-weight: 700; padding: 2px 9px; border-radius: 20px;
+    margin-bottom: .6rem;
+}
+.fb-pickup   { background: #d4edda; color: #155724; }
+.fb-delivery { background: #cce5ff; color: #004085; }
+
+/* ── Validation hint ── */
+.validation-hint {
+    display: none; background: #fff3cd; border: 1px solid #ffc107;
+    border-radius: 8px; padding: .75rem 1rem; font-size: .84rem; color: #856404;
+    margin-bottom: 1rem; align-items: center; gap: .5rem;
+}
+.validation-hint.show { display: flex; }
+
+/* ── Auto-assigned pickup point card ── */
+.pickup-point-card {
+    border: 2px solid var(--gold); border-radius: 14px; overflow: hidden;
+    background: #fffdf6; margin-bottom: 1rem;
+}
+.ppc-head {
+    display: flex; align-items: flex-start; gap: 1rem;
+    background: linear-gradient(135deg, #1A1410 0%, #2e1f0e 100%);
+    color: #fff; padding: 1.1rem 1.3rem;
+}
+.ppc-icon { font-size: 1.9rem; line-height: 1; flex-shrink: 0; }
+.ppc-eyebrow {
+    font-size: .68rem; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--gold); font-weight: 700; margin-bottom: .25rem;
+}
+.ppc-name { font-weight: 700; font-size: 1.05rem; line-height: 1.25; }
+.ppc-addr { font-size: .82rem; color: rgba(255,255,255,.7); margin-top: .2rem; line-height: 1.45; }
+.ppc-free {
+    margin-left: auto; flex-shrink: 0; align-self: center;
+    background: rgba(212,237,218,.18); color: #9be7ac; border: 1px solid rgba(155,231,172,.4);
+    font-size: .72rem; font-weight: 700; padding: .2rem .65rem; border-radius: 20px;
+}
+.ppc-meta {
+    display: flex; flex-wrap: wrap; gap: .5rem; padding: .9rem 1.3rem 0;
+}
+.ppc-pill {
+    font-size: .74rem; padding: 3px 10px; border-radius: 20px;
+    background: var(--cream); color: var(--muted);
+    display: inline-flex; align-items: center; gap: .35rem;
+}
+.ppc-dist { padding: .55rem 1.3rem 0; font-size: .78rem; color: #1a7a3a; font-weight: 600; }
+.ppc-actions {
+    display: flex; flex-wrap: wrap; gap: .55rem; padding: 1rem 1.3rem 1.2rem;
+}
+.ppc-btn {
+    font-size: .82rem; font-weight: 600; padding: .55rem .95rem; border-radius: 8px;
+    cursor: pointer; text-decoration: none; border: 1.5px solid var(--border);
+    display: inline-flex; align-items: center; gap: .35rem; transition: all .15s;
+    background: #fff; color: var(--dark);
+}
+.ppc-btn:hover { border-color: var(--gold); background: #fdf5e0; }
+.ppc-btn-primary { background: var(--dark-brand, #1A1410); color: #fff; border-color: var(--dark-brand, #1A1410); }
+.ppc-btn-primary:hover { background: #2e1f0e; border-color: #2e1f0e; color: var(--gold); }
+.ppc-locate-status {
+    margin: 0 1.3rem 1.1rem; font-size: .8rem; line-height: 1.45;
+    padding: .6rem .8rem; border-radius: 8px; background: var(--cream); color: var(--muted);
+}
+.pickup-change-toggle {
+    background: none; border: none; color: var(--gold-dark, #8a6d1f); font-weight: 600;
+    font-size: .82rem; cursor: pointer; padding: .35rem 0; text-decoration: underline;
+}
+.pickup-change-toggle:hover { color: var(--dark); }
+.pickup-override { margin-top: 1.1rem; padding-top: 1.1rem; border-top: 1px dashed var(--border); }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="step-indicator">
+    <div class="step active"><div class="step-dot">1</div> Details</div>
+    <div class="step-line"></div>
+    <div class="step active"><div class="step-dot">2</div> Delivery</div>
+    <div class="step-line"></div>
+    <div class="step active"><div class="step-dot">3</div> Payment</div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-dot">4</div> Confirmation</div>
+</div>
+
+<!-- Scroll to top on page load -->
+<script>
+  if (history.scrollRestoration) { history.scrollRestoration = 'manual'; }
+  window.scrollTo(0, 0);
+</script>
+
+<script>
+const BRANCHES_DATA  = {{ branches_json|safe }};
+const REGION_FEES    = {{ region_fees_json|safe }};
+const REGION_NAMES   = { {% for key, name in region_choices %}'{{ key }}': '{{ name }}'{% if not forloop.last %},{% endif %}{% endfor %} };
+let selectedRegion   = '{{ selected_region }}';
+let selectedBranchId = '{{ selected_branch_id }}';
+let activeBranchType = 'all';   // filter: all | main | express | agent
+let fulfillmentType  = 'pickup';
+let selectedBranchName = '';
+
+// Auto-assigned pickup point — customers no longer pick a branch for pickup.
+const PICKUP_BRANCH = {% if pickup_branch %}{
+  id:                  {{ pickup_branch.id }},
+  name:                "{{ pickup_branch.name|escapejs }}",
+  address:             "{{ pickup_branch.address|escapejs }}",
+  city:                "{{ pickup_branch.city|escapejs }}",
+  phone:               "{{ pickup_branch.phone|escapejs }}",
+  opening_hours:       "{{ pickup_branch.opening_hours|escapejs }}",
+  landmark:            "{{ pickup_branch.landmark|escapejs }}",
+  region:              "{{ pickup_branch.region|escapejs }}",
+  region_display:      "{{ pickup_branch.get_region_display|escapejs }}",
+  branch_type:         "{{ pickup_branch.branch_type|escapejs }}",
+  branch_type_display: "{{ pickup_branch.get_branch_type_display|escapejs }}",
+  latitude:            {{ pickup_branch.latitude|default:"null" }},
+  longitude:           {{ pickup_branch.longitude|default:"null" }}
+}{% else %}null{% endif %};
+</script>
+
+<form method="post" id="checkout-form">
+{% csrf_token %}
+<input type="hidden" name="region"    id="input_region"    value="{{ selected_region }}">
+<input type="hidden" name="branch_id" id="input_branch_id" value="{{ selected_branch_id }}">
+
+<div class="checkout-layout">
+  <!-- ── LEFT COLUMN ── -->
+  <div>
+
+    <!-- 1. Personal Info -->
+    <div class="checkout-section">
+        <h2>👤 Your Details</h2>
+        {% if autofilled_from_prior %}
+        <div style="background:#e8f5e9;border:1px solid #c8e6c9;border-radius:8px;padding:.6rem .9rem;margin-bottom:1rem;font-size:.85rem;color:#2e7d32;display:flex;align-items:center;gap:.5rem;">
+            <span style="font-size:1.05rem;">✓</span>
+            <span>We've filled in your details from your last order. Edit anything that's changed.</span>
+        </div>
+        {% endif %}
+        <div class="form-grid-2">
+            <div class="form-group">
+                <label>Full Name</label>
+                {{ form.full_name }}
+                {% if form.full_name.errors %}<div class="form-errors">{{ form.full_name.errors }}</div>{% endif %}
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                {{ form.email }}
+                {% if form.email.errors %}<div class="form-errors">{{ form.email.errors }}</div>{% endif %}
+            </div>
+            <div class="form-group">
+                <label>Phone</label>
+                {{ form.phone }}
+                {% if form.phone.errors %}<div class="form-errors">{{ form.phone.errors }}</div>{% endif %}
+            </div>
+            <div class="form-group">
+                <label>City / Town</label>
+                {{ form.city }}
+                {% if form.city.errors %}<div class="form-errors">{{ form.city.errors }}</div>{% endif %}
+            </div>
+        </div>
+        <div class="form-group" style="margin-top:0.75rem;">
+            <label>Street Address</label>
+            {{ form.address }}
+            {% if form.address.errors %}<div class="form-errors">{{ form.address.errors }}</div>{% endif %}
+        </div>
+        <div class="form-group" style="margin-top:0.75rem; max-width:200px;">
+            <label>Postal / ZIP Code <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
+            {{ form.zip_code }}
+            {% if form.zip_code.errors %}<div class="form-errors">{{ form.zip_code.errors }}</div>{% endif %}
+        </div>
+    </div>
+
+    <!-- 2. Fulfillment Type -->
+    <div class="checkout-section">
+        <h2>🚚 How to Receive Your Order</h2>
+
+        <div class="fulfillment-grid">
+            <!-- Branch Pickup -->
+            <label class="fulfill-card active" id="fc-pickup" onclick="setFulfillment('pickup')">
+                <input type="radio" name="fulfillment_type" value="pickup" checked>
+                <span class="fc-icon">🏪</span>
+                <div class="fc-title">Branch Pickup</div>
+                <div class="fc-desc">Collect your order from the Market branch nearest to you. Usually ready within 24 hours.</div>
+                <span class="fc-badge free">✔ Available everywhere</span>
+            </label>
+
+            <!-- Home Delivery -->
+            <label class="fulfill-card" id="fc-delivery" onclick="setFulfillment('delivery')">
+                <input type="radio" name="fulfillment_type" value="delivery">
+                <span class="fc-icon">🛵</span>
+                <div class="fc-title">Home Delivery</div>
+                <div class="fc-desc">We deliver to your door from your nearest branch. Delivered within 24 hours.</div>
+                <span class="fc-badge" style="background:#d4edda;color:#155724;">🚶 Free pickup</span>
+            </label>
+        </div>
+
+        <!-- Delivery address panel (shown only for home delivery) -->
+        <div class="delivery-panel" id="delivery-panel">
+            <div class="delivery-note">
+                🛵 <strong>Home Delivery:</strong> Enter your full address below including neighbourhood and a nearby landmark. Our rider will use this to find you.
+            </div>
+
+            <!-- Geolocation: prompts browser for location, fills address fields and triggers fee calc -->
+            <div style="margin-bottom: 1rem; padding: 0.85rem 1rem; background: var(--accent-soft); border: 1px solid var(--accent-border, var(--border)); border-radius: 8px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.6rem;">
+                    <div style="font-size: 0.88rem; line-height: 1.4;">
+                        <strong>📍 Pin your exact location</strong><br>
+                        <span style="color: var(--text-muted); font-size: 0.82rem;">
+                            Helps the rider find you faster — especially in areas without clear addresses.
+                        </span>
+                    </div>
+                    <button type="button" id="locate-me-btn"
+                            style="background: var(--dark-brand); color: #fff; border: none; padding: 0.55rem 1rem; border-radius: 6px; font-weight: 600; font-size: 0.85rem; cursor: pointer; white-space: nowrap;">
+                        📍 Use my location
+                    </button>
+                </div>
+                <div id="locate-status" style="margin-top: 0.55rem; font-size: 0.82rem; display: none;"></div>
+            </div>
+
+            <div class="form-group">
+                <label style="font-weight:600;">{{ form.delivery_address.label }} <span style="color:#dc3545;">*</span></label>
+                {{ form.delivery_address }}
+                {% if form.delivery_address.errors %}
+                <div class="form-errors">{{ form.delivery_address.errors }}</div>
+                {% endif %}
+                <p style="font-size:.78rem;color:var(--muted);margin-top:.3rem;">{{ form.delivery_address.help_text }}</p>
+                <p id="delivery-distance" style="font-size:.76rem;color:var(--muted);margin-top:.2rem;"></p>
+                <p id="delivery-fee-note" style="font-size:.76rem;color:#856404;margin-top:.2rem;display:none;"></p>
+            </div>
+
+            <div class="form-group">
+                <label style="font-weight:600;">{{ form.delivery_landmark.label }}</label>
+                {{ form.delivery_landmark }}
+                {% if form.delivery_landmark.errors %}
+                <div class="form-errors">{{ form.delivery_landmark.errors }}</div>
+                {% endif %}
+                <p style="font-size:.78rem;color:var(--muted);margin-top:.3rem;">{{ form.delivery_landmark.help_text }}</p>
+            </div>
+
+            <!-- Hidden inputs filled by the geolocation JS below -->
+            {{ form.delivery_lat }}
+            {{ form.delivery_lng }}
+        </div>
+    </div>
+
+    <!-- 3. Pickup Point (auto-assigned) / optional branch override -->
+    <div class="checkout-section" id="branch-section">
+        <h2>🏪 <span id="branch-section-title">Your Pickup Point</span></h2>
+
+        <p id="pickup-intro" style="font-size:.86rem;color:var(--muted);line-height:1.6;margin-bottom:1.1rem;">
+            No need to choose a branch — after payment your order is processed by our
+            branch officer and you simply collect it from the pickup point below.
+            Usually ready within <strong>24 hours</strong>.
+        </p>
+
+        <!-- Auto-assigned pickup point -->
+        <div class="pickup-point-card" id="pickup-point-card">
+            <div class="ppc-head">
+                <span class="ppc-icon" id="ppc-icon">🏢</span>
+                <div style="flex:1;min-width:0;">
+                    <div class="ppc-eyebrow">Collect your order from</div>
+                    <div class="ppc-name" id="ppc-name">—</div>
+                    <div class="ppc-addr" id="ppc-addr">—</div>
+                </div>
+                <span class="ppc-free">FREE</span>
+            </div>
+            <div class="ppc-meta" id="ppc-meta"></div>
+            <div class="ppc-dist" id="ppc-dist" style="display:none;"></div>
+            <div class="ppc-actions">
+                <a href="#" id="ppc-directions" class="ppc-btn ppc-btn-primary" target="_blank" rel="noopener">🧭 Get directions</a>
+                <a href="#" id="ppc-map" class="ppc-btn ppc-btn-ghost" target="_blank" rel="noopener">🗺️ View on map</a>
+                <button type="button" id="ppc-locate" class="ppc-btn ppc-btn-ghost">📍 Find my closest pickup point</button>
+            </div>
+            <div id="ppc-locate-status" class="ppc-locate-status" style="display:none;"></div>
+        </div>
+
+        <!-- Optional: collect somewhere else -->
+        <button type="button" class="pickup-change-toggle" id="pickup-change-toggle" onclick="togglePickupOverride()">
+            Prefer to collect somewhere else? Choose another pickup point ▾
+        </button>
+
+        <div class="pickup-override" id="pickup-override" style="display:none;">
+            <!-- Selected branch banner (reflects an override choice) -->
+            <div class="selected-branch-banner" id="selected-banner">
+                <div class="sbb-icon" id="sbb-icon">🏢</div>
+                <div>
+                    <div class="sbb-name" id="sbb-name">—</div>
+                    <div class="sbb-addr" id="sbb-addr">—</div>
+                    <div class="sbb-meta" id="sbb-meta"></div>
+                </div>
+                <div class="sbb-fee">
+                    <div class="sbb-fee-label">Shipping</div>
+                    <div class="sbb-fee-amount" id="sbb-fee" style="color:var(--green);">FREE</div>
+                </div>
+            </div>
+
+            <div class="validation-hint" id="branch-hint">
+                ⚠️ Please select a branch before placing your order.
+            </div>
+
+            <!-- Branch type filter -->
+            <div class="btype-tabs">
+                <div class="btype-tab active" onclick="filterBranchType('all', this)">🏪 All Types</div>
+                <div class="btype-tab" onclick="filterBranchType('main', this)">🏢 Main Branch</div>
+                <div class="btype-tab" onclick="filterBranchType('express', this)">⚡ Express Kiosk</div>
+                <div class="btype-tab" onclick="filterBranchType('agent', this)">📍 Mobile Agent</div>
+            </div>
+
+            <!-- Region tabs -->
+            <p style="font-size:.75rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:.7rem;">Step 1 — Choose Region</p>
+            <div class="region-tabs" id="region-tabs">
+                {% for key, name in region_choices %}
+                <div class="region-tab {% if key == selected_region %}active{% endif %}"
+                     data-region="{{ key }}"
+                     onclick="selectRegion('{{ key }}')">
+                    <span class="rtick">✓</span>
+                    <span>{{ name|cut:" Region" }}</span>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Branch cards -->
+            <p style="font-size:.75rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:.7rem;">
+                Step 2 — Choose Branch <span id="region-name-label" style="color:var(--gold);"></span>
+            </p>
+            <div class="branch-search">
+                <span class="branch-search-icon">🔍</span>
+                <input type="text" id="branch-search-input" placeholder="Search branches…" oninput="renderBranches(selectedRegion, this.value)" autocomplete="off">
+            </div>
+            <div class="branch-grid" id="branch-grid"></div>
+        </div>
+    </div>
+
+    <!-- 4. Payment -->
+    <div class="checkout-section">
+        <h2>💳 Payment</h2>
+        {% if payment_settings %}
+        <p style="color:var(--muted);font-size:.88rem;margin-bottom:1.2rem;">
+            {% with first_active=payment_settings.0 %}
+            Your payment is processed securely via <strong>{{ first_active.get_provider_display }}</strong>. Click <em>Pay Now</em> below to complete your order.
+            {% endwith %}
+        </p>
+        {% for ps in payment_settings %}
+        {% if ps.instructions %}
+        <div style="margin-bottom:.85rem;padding:.7rem .9rem;background:#fff8e6;border-radius:6px;color:#7a5c00;font-size:.82rem;">{{ ps.get_icon }} {{ ps.instructions }}</div>
+        {% endif %}
+        {% endfor %}
+        {% else %}
+        <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:.85rem 1rem;font-size:.85rem;color:#856404;margin-bottom:1.2rem;">
+            ⚠️ Payment not configured yet. Please contact the store admin.
+        </div>
+        {% endif %}
+
+        <!-- Hidden field populated by Paystack after successful payment -->
+        {{ form.payment_reference }}
+
+        <!-- Payment status indicator -->
+        <div id="payment-status" style="display:none;margin-top:.75rem;padding:.75rem 1rem;border-radius:8px;font-size:.88rem;font-weight:600;"></div>
+    </div>
+  </div>
+
+  <!-- ── RIGHT COLUMN: Order Summary ── -->
+  <div>
+    <div class="order-review-card">
+        <h3>Order Summary</h3>
+
+        <div id="fulfillment-badge-wrap">
+          <span class="fulfillment-badge fb-pickup" id="summary-fulfillment-badge">🏪 Branch Pickup</span>
+        </div>
+
+        {% for item in cart_items %}
+        <div class="order-item">
+            <div>
+                <div class="order-item-name">{{ item.product.name|truncatewords:5 }}</div>
+                <div class="order-item-qty">× {{ item.quantity }}</div>
+            </div>
+            <div style="font-weight:600;">GH₵ {{ item.total }}</div>
+        </div>
+        {% endfor %}
+
+        <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);">
+            <div class="summary-row">
+                <span>Subtotal</span>
+                <span>GH₵ {{ subtotal }}</span>
+            </div>
+            <div class="summary-row dark" id="branch-summary-row" style="display:none;">
+                <span>Branch</span>
+                <span id="summary-branch-label" style="font-size:.8rem;color:var(--muted);max-width:160px;text-align:right;"></span>
+            </div>
+            <div class="summary-row" id="fulfillment-type-row">
+                <span>Fulfillment</span>
+                <span id="summary-fulfillment-type">Branch Pickup</span>
+            </div>
+            <div class="summary-row">
+                <span>Shipping</span>
+                <span id="summary-shipping" style="font-weight:600;">FREE</span>
+            </div>
+            <div class="summary-row" id="delivery-eta-row" style="display:none;">
+                <span style="color:var(--muted);font-size:0.82rem;">⏱ ETA</span>
+                <span class="eta-value" style="font-size:0.82rem;color:var(--muted);">—</span>
+            </div>
+        </div>
+
+        {# ─── Promo code input ───────────────────────────────────────── #}
+        <div class="promo-code-box" id="promo-code-box">
+            <div id="promo-input-wrap">
+                <label for="promo-code-input" style="display:block;font-size:.8rem;font-weight:600;color:var(--muted);margin-bottom:.4rem;">
+                    Have a promo code?
+                </label>
+                <div style="display:flex;gap:.5rem;">
+                    <input type="text" id="promo-code-input"
+                           placeholder="Enter code"
+                           maxlength="30"
+                           autocomplete="off"
+                           style="flex:1;padding:.55rem .75rem;border:1px solid var(--border);border-radius:6px;font-size:.88rem;text-transform:uppercase;letter-spacing:1px;">
+                    <button type="button" id="promo-apply-btn"
+                            style="background:var(--dark-brand);color:#fff;border:none;border-radius:6px;padding:.55rem 1rem;font-size:.82rem;font-weight:600;cursor:pointer;">
+                        Apply
+                    </button>
+                </div>
+                <p id="promo-status" style="margin-top:.5rem;font-size:.8rem;display:none;"></p>
+            </div>
+            <div id="promo-applied-wrap" style="display:none;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;padding:.65rem .85rem;">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;">
+                    <div style="font-size:.85rem;">
+                        ✓ Code <strong id="promo-applied-code" style="letter-spacing:1px;"></strong> applied
+                        <div style="font-size:.78rem;color:#2e7d32;margin-top:.15rem;" id="promo-applied-detail"></div>
+                    </div>
+                    <button type="button" id="promo-remove-btn"
+                            style="background:none;border:none;color:#c62828;font-size:.78rem;cursor:pointer;font-weight:600;">
+                        Remove
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="summary-row" id="discount-row" style="display:none;color:#2e7d32;font-weight:600;">
+            <span>Discount</span>
+            <span id="summary-discount">−GH₵ 0.00</span>
+        </div>
+
+        <div class="total-row">
+            <span>Total</span>
+            <span class="amount" id="summary-total">GH₵ {{ subtotal }}</span>
+        </div>
+
+        {# ── Per-branch availability warning (Combo 3 + Option C) ─────── #}
+        <div id="branch-availability-warn" style="display:none;background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:.85rem 1rem;margin-top:1rem;font-size:.86rem;color:#5c4a00;">
+          <p style="margin:0 0 .4rem;font-weight:700;">📦 Some items will be sourced by your branch officer</p>
+          <div id="branch-availability-list"></div>
+          <p style="margin:.6rem 0 0;font-size:.78rem;color:#7a6200;">
+            Your order will be forwarded to the branch officer who will arrange these items for delivery. Go ahead and pay — we'll handle the rest.
+          </p>
+        </div>
+
+        {% if messages %}
+        {% for msg in messages %}
+        <div class="alert alert-{% if msg.tags == 'error' %}error{% else %}success{% endif %}" style="margin-top:1rem;font-size:.85rem;">
+            {{ msg }}
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        {% if paystack_configured %}
+        <button type="button" id="pay-btn" class="btn btn-gold w-full mt-2"
+                style="padding:1rem;font-size:1rem;"
+                onclick="launchPaystack()">
+            🔒 Pay Now with Paystack
+        </button>
+        {% else %}
+        <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:.85rem 1rem;font-size:.85rem;color:#856404;text-align:center;">
+            ⚠️ Paystack is not configured yet.<br>
+            Add your <strong>PAYSTACK_PUBLIC_KEY</strong> and <strong>PAYSTACK_SECRET_KEY</strong> to your <code>.env</code> file.
+        </div>
+        {% endif %}
+
+        <!-- Hidden submit — triggered programmatically after payment verified -->
+        <button type="submit" id="real-submit-btn" style="display:none;">Submit</button>
+
+        <p style="font-size:.73rem;color:var(--muted);text-align:center;margin-top:.75rem;">
+            By placing this order you agree to our <a href="{% url 'terms' %}" style="color:var(--gold);">Terms</a>
+        </p>
+    </div>
+  </div>
+</div><!-- /.checkout-layout -->
+</form>
+
+<script src="https://js.paystack.co/v1/inline.js"></script>
+
+<script>
+// ── Branch type icons & labels ──────────────────────────────────────────────
+const BTYPE_META = {
+  main:    { icon: '🏢', label: 'Main Branch',      cls: 'btype-main' },
+  express: { icon: '⚡', label: 'Express Kiosk',    cls: 'btype-express' },
+  agent:   { icon: '📍', label: 'Mobile Agent',     cls: 'btype-agent' },
+};
+
+function setFulfillment(type) {
+  fulfillmentType = type;
+  ['pickup','delivery'].forEach(t => {
+    document.getElementById('fc-' + t).classList.toggle('active', t === type);
+    document.querySelector(`input[value="${t}"]`).checked = (t === type);
+  });
+  // Toggle delivery address panel
+  document.getElementById('delivery-panel').classList.toggle('show', type === 'delivery');
+  // Hide branch section entirely for delivery — nearest branch is auto-assigned by officer
+  var branchSection = document.getElementById('branch-section');
+  if (branchSection) branchSection.style.display = (type === 'delivery') ? 'none' : '';
+  // Update branch section heading
+  document.getElementById('branch-section-title').textContent =
+    type === 'pickup' ? 'Your Pickup Point' : 'Delivery Branch';
+  // Refresh the auto-assigned pickup point when switching back to pickup
+  if (type === 'pickup' && typeof refreshPickupPoint === 'function') {
+    refreshPickupPoint();
+  }
+  // Update summary badge
+  const badge = document.getElementById('summary-fulfillment-badge');
+  badge.className = 'fulfillment-badge ' + (type === 'pickup' ? 'fb-pickup' : 'fb-delivery');
+  badge.innerHTML = type === 'pickup' ? '🏪 Branch Pickup — FREE' : '🛵 Home Delivery';
+  document.getElementById('summary-fulfillment-type').textContent =
+    type === 'pickup' ? 'Branch Pickup' : 'Home Delivery';
+  // Reset confirmed flag and recalculate when fulfillment type changes
+  deliveryFeeConfirmed = false;
+  deliveryFeeAmount    = 0;
+  updateDeliveryFee();
+}
+
+function filterBranchType(type, el) {
+  activeBranchType = type;
+  document.querySelectorAll('.btype-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderBranches(selectedRegion, document.getElementById('branch-search-input').value);
+}
+
+function selectRegion(regionKey) {
+  selectedRegion = regionKey;
+  document.querySelectorAll('.region-tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.region === regionKey)
+  );
+  document.getElementById('region-name-label').textContent =
+    '— ' + (REGION_NAMES[regionKey] || regionKey);
+  document.getElementById('branch-search-input').value = '';
+  renderBranches(regionKey, '');
+}
+
+function renderBranches(regionKey, searchQ) {
+  const grid   = document.getElementById('branch-grid');
+  let branches = BRANCHES_DATA[regionKey] || [];
+  const filter = (searchQ || '').toLowerCase().trim();
+
+  // Filter by branch type
+  if (activeBranchType !== 'all') {
+    branches = branches.filter(b => b.branch_type === activeBranchType);
+  }
+  // Filter by search
+  if (filter) {
+    branches = branches.filter(b =>
+      b.name.toLowerCase().includes(filter) ||
+      b.city.toLowerCase().includes(filter) ||
+      b.address.toLowerCase().includes(filter) ||
+      (b.landmark || '').toLowerCase().includes(filter)
+    );
+  }
+
+  if (!branches.length) {
+    grid.innerHTML = `<div class="no-branches">🏪 No branches found. Try a different filter or region.</div>`;
+    return;
+  }
+
+  grid.innerHTML = branches.map(b => {
+    const meta   = BTYPE_META[b.branch_type] || BTYPE_META.main;
+    const isSel  = String(b.id) === String(selectedBranchId);
+    return `
+      <div class="branch-card ${isSel ? 'selected' : ''}"
+           id="branch-card-${b.id}"
+           onclick="pickBranch(${b.id},'${esc(b.name)}','${esc(b.address+', '+b.city)}','${regionKey}','${b.branch_type}','${esc(b.branch_type_display)}','${esc(b.opening_hours||'')}','${esc(b.phone||'')}')">
+        <div class="branch-radio"></div>
+        <div class="branch-info">
+          <div class="branch-name">${b.name}</div>
+          <div class="branch-addr">${b.address}, ${b.city}</div>
+          <div class="branch-meta">
+            <span class="btype-badge ${meta.cls}">${meta.icon} ${meta.label}</span>
+            ${b.phone    ? `<span class="branch-pill">📞 ${b.phone}</span>` : ''}
+            ${b.opening_hours ? `<span class="branch-pill">🕐 ${b.opening_hours}</span>` : ''}
+            ${b.landmark ? `<span class="branch-pill">📌 Near ${b.landmark}</span>` : ''}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function esc(s) { return (s||'').replace(/'/g,"\\'").replace(/"/g,'\\"'); }
+
+function escapeHtml(s) {
+  return (s == null ? '' : String(s))
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── Auto-assigned pickup point ──────────────────────────────────────────────
+function togglePickupOverride() {
+  var box = document.getElementById('pickup-override');
+  var btn = document.getElementById('pickup-change-toggle');
+  if (!box) return;
+  var isHidden = (getComputedStyle(box).display === 'none');
+  box.style.display = isHidden ? 'block' : 'none';
+  if (btn) btn.innerHTML = isHidden
+    ? 'Hide other pickup points ▴'
+    : 'Prefer to collect somewhere else? Choose another pickup point ▾';
+  if (isHidden) {
+    selectRegion(selectedRegion);
+    box.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }
+}
+
+function findBranchById(id) {
+  id = String(id);
+  for (var region in BRANCHES_DATA) {
+    var list = BRANCHES_DATA[region] || [];
+    for (var i = 0; i < list.length; i++) {
+      if (String(list[i].id) === id) {
+        var b = Object.assign({}, list[i]);
+        b.region = region;
+        return b;
+      }
+    }
+  }
+  return null;
+}
+
+function haversineKm(lat1, lng1, lat2, lng2) {
+  var R = 6371, toRad = function(d){ return d * Math.PI / 180; };
+  var dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
+  var a = Math.sin(dLat/2)*Math.sin(dLat/2) +
+          Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)*Math.sin(dLng/2);
+  return R * 2 * Math.asin(Math.sqrt(a));
+}
+
+function nearestBranchFromCoords(lat, lng) {
+  var best = null, bestDist = Infinity;
+  for (var region in BRANCHES_DATA) {
+    var list = BRANCHES_DATA[region] || [];
+    for (var i = 0; i < list.length; i++) {
+      var b = list[i];
+      if (b.latitude == null || b.longitude == null) continue;
+      var d = haversineKm(lat, lng, b.latitude, b.longitude);
+      if (d < bestDist) {
+        bestDist = d;
+        best = Object.assign({}, b);
+        best.region = region;
+        best._distance = d;
+      }
+    }
+  }
+  return best;
+}
+
+function syncOverrideBannerFrom(b) {
+  var meta = BTYPE_META[b.branch_type] || BTYPE_META.main;
+  var set = function(id, val){ var el = document.getElementById(id); if (el) el.textContent = val; };
+  set('sbb-icon', meta.icon);
+  set('sbb-name', b.name);
+  set('sbb-addr', [b.address, b.city].filter(Boolean).join(', '));
+  set('sbb-meta', (b.branch_type_display || meta.label) + (b.phone ? ' · ' + b.phone : ''));
+  var banner = document.getElementById('selected-banner');
+  if (banner) banner.classList.add('show');
+  var hint = document.getElementById('branch-hint');
+  if (hint) hint.classList.remove('show');
+}
+
+function renderPickupPoint(b, distanceKm) {
+  if (!b) return;
+  var meta = BTYPE_META[b.branch_type] || BTYPE_META.main;
+  document.getElementById('ppc-icon').textContent = meta.icon;
+  document.getElementById('ppc-name').textContent = b.name || '—';
+  document.getElementById('ppc-addr').textContent =
+    [b.address, b.city].filter(Boolean).join(', ');
+
+  var pills = ['<span class="ppc-pill">' + meta.icon + ' ' + meta.label + '</span>'];
+  pills.push('<span class="ppc-pill">⏱ Ready within 24 hours</span>');
+  if (b.opening_hours) pills.push('<span class="ppc-pill">🕐 ' + escapeHtml(b.opening_hours) + '</span>');
+  if (b.phone)         pills.push('<span class="ppc-pill">📞 ' + escapeHtml(b.phone) + '</span>');
+  if (b.landmark)      pills.push('<span class="ppc-pill">📌 Near ' + escapeHtml(b.landmark) + '</span>');
+  document.getElementById('ppc-meta').innerHTML = pills.join('');
+
+  var distEl = document.getElementById('ppc-dist');
+  if (distanceKm != null && !isNaN(distanceKm)) {
+    distEl.style.display = '';
+    distEl.textContent = '📍 About ' + Number(distanceKm).toFixed(1) + ' km from you';
+  } else {
+    distEl.style.display = 'none';
+  }
+
+  // Google Maps directions + view-on-map links
+  var hasGps = (b.latitude != null && b.longitude != null);
+  var destQuery = hasGps
+    ? (b.latitude + ',' + b.longitude)
+    : encodeURIComponent([b.name, b.address, b.city, 'Ghana'].filter(Boolean).join(', '));
+  document.getElementById('ppc-directions').href =
+    'https://www.google.com/maps/dir/?api=1&destination=' + destQuery;
+  document.getElementById('ppc-map').href =
+    'https://www.google.com/maps/search/?api=1&query=' + destQuery;
+
+  // This branch becomes the order's fulfillment branch
+  selectedBranchId   = String(b.id);
+  selectedBranchName = b.name || '';
+  var bid = document.getElementById('input_branch_id'); if (bid) bid.value = b.id;
+  if (b.region) {
+    selectedRegion = b.region;
+    var rg = document.getElementById('input_region'); if (rg) rg.value = b.region;
+  }
+
+  syncOverrideBannerFrom(b);
+  if (typeof checkBranchAvailability === 'function') checkBranchAvailability(b.id);
+  if (fulfillmentType === 'pickup' && typeof updateDeliveryFee === 'function') updateDeliveryFee();
+}
+
+// Render the currently-assigned pickup point (selected id, else default).
+function refreshPickupPoint() {
+  var b = (selectedBranchId ? findBranchById(selectedBranchId) : null) || PICKUP_BRANCH;
+  if (b) renderPickupPoint(b, b._distance);
+}
+
+function pickBranch(id, name, addr, regionKey, btype, btypeLabel, hours, phone) {
+  selectedBranchId = String(id);
+  selectedBranchName = name;
+  document.getElementById('input_branch_id').value = id;
+  // Reset fee when branch changes — new distance must be calculated
+  deliveryFeeConfirmed = false;
+  deliveryFeeAmount    = 0;
+  document.getElementById('input_region').value    = regionKey;
+
+  document.querySelectorAll('.branch-card').forEach(c => c.classList.remove('selected'));
+  const card = document.getElementById('branch-card-' + id);
+  if (card) { card.classList.add('selected'); card.scrollIntoView({block:'nearest',behavior:'smooth'}); }
+
+  const meta = BTYPE_META[btype] || BTYPE_META.main;
+  document.getElementById('sbb-icon').textContent  = meta.icon;
+  document.getElementById('sbb-name').textContent  = name;
+  document.getElementById('sbb-addr').textContent  = addr;
+  document.getElementById('sbb-meta').textContent  = btypeLabel + (phone ? ' · ' + phone : '');
+  document.getElementById('selected-banner').classList.add('show');
+  document.getElementById('branch-hint').classList.remove('show');
+  // Recalculate fee based on fulfillment type
+  updateDeliveryFee();
+  // Per-branch availability + price reconciliation (Combo 3)
+  checkBranchAvailability(id);
+  // If we're in pickup mode, mirror this override onto the main pickup card.
+  if (fulfillmentType === 'pickup') {
+    var full = findBranchById(id);
+    if (full) renderPickupPoint(full, full._distance);
+  }
+}
+
+// Availability — informational only, never blocks payment.
+// Unavailable items are forwarded to the branch officer to source.
+var branchAllAvailable = true;
+
+function checkBranchAvailability(branchId) {
+  var warnBox  = document.getElementById('branch-availability-warn');
+  var warnList = document.getElementById('branch-availability-list');
+  if (!warnBox || !branchId) return;
+  fetch('/api/cart/branch-check/?branch_id=' + encodeURIComponent(branchId))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      branchAllAvailable = !!data.all_available;
+      if (data.all_available) {
+        warnBox.style.display = 'none';
+        var newSub = parseFloat(data.subtotal);
+        if (!isNaN(newSub)) {
+          var subEl = document.querySelector('[data-subtotal-display]');
+          if (subEl) subEl.textContent = 'GH₵ ' + newSub.toFixed(2);
+        }
+        return;
+      }
+      // Show informational notice — pay button stays enabled
+      var rows = (data.items || []).filter(function(it) { return !it.available_here; });
+      warnList.innerHTML = '';
+      rows.forEach(function(it) {
+        var row = document.createElement('div');
+        row.style = 'background:#fffde7;border-radius:6px;padding:.45rem .7rem;margin-top:.4rem;display:flex;align-items:center;gap:.5rem;';
+        var icon = document.createElement('span'); icon.textContent = '📋';
+        var text = document.createElement('span');
+        text.style = 'font-size:.8rem;color:#5c4a00;';
+        text.textContent = it.product_name + ' × ' + it.quantity + ' — will be arranged by the branch officer.';
+        row.appendChild(icon); row.appendChild(text);
+        warnList.appendChild(row);
+      });
+      warnBox.style.display = 'block';
+      // Pay button intentionally NOT disabled — officer handles sourcing after payment.
+    })
+    .catch(function() { /* silent */ });
+}
+
+function updateDeliveryFee(callback) {
+  var sub = parseFloat('{{ subtotal }}');
+  if (fulfillmentType === 'pickup') {
+    deliveryFeeConfirmed = true;
+    deliveryFeeAmount    = 0;
+    document.getElementById('sbb-fee').textContent = 'FREE';
+    document.getElementById('sbb-fee').style.color = 'var(--green)';
+    document.getElementById('summary-shipping').textContent = 'FREE';
+    document.getElementById('summary-shipping').style.color = 'var(--green)';
+    document.getElementById('summary-branch-label').textContent = selectedBranchName || '';
+    document.getElementById('branch-summary-row').style.display = selectedBranchId ? '' : 'none';
+    document.getElementById('summary-total').textContent = 'GH₵ ' + sub.toFixed(2);
+    var etaRow = document.getElementById('delivery-eta-row');
+    if (etaRow) etaRow.style.display = 'none';
+    if (callback) callback();
+    return;
+  }
+  // Home delivery — calculate from server
+  deliveryFeeConfirmed = false;
+  var address = document.getElementById('{{ form.delivery_address.auto_id }}').value.trim();
+  // Use the pinned GPS location when available — it's more precise than
+  // re-geocoding the typed address, and it works even if the address text
+  // hasn't been filled yet (or the geocoder is unavailable).
+  var latEl  = document.getElementById('{{ form.delivery_lat.auto_id }}');
+  var lngEl  = document.getElementById('{{ form.delivery_lng.auto_id }}');
+  var pinLat = (latEl && latEl.value !== '') ? parseFloat(latEl.value) : NaN;
+  var pinLng = (lngEl && lngEl.value !== '') ? parseFloat(lngEl.value) : NaN;
+  var hasPin = (!isNaN(pinLat) && !isNaN(pinLng));
+  // For delivery, branch is auto-assigned — use nearest_branch_id from Django context if no branch selected
+  var branchForFee = selectedBranchId || '{{ nearest_branch.id|default:"" }}';
+  if ((!address && !hasPin) || !branchForFee) {
+    document.getElementById('sbb-fee').textContent = 'Pin or enter address to calculate';
+    document.getElementById('sbb-fee').style.color = 'var(--muted)';
+    document.getElementById('summary-shipping').textContent = '—';
+    document.getElementById('summary-shipping').style.color = '';
+    return;
+  }
+  document.getElementById('sbb-fee').textContent = '⏳ Calculating fee...';
+  document.getElementById('sbb-fee').style.color = 'var(--muted)';
+  document.getElementById('summary-shipping').textContent = '⏳ Calculating...';
+  var feePayload = {branch_id: branchForFee, address: address};
+  if (hasPin) { feePayload.lat = pinLat; feePayload.lng = pinLng; }
+  fetch('{% url "delivery_fee_api" %}', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
+    body: JSON.stringify(feePayload),
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (!data.ok) { document.getElementById('sbb-fee').textContent = 'Could not calculate'; return; }
+    var fee = data.fee;
+    // Store confirmed fee for Paystack amount
+    deliveryFeeConfirmed = true;
+    deliveryFeeAmount    = fee;
+    document.getElementById('sbb-fee').textContent = data.fee_display;
+    document.getElementById('sbb-fee').style.color = 'var(--gold)';
+    document.getElementById('summary-shipping').textContent = data.fee_display;
+    document.getElementById('summary-shipping').style.color = '';
+    document.getElementById('summary-branch-label').textContent = selectedBranchName || '';
+    document.getElementById('branch-summary-row').style.display = '';
+    document.getElementById('summary-total').textContent = 'GH₵ ' + (sub + fee).toFixed(2);
+    var etaRow = document.getElementById('delivery-eta-row');
+    if (etaRow) {
+      etaRow.style.display = '';
+      etaRow.querySelector('.eta-value').textContent = data.eta_display;
+    }
+    if (data.distance_km) {
+      var distEl = document.getElementById('delivery-distance');
+      if (distEl) distEl.textContent = data.distance_km + ' km road estimate';
+    }
+    if (data.note) {
+      var noteEl = document.getElementById('delivery-fee-note');
+      if (noteEl) { noteEl.textContent = data.note; noteEl.style.display = ''; }
+    }
+    if (callback) callback();
+  })
+  .catch(function() {
+    document.getElementById('sbb-fee').textContent = 'Could not calculate fee. Please try again.';
+    deliveryFeeConfirmed = false;
+  });
+}
+
+// Track whether delivery fee has been confirmed from server
+var deliveryFeeConfirmed = false;
+var deliveryFeeAmount    = 0;
+
+function validateCheckoutFields() {
+  // Branch is required for pickup, but NOT for delivery (auto-assigned to nearest officer)
+  if (fulfillmentType === 'pickup' && !selectedBranchId) {
+    document.getElementById('branch-hint').classList.add('show');
+    document.getElementById('branch-grid').scrollIntoView({behavior:'smooth',block:'center'});
+    return false;
+  }
+  if (fulfillmentType === 'delivery') {
+    var da = document.getElementById('{{ form.delivery_address.auto_id }}');
+    if (da && !da.value.trim()) {
+      da.focus(); da.scrollIntoView({behavior:'smooth',block:'center'});
+      showPaymentStatus('Please enter your delivery address first.', false);
+      return false;
+    }
+    if (!deliveryFeeConfirmed) {
+      // Force a fee calculation if the address is filled but fee not yet confirmed
+      var addr = da ? da.value.trim() : '';
+      if (addr) {
+        updateDeliveryFee(function() {
+          // Retry launch after fee is calculated
+          if (deliveryFeeConfirmed) launchPaystack();
+        });
+      }
+      showPaymentStatus('⏳ Calculating delivery fee... Please wait.', true);
+      return false;
+    }
+  }
+  return true;
+}
+
+function showPaymentStatus(msg, ok) {
+  const el = document.getElementById('payment-status');
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.style.background = ok ? '#d4edda' : '#f8d7da';
+  el.style.color = ok ? '#155724' : '#721c24';
+  el.style.border = ok ? '1px solid #c3e6cb' : '1px solid #f5c6cb';
+}
+
+function launchPaystack() {
+  if (!validateCheckoutFields()) return;
+
+  const email = document.getElementById('{{ form.email.auto_id }}').value.trim();
+  if (!email) {
+    alert('Please enter your email address first.');
+    document.getElementById('{{ form.email.auto_id }}').focus();
+    return;
+  }
+
+  // Build total from confirmed server values — never trust DOM text alone
+  var sub = parseFloat('{{ subtotal }}');
+  var totalGHS;
+  if (fulfillmentType === 'pickup') {
+    totalGHS = sub;  // pickup is always free
+  } else {
+    // Use server-confirmed delivery fee
+    totalGHS = sub + deliveryFeeAmount;
+  }
+  // Apply promo discount if present (read from summary-total as fallback)
+  var domTotal = parseFloat(document.getElementById('summary-total').textContent.replace(/[^0-9.]/g,''));
+  if (!isNaN(domTotal) && domTotal < totalGHS) {
+    totalGHS = domTotal;  // promo applied — use lower DOM total
+  }
+  var amountPesewas = Math.round(totalGHS * 100);
+  if (amountPesewas <= 0) {
+    showPaymentStatus('⚠️ Invalid order total. Please refresh and try again.', false);
+    return;
+  }
+
+  const publicKey = '{{ paystack_public_key }}';
+  if (!publicKey) {
+    showPaymentStatus('⚠️ Payment gateway not configured. Contact the store admin.', false);
+    return;
+  }
+
+  const payBtn = document.getElementById('pay-btn');
+  payBtn.disabled = true;
+  payBtn.textContent = '⏳ Opening payment...';
+
+  const handler = PaystackPop.setup({
+    key: publicKey,
+    email: email,
+    amount: amountPesewas,
+    currency: 'GHS',
+    ref: 'CMALL-' + Date.now() + '-' + Math.floor(Math.random() * 1000000),
+    label: 'Market Order',
+    onClose: function() {
+      payBtn.disabled = false;
+      payBtn.textContent = '🔒 Pay Now with Paystack';
+      showPaymentStatus('Payment window closed. Click Pay Now to try again.', false);
+    },
+    callback: function(response) {
+      payBtn.textContent = '⏳ Verifying payment...';
+      showPaymentStatus('⏳ Verifying your payment...', true);
+
+      // Server-side verification
+      fetch('{% url "paystack_verify" %}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}',
+        },
+        body: JSON.stringify({ reference: response.reference }),
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.verified) {
+          // Store reference in hidden form field and submit
+          document.getElementById('{{ form.payment_reference.auto_id }}').value = response.reference;
+          showPaymentStatus('✅ Payment verified! Placing your order...', true);
+          payBtn.textContent = '✅ Payment Verified — Placing Order...';
+          document.getElementById('real-submit-btn').click();
+        } else {
+          payBtn.disabled = false;
+          payBtn.textContent = '🔒 Pay Now with Paystack';
+          // Show the specific error from the server, with a helpful fallback
+          var errMsg = data.error || 'Verification failed. Please try again.';
+          // If it's a config error (admin needs to fix .env), show a friendly message
+          if (errMsg.toLowerCase().includes('not configured') || errMsg.toLowerCase().includes('secret key')) {
+            errMsg = 'Payment gateway is not set up yet. Please contact the store.';
+          }
+          showPaymentStatus('❌ ' + errMsg, false);
+        }
+      })
+      .catch(() => {
+        payBtn.disabled = false;
+        payBtn.textContent = '🔒 Pay Now with Paystack';
+        showPaymentStatus('❌ Network error during verification. Please contact support with reference: ' + response.reference, false);
+      });
+    }
+  });
+  handler.openIframe();
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  // Recalculate delivery fee only after customer has STOPPED typing for 1.5 seconds.
+  // Show a pending indicator immediately so the UI feels responsive,
+  // but only hit the API once typing is done — prevents fee flickering mid-type.
+  var addrField = document.getElementById('{{ form.delivery_address.auto_id }}');
+  if (addrField) {
+    var debounceTimer;
+    addrField.addEventListener('input', function() {
+      // Reset confirmed state immediately so Pay Now is blocked while typing
+      deliveryFeeConfirmed = false;
+      deliveryFeeAmount    = 0;
+      // Show pending indicator right away — no API call yet
+      if (fulfillmentType === 'delivery' && this.value.trim()) {
+        document.getElementById('sbb-fee').textContent = '⏳ Waiting...';
+        document.getElementById('sbb-fee').style.color = 'var(--muted)';
+        document.getElementById('summary-shipping').textContent = '—';
+        document.getElementById('summary-total').textContent =
+          'GH₵ ' + parseFloat('{{ subtotal }}').toFixed(2);
+      }
+      // Fire API only after 1500ms of no typing
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(function() {
+        if (fulfillmentType === 'delivery') updateDeliveryFee();
+      }, 1500);
+    });
+  }
+
+  selectRegion(selectedRegion);
+
+  // Render the auto-assigned pickup point (and set it as the order branch).
+  refreshPickupPoint();
+
+  // ── Promo code apply/remove ─────────────────────────────────────────────
+  var promoInput     = document.getElementById('promo-code-input');
+  var promoApplyBtn  = document.getElementById('promo-apply-btn');
+  var promoRemoveBtn = document.getElementById('promo-remove-btn');
+  var promoStatus    = document.getElementById('promo-status');
+  var promoInputWrap = document.getElementById('promo-input-wrap');
+  var promoAppliedWrap = document.getElementById('promo-applied-wrap');
+  var discountRow    = document.getElementById('discount-row');
+  var currentDiscount = 0;
+
+  function showPromoStatus(msg, ok) {
+    promoStatus.textContent = msg;
+    promoStatus.style.display = 'block';
+    promoStatus.style.color = ok ? '#2e7d32' : '#c62828';
+  }
+
+  function recomputeTotal() {
+    // Re-use the same values the rest of the page already tracks
+    var sub = parseFloat('{{ subtotal }}');
+    var fee = (fulfillmentType === 'pickup') ? 0 : (deliveryFeeAmount || 0);
+    var total = Math.max(0, sub + fee - currentDiscount);
+    document.getElementById('summary-total').textContent = 'GH₵ ' + total.toFixed(2);
+  }
+
+  function applyPromo() {
+    var code = (promoInput.value || '').trim().toUpperCase();
+    if (!code) {
+      showPromoStatus('Please enter a code.', false);
+      return;
+    }
+    promoApplyBtn.disabled = true;
+    promoApplyBtn.textContent = '…';
+    promoStatus.style.display = 'none';
+
+    var formData = new FormData();
+    formData.append('code', code);
+    formData.append('subtotal', '{{ subtotal }}');
+
+    fetch('{% url "apply_promo_code" %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+      body: formData,
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      promoApplyBtn.disabled = false;
+      promoApplyBtn.textContent = 'Apply';
+      if (data.ok) {
+        currentDiscount = parseFloat(data.discount) || 0;
+        document.getElementById('promo-applied-code').textContent = data.code;
+        var detail = data.discount_type === 'percent'
+          ? (data.discount_value + '% off — saved GH₵ ' + currentDiscount.toFixed(2))
+          : ('Flat GH₵ ' + currentDiscount.toFixed(2) + ' off');
+        document.getElementById('promo-applied-detail').textContent = detail;
+        promoInputWrap.style.display = 'none';
+        promoAppliedWrap.style.display = 'block';
+        document.getElementById('summary-discount').textContent = '−GH₵ ' + currentDiscount.toFixed(2);
+        discountRow.style.display = 'flex';
+        recomputeTotal();
+      } else {
+        showPromoStatus(data.error || 'Code could not be applied.', false);
+      }
+    })
+    .catch(function(){
+      promoApplyBtn.disabled = false;
+      promoApplyBtn.textContent = 'Apply';
+      showPromoStatus('Network error. Please try again.', false);
+    });
+  }
+
+  function removePromo() {
+    // Clear session-side by sending an empty code — the server will reject
+    // and we clear local state either way. Also bump the Remove click:
+    currentDiscount = 0;
+    promoInput.value = '';
+    promoAppliedWrap.style.display = 'none';
+    promoInputWrap.style.display = 'block';
+    discountRow.style.display = 'none';
+    promoStatus.style.display = 'none';
+    recomputeTotal();
+    // Fire-and-forget: clear the session promo code via the same endpoint
+    // (it expects a real code to set, so we POST an obviously-invalid one
+    // to trigger the "not found" branch which does not set the session).
+    // The real clearing happens in the checkout view after successful order.
+    // To be safe, we also call a lightweight session-clear by hitting the
+    // endpoint with an empty string — server ignores it.
+    try {
+      var fd = new FormData();
+      fd.append('code', '');
+      fd.append('subtotal', '{{ subtotal }}');
+      fetch('{% url "apply_promo_code" %}', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+        body: fd,
+      });
+    } catch (e) {}
+  }
+
+  if (promoApplyBtn) promoApplyBtn.addEventListener('click', applyPromo);
+  if (promoRemoveBtn) promoRemoveBtn.addEventListener('click', removePromo);
+  if (promoInput) {
+    promoInput.addEventListener('keypress', function(e){
+      if (e.key === 'Enter') { e.preventDefault(); applyPromo(); }
+    });
+  }
+});
+</script>
+
+<script>
+/* ──────────────────────────────────────────────────────────────────────────
+   Real-time location module
+   - Uses watchPosition so the pin keeps refining as GPS accuracy improves,
+     instead of a single (often coarse) getCurrentPosition reading.
+   - Reverse geocoding runs SERVER-SIDE (api/reverse-geocode/). Browsers strip
+     the User-Agent header and Nominatim blocks anonymous browser calls, which
+     is why in-page lookups kept failing. Same-origin server call fixes that.
+   - Powers both the Home-Delivery address pin and the "Find my closest pickup
+     point" button.
+─────────────────────────────────────────────────────────────────────────── */
+(function() {
+  var CSRF = '{{ csrf_token }}';
+  var REVGEO_URL = '{% url "reverse_geocode_api" %}';
+
+  // Continuously refine a GPS fix; report each improvement and a final fix.
+  // opts: { onUpdate(lat,lng,acc,isFinal), onError(code), onStart() }
+  function runRealtimeLocate(opts) {
+    if (!navigator.geolocation) { if (opts.onError) opts.onError('unsupported'); return; }
+    if (opts.onStart) opts.onStart();
+
+    var best = null;       // { lat, lng, acc }
+    var watchId = null;
+    var done = false;
+    var hardStop = null;
+
+    function finish() {
+      if (done) return;
+      done = true;
+      if (watchId !== null) { try { navigator.geolocation.clearWatch(watchId); } catch (e) {} }
+      clearTimeout(hardStop);
+      if (best && opts.onUpdate) opts.onUpdate(best.lat, best.lng, best.acc, true);
+      else if (!best && opts.onError) opts.onError('unavailable');
+    }
+
+    watchId = navigator.geolocation.watchPosition(
+      function(pos) {
+        var lat = pos.coords.latitude;
+        var lng = pos.coords.longitude;
+        var acc = Math.round(pos.coords.accuracy || 99999);
+
+        // Ghana bounding box
+        var inGhana = (lng >= -3.5 && lng <= 1.5) && (lat >= 4.5 && lat <= 11.5);
+        if (!inGhana) {
+          if (!best) { if (opts.onError) opts.onError('outside'); finish(); }
+          return;
+        }
+        // Keep only the most accurate reading seen so far
+        if (!best || acc < best.acc) {
+          best = { lat: lat, lng: lng, acc: acc };
+          if (opts.onUpdate) opts.onUpdate(lat, lng, acc, false);  // live refinement
+        }
+        // Good enough — lock it in
+        if (acc <= 25) finish();
+      },
+      function(err) {
+        if (best) { finish(); return; }  // already have a usable reading
+        var code = (err && err.code === 1) ? 'denied'
+                 : (err && err.code === 3) ? 'timeout'
+                 : 'unavailable';
+        if (opts.onError) opts.onError(code);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+
+    // Accept the best reading we have after 16s even if it never hit ≤25m.
+    hardStop = setTimeout(finish, 16000);
+  }
+
+  // Server-side reverse geocode. Returns a Promise resolving to
+  // { address, landmark, nearest_branch } (any field may be empty).
+  function serverReverseGeocode(lat, lng) {
+    return fetch(REVGEO_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ lat: lat, lng: lng }),
+    }).then(function(r) { return r.json(); });
+  }
+
+  function geoErrorMessage(code) {
+    if (code === 'denied')      return 'Location permission was denied. You can still order — just type your address below.';
+    if (code === 'timeout')     return 'Location request timed out. Try again, or type your address below.';
+    if (code === 'outside')     return "The location detected isn't in Ghana. Please type your address manually below.";
+    if (code === 'unsupported') return "Your browser doesn't support location detection. Please type your address.";
+    return 'Could not get your location. Type your address below instead.';
+  }
+
+  /* ── Home Delivery: pin + fill address ───────────────────────────────── */
+  (function setupDeliveryLocate() {
+    var btn       = document.getElementById('locate-me-btn');
+    var status    = document.getElementById('locate-status');
+    var latInput  = document.getElementById('{{ form.delivery_lat.auto_id }}');
+    var lngInput  = document.getElementById('{{ form.delivery_lng.auto_id }}');
+    var addrInput = document.getElementById('{{ form.delivery_address.auto_id }}');
+    var lmrkInput = document.getElementById('{{ form.delivery_landmark.auto_id }}');
+    if (!btn || !latInput || !lngInput) return;
+
+    function setStatus(html, kind) {
+      status.style.display = 'block';
+      status.style.color = (kind === 'ok')    ? 'var(--success-text, #155724)'
+                         : (kind === 'error') ? 'var(--danger-text, #721c24)'
+                         : 'var(--text-muted)';
+      status.innerHTML = html;
+    }
+
+    btn.addEventListener('click', function() {
+      var originalText = btn.textContent;
+      runRealtimeLocate({
+        onStart: function() {
+          btn.disabled = true;
+          btn.textContent = '📍 Locating…';
+          setStatus('📡 Getting your location… hold on while we sharpen the pin.', 'info');
+        },
+        onUpdate: function(lat, lng, acc, isFinal) {
+          latInput.value = lat.toFixed(6);
+          lngInput.value = lng.toFixed(6);
+          var mapsUrl = 'https://www.google.com/maps?q=' + lat + ',' + lng;
+
+          if (!isFinal) {
+            // Live refinement — show improving accuracy, no geocode yet
+            setStatus('📡 Pinning your location… ±' + acc + 'm and improving…', 'info');
+            return;
+          }
+
+          // Final fix — look up the address server-side
+          btn.textContent = '📍 Update location';
+          btn.disabled = false;
+          setStatus('🔎 Location pinned (±' + acc + 'm). Looking up your address…', 'info');
+
+          serverReverseGeocode(lat, lng).then(function(data) {
+            var addr = (data && data.address) || '';
+            var lmrk = (data && data.landmark) || '';
+            // PIN-FILL: if the geocoder couldn't name the spot, still fill the
+            // address field with the GPS pin so (a) the required field is
+            // satisfied and (b) the delivery fee calculates immediately. The
+            // rider gets the exact coordinates either way.
+            if (!addr) {
+              addr = 'Pinned location (' + lat.toFixed(5) + ', ' + lng.toFixed(5) + ') — see map pin';
+            }
+            if (addrInput && (!addrInput.value.trim() || data && data.address || addrInput.value.indexOf('Pinned location') === 0)) {
+              addrInput.value = addr;
+              addrInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            if (lmrk && lmrkInput && !lmrkInput.value.trim()) {
+              lmrkInput.value = 'Near ' + lmrk;
+            }
+            if (data && data.address) {
+              setStatus(
+                '✅ Location pinned (±' + acc + 'm). Address filled below. ' +
+                '<a href="' + mapsUrl + '" target="_blank" rel="noopener" style="color:var(--gold,#C9A84C);font-weight:600;">View on map ↗</a>' +
+                ' — tap again if it looks wrong.',
+                'ok'
+              );
+            } else {
+              setStatus(
+                '✅ Location pinned (±' + acc + 'm). We saved your exact spot for the rider — ' +
+                'please add a street or landmark below to help. ' +
+                '<a href="' + mapsUrl + '" target="_blank" rel="noopener" style="color:var(--gold,#C9A84C);font-weight:600;">View on map ↗</a>',
+                'ok'
+              );
+            }
+            if (fulfillmentType === 'delivery') setTimeout(updateDeliveryFee, 300);
+          }).catch(function() {
+            // Geocoder unreachable — still fill the address with the pin so
+            // the order can proceed; the rider has exact coordinates.
+            if (addrInput && !addrInput.value.trim()) {
+              addrInput.value = 'Pinned location (' + lat.toFixed(5) + ', ' + lng.toFixed(5) + ') — see map pin';
+              addrInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            setStatus(
+              '✅ Location pinned (±' + acc + 'm). We saved your exact spot for the rider — ' +
+              'please add a street or landmark below. ' +
+              '<a href="' + mapsUrl + '" target="_blank" rel="noopener" style="color:var(--gold,#C9A84C);font-weight:600;">View on map ↗</a>',
+              'ok'
+            );
+            if (fulfillmentType === 'delivery') setTimeout(updateDeliveryFee, 300);
+          });
+        },
+        onError: function(code) {
+          btn.disabled = false;
+          btn.textContent = originalText;
+          setStatus('⚠️ ' + geoErrorMessage(code), 'error');
+        },
+      });
+    });
+  })();
+
+  /* ── Branch Pickup: find the closest pickup point ────────────────────── */
+  (function setupPickupLocate() {
+    var btn    = document.getElementById('ppc-locate');
+    var status = document.getElementById('ppc-locate-status');
+    if (!btn) return;
+
+    function setStatus(html, kind) {
+      status.style.display = 'block';
+      status.style.background = (kind === 'ok')    ? '#e8f5e9'
+                              : (kind === 'error') ? '#fdecea' : 'var(--cream)';
+      status.style.color = (kind === 'ok')    ? '#1b5e20'
+                         : (kind === 'error') ? '#7a2018' : 'var(--muted)';
+      status.innerHTML = html;
+    }
+
+    btn.addEventListener('click', function() {
+      var originalText = btn.textContent;
+      runRealtimeLocate({
+        onStart: function() {
+          btn.disabled = true;
+          btn.textContent = '📍 Locating…';
+          setStatus('📡 Finding the pickup point closest to you…', 'info');
+        },
+        onUpdate: function(lat, lng, acc, isFinal) {
+          // Try to resolve the nearest branch instantly from branch GPS data.
+          var nearest = nearestBranchFromCoords(lat, lng);
+
+          if (nearest) {
+            renderPickupPoint(nearest, nearest._distance);
+            if (!isFinal) {
+              setStatus('📡 Closest so far: <strong>' + escapeHtml(nearest.name) +
+                        '</strong> (±' + acc + 'm, refining…)', 'info');
+            } else {
+              btn.disabled = false;
+              btn.textContent = '📍 Recheck my location';
+              setStatus('✅ Closest pickup point: <strong>' + escapeHtml(nearest.name) +
+                        '</strong>, about ' + nearest._distance.toFixed(1) +
+                        ' km away. Directions are ready above.', 'ok');
+            }
+            return;
+          }
+
+          // No branch has GPS coords locally — ask the server for the nearest.
+          if (isFinal) {
+            serverReverseGeocode(lat, lng).then(function(data) {
+              btn.disabled = false;
+              btn.textContent = '📍 Recheck my location';
+              var nb = data && data.nearest_branch;
+              if (nb) {
+                renderPickupPoint(nb, nb.distance_km);
+                var distTxt = (nb.distance_km != null) ? (', about ' + nb.distance_km + ' km away') : '';
+                setStatus('✅ Closest pickup point: <strong>' + escapeHtml(nb.name) +
+                          '</strong>' + distTxt + '. Directions are ready above.', 'ok');
+              } else {
+                setStatus('✅ Location captured. Showing your assigned pickup point above.', 'ok');
+              }
+            }).catch(function() {
+              btn.disabled = false;
+              btn.textContent = originalText;
+              setStatus('✅ Location captured, but we could not match a closer branch. ' +
+                        'Your assigned pickup point is shown above.', 'ok');
+            });
+          }
+        },
+        onError: function(code) {
+          btn.disabled = false;
+          btn.textContent = originalText;
+          setStatus('⚠️ ' + geoErrorMessage(code) +
+                    ' Your assigned pickup point is still shown above.', 'error');
+        },
+      });
+    });
+  })();
+})();
+</script>
+
+{% endblock %}

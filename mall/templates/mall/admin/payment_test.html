@@ -1,0 +1,54 @@
+{% extends 'mall/admin/base_admin.html' %}
+{% block title %}Paystack Test — Admin{% endblock %}
+{% block content %}
+<div style="max-width:680px;margin:0 auto;">
+  <h1 style="font-family:'Playfair Display',serif;font-size:1.5rem;margin-bottom:1.5rem;">🧪 Paystack Key Check</h1>
+
+  <div style="background:white;border:1px solid var(--border);border-radius:12px;padding:2rem;">
+
+    <div style="margin-bottom:1.5rem;">
+      <strong>Display Name:</strong> {{ ps.account_name }}<br>
+      <strong>Public Key:</strong>
+      <code style="font-size:.85rem;background:#f4f4f4;padding:2px 6px;border-radius:4px;">
+        {{ public_key|truncatechars:40 }}
+      </code>
+    </div>
+
+    {% if is_live %}
+    <div style="background:#d4edda;border:1px solid #c3e6cb;border-radius:8px;padding:1rem;color:#155724;margin-bottom:1rem;">
+      ✅ <strong>Live key detected</strong> — this key will process real payments in GHS.
+    </div>
+    {% elif is_test %}
+    <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:1rem;color:#856404;margin-bottom:1rem;">
+      🧪 <strong>Test key detected</strong> — no real money will be charged. Use Paystack's test card numbers to simulate payments.
+    </div>
+    {% else %}
+    <div style="background:#f8d7da;border:1px solid #f5c6cb;border-radius:8px;padding:1rem;color:#721c24;margin-bottom:1rem;">
+      ⚠️ <strong>Invalid key format</strong> — Public key should start with <code>pk_test_</code> or <code>pk_live_</code>. Please update your payment settings.
+    </div>
+    {% endif %}
+
+    <div style="background:#e8f4fd;border:1px solid #b8daff;border-radius:8px;padding:1rem;font-size:.88rem;color:#004085;margin-bottom:1.5rem;">
+      <strong>💡 How to test Paystack:</strong>
+      <ol style="margin:.5rem 0 0 1.2rem;line-height:2;">
+        <li>Go to your storefront and add items to cart</li>
+        <li>Proceed to checkout — click <em>Pay Now with Paystack</em></li>
+        <li>Use test card: <code>4084 0840 8408 4081</code>, any future expiry, CVV <code>408</code>, OTP <code>123456</code></li>
+        <li>Verify the order appears in <a href="{% url 'admin_orders' %}" style="color:#004085;">Admin → Orders</a></li>
+        <li>Also check your <a href="https://dashboard.paystack.com/#/transactions" target="_blank" style="color:#004085;">Paystack Dashboard → Transactions</a></li>
+      </ol>
+    </div>
+
+    <div style="display:flex;gap:1rem;">
+      <a href="https://dashboard.paystack.com/#/settings/developer" target="_blank"
+         class="btn btn-gold" style="padding:.7rem 1.3rem;font-weight:600;text-decoration:none;">
+        🔗 Open Paystack Dashboard
+      </a>
+      <a href="{% url 'admin_payment_settings' %}" class="btn"
+         style="background:var(--cream);color:var(--dark);padding:.7rem 1.3rem;font-weight:600;text-decoration:none;">
+        ← Back to Payment Settings
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,114 @@
+{% extends 'mall/fulfillment_officer/base.html' %}
+
+{% block title %}Upload Product — Fulfillment Officer{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h1>Upload Product</h1>
+  <p style="margin-bottom:1rem; color:var(--muted);">Add a product from the officer portal. Admin approval is required for CSV batches.</p>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:1rem;">
+      <label>
+        Product name<br>
+        <input type="text" name="name" maxlength="200" required style="width:100%;padding:0.75rem;border:1px solid var(--border);border-radius:8px;" value="{{ request.POST.name|default_if_none:'' }}">
+      </label>
+      <label>
+        Price (GH₵)<br>
+        <input type="text" name="price" required style="width:100%;padding:0.75rem;border:1px solid var(--border);border-radius:8px;" value="{{ request.POST.price|default_if_none:'' }}">
+      </label>
+      <label>
+        Stock<br>
+        <input type="number" name="stock" min="0" style="width:100%;padding:0.75rem;border:1px solid var(--border);border-radius:8px;" value="{{ request.POST.stock|default_if_none:'0' }}">
+      </label>
+      <label>
+        Category<br>
+        <select name="category" required style="width:100%;padding:0.75rem;border:1px solid var(--border);border-radius:8px;">
+          <option value="">Select category</option>
+          {% for category in categories %}
+          <option value="{{ category.id }}" {% if request.POST.category == category.id|stringformat:'s' %}selected{% endif %}>{{ category.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+
+    <label style="display:block;margin-top:1rem;">
+      Description<br>
+      <textarea name="description" rows="4" style="width:100%;padding:0.75rem;border:1px solid var(--border);border-radius:8px;">{{ request.POST.description|default:'' }}</textarea>
+    </label>
+
+    <label style="display:block;margin-top:1rem;">
+      Main image<br>
+      <input type="file" name="image" accept="image/*" style="margin-top:0.5rem;">
+    </label>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:1rem;margin-top:1rem;">
+      <label>
+        Extra image 1<br>
+        <input type="file" name="image_2" accept="image/*" style="margin-top:0.5rem;">
+      </label>
+      <label>
+        Extra image 2<br>
+        <input type="file" name="image_3" accept="image/*" style="margin-top:0.5rem;">
+      </label>
+      <label>
+        Extra image 3<br>
+        <input type="file" name="image_4" accept="image/*" style="margin-top:0.5rem;">
+      </label>
+      <label>
+        Extra image 4<br>
+        <input type="file" name="image_5" accept="image/*" style="margin-top:0.5rem;">
+      </label>
+    </div>
+
+    <label style="display:block;margin-top:1rem;font-size:0.95rem;">
+      <input type="checkbox" name="available" {% if request.POST.available %}checked{% endif %}> Mark product as available for sale
+    </label>
+
+    <div style="margin-top:1.5rem;display:flex;gap:1rem;flex-wrap:wrap;align-items:center;">
+      <button type="submit" class="btn btn-gold">Add Product</button>
+      <a href="{% url 'officer_csv_upload' %}" class="btn btn-ghost">Upload CSV instead</a>
+    </div>
+  </form>
+</div>
+
+{% if assigned_products %}
+<div class="card" style="margin-top:1.5rem;">
+  <h2 style="margin-top:0;font-size:1.15rem;">📋 Products assigned to you</h2>
+  <p style="color:var(--muted);font-size:0.88rem;margin-top:0.2rem;">
+    These are the products your admin made you responsible for. Use this list to track what you manage.
+  </p>
+  <div style="overflow-x:auto;">
+  <table style="width:100%;border-collapse:collapse;font-size:0.88rem;">
+    <thead>
+      <tr style="text-align:left;border-bottom:2px solid var(--border);">
+        <th style="padding:0.5rem;">Product</th>
+        <th style="padding:0.5rem;">Category</th>
+        <th style="padding:0.5rem;">Price</th>
+        <th style="padding:0.5rem;">Stock at your branch</th>
+        <th style="padding:0.5rem;"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in assigned_products %}
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:0.5rem;display:flex;align-items:center;gap:0.5rem;">
+          {% if p.image %}<img src="{{ p.image.url }}" alt="" style="width:34px;height:34px;object-fit:contain;background:#fff;border:1px solid var(--border);border-radius:6px;">{% endif %}
+          {{ p.name }}
+        </td>
+        <td style="padding:0.5rem;">{{ p.category.name }}</td>
+        <td style="padding:0.5rem;">GH₵ {{ p.price }}</td>
+        <td style="padding:0.5rem;">
+          {% for bp in p.branch_pricing.all %}{{ bp.stock }} ({{ bp.branch.name }}){% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}
+        </td>
+        <td style="padding:0.5rem;">
+          <a href="{% url 'product_detail' p.slug %}" target="_blank" rel="noopener" style="color:var(--gold,#9a7b1f);font-weight:600;">View ↗</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

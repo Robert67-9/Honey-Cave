@@ -1,0 +1,208 @@
+{% extends 'mall/admin/base_admin.html' %}
+{% block title %}{{ action }} Payment Method — Admin{% endblock %}
+{% block content %}
+<div style="max-width:700px;margin:0 auto;">
+  <h1 style="font-family:'Playfair Display',serif;font-size:1.5rem;margin-bottom:1.5rem;">💳 {{ action }} Payment Method</h1>
+  
+  <div style="background:white;border:1px solid var(--border);border-radius:12px;padding:2rem;">
+    
+    <!-- Non-field errors -->
+    {% if form.non_field_errors %}
+    <div style="background:#f8d7da;border:1px solid #f5c6cb;color:#721c24;padding:1rem;border-radius:8px;margin-bottom:1rem;">
+      {% for error in form.non_field_errors %}
+      <p style="margin:0;">⚠️ {{ error }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+    
+    <form method="post" novalidate>
+      {% csrf_token %}
+      
+      <!-- Provider selector -->
+      <div style="margin-bottom:1.5rem;">
+        <label style="font-weight:600;display:block;margin-bottom:0.5rem;">
+          {{ form.provider.label }} <span style="color:var(--red);">*</span>
+        </label>
+        {{ form.provider }}
+        {% if form.provider.errors %}
+        <div style="color:var(--red);font-size:0.85rem;margin-top:0.3rem;">{{ form.provider.errors }}</div>
+        {% endif %}
+      </div>
+
+      <!-- Info Banner — Paystack -->
+      <div id="banner-paystack" class="provider-banner" style="background:#e8f4fd;border:1px solid #b8daff;border-radius:8px;padding:.85rem 1rem;font-size:.85rem;color:#004085;margin-bottom:1.5rem;">
+        💳 <strong>Paystack Integration</strong> — Enter your Paystack Public Key below. Get it from
+        <a href="https://dashboard.paystack.com/#/settings/developer" target="_blank" style="color:#004085;">Paystack Dashboard → Settings → API Keys</a>.
+        Use <code>pk_test_...</code> for testing and <code>pk_live_...</code> for production.
+      </div>
+
+      <!-- Display Name (Required) -->
+      <div style="margin-bottom:1.5rem;">
+        <label style="font-weight:600;display:block;margin-bottom:0.5rem;">
+          {{ form.account_name.label }} <span style="color:var(--red);">*</span>
+        </label>
+        {{ form.account_name }}
+        <p style="font-size:.8rem;color:var(--muted);margin-top:.3rem;">Shown to customers at checkout, e.g. "Market Payments"</p>
+        {% if form.account_name.errors %}
+        <div style="color:var(--red);font-size:0.85rem;margin-top:0.3rem;">
+          {{ form.account_name.errors }}
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Public Key (label changes by provider) -->
+      <div style="margin-bottom:1.5rem;">
+        <label style="font-weight:600;display:block;margin-bottom:0.5rem;">
+          <span id="label-pubkey">Public Key</span> <span style="color:var(--red);">*</span>
+        </label>
+        {{ form.account_number }}
+        <p id="hint-pubkey-paystack" class="provider-hint" style="font-size:.8rem;color:var(--muted);margin-top:.3rem;">Starts with <code>pk_test_</code> or <code>pk_live_</code></p>
+        
+        {% if form.account_number.errors %}
+        <div style="color:var(--red);font-size:0.85rem;margin-top:0.3rem;">
+          {{ form.account_number.errors }}
+        </div>
+        {% endif %}
+      </div>
+
+      <div id="field-extra-account" style="display:none;margin-bottom:1.5rem;">
+        <label style="font-weight:600;display:block;margin-bottom:0.5rem;">
+          Username &amp; Account Number <span style="color:var(--red);">*</span>
+        </label>
+        {{ form.extra_account }}
+        <p style="font-size:.8rem;color:var(--muted);margin-top:.3rem;">
+          Enter as <code>username::accountnumber</code>, e.g. <code>john@example.com::ACC123456</code>
+        </p>
+        {% if form.extra_account.errors %}
+        <div style="color:var(--red);font-size:0.85rem;margin-top:0.3rem;">{{ form.extra_account.errors }}</div>
+        {% endif %}
+      </div>
+      
+      <!-- Icon (Optional) -->
+      <div style="margin-bottom:1.5rem;">
+        <label style="font-weight:600;display:block;margin-bottom:0.5rem;">
+          {{ form.icon.label }} <span style="color:#999;">(optional)</span>
+        </label>
+        {{ form.icon }}
+        <p style="font-size:0.8rem;color:var(--muted);margin-top:0.3rem;">
+          📌 {{form.icon.help_text|safe}}
+        </p>
+        {% if form.icon.errors %}
+        <div style="color:var(--red);font-size:0.85rem;margin-top:0.3rem;">
+          {{ form.icon.errors }}
+        </div>
+        {% endif %}
+      </div>
+      
+      <!-- Instructions (Optional) -->
+      <div style="margin-bottom:1.5rem;">
+        <label style="font-weight:600;display:block;margin-bottom:0.5rem;">
+          {{ form.instructions.label }}
+        </label>
+        {{ form.instructions }}
+        {% if form.instructions.errors %}
+        <div style="color:var(--red);font-size:0.85rem;margin-top:0.3rem;">
+          {{ form.instructions.errors }}
+        </div>
+        {% endif %}
+      </div>
+      
+      <!-- Active Status -->
+      <div style="margin-bottom:2rem;display:flex;align-items:center;gap:0.5rem;">
+        {{ form.is_active }}
+        <label style="font-weight:600;margin:0;cursor:pointer;">
+          {{ form.is_active.label }}
+        </label>
+        {% if form.is_active.errors %}
+        <div style="color:var(--red);font-size:0.85rem;">
+          {{ form.is_active.errors }}
+        </div>
+        {% endif %}
+      </div>
+      
+      <!-- Buttons -->
+      <div style="display:flex;gap:1rem;border-top:1px solid var(--border);padding-top:1.5rem;">
+        <button type="submit" class="btn btn-gold" style="padding:0.8rem 1.5rem;font-weight:600;">
+          ✓ {{ action }} Method
+        </button>
+        <a href="{% url 'admin_payment_settings' %}" class="btn" style="background:var(--cream);color:var(--dark);padding:0.8rem 1.5rem;font-weight:600;">
+          ← Cancel
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+  input[type=text], input[type=number], select, textarea {
+    width: 100%;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+  
+  input[type=text]:focus, input[type=number]:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(201,168,76,0.1);
+  }
+  
+  textarea {
+    resize: vertical;
+    min-height: 80px;
+  }
+  
+  input[type=checkbox] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--gold);
+  }
+  
+  .btn {
+    display: inline-block;
+    cursor: pointer;
+    border: none;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  
+  .btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+  
+  .btn-gold {
+    background: var(--gold);
+    color: var(--dark);
+  }
+</style>
+{% endblock %}
+</style>
+<script>
+(function () {
+  const providerEl = document.getElementById("id_provider");
+  if (!providerEl) return;
+
+  function switchProvider() {
+    const p = providerEl.value;
+
+    document.querySelectorAll(".provider-banner").forEach(el => el.style.display = "none");
+    const activeBanner = document.getElementById("banner-" + p);
+    if (activeBanner) activeBanner.style.display = "";
+
+    document.querySelectorAll(".provider-hint").forEach(el => el.style.display = "none");
+    const activeHint = document.getElementById("hint-pubkey-" + p);
+    if (activeHint) activeHint.style.display = "";
+
+  }
+
+  providerEl.addEventListener("change", switchProvider);
+  switchProvider();
+})();
+</script>

@@ -1,0 +1,27 @@
+{% extends 'mall/fulfillment_officer/base.html' %}
+{% block title %}Sign in — Fulfillment Officer Portal{% endblock %}
+{% block content %}
+<div style="max-width: 400px; margin: 4rem auto;">
+  <div class="card">
+    <h1 style="text-align:center; margin-bottom: 0.4rem;">Fulfillment Officer Sign In</h1>
+    <p style="text-align:center; color: var(--muted); font-size: 0.85rem; margin-bottom: 1.5rem;">
+      Use the username and password assigned to you by the admin.
+    </p>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+      <div style="margin-bottom: 0.9rem;">
+        <label style="display:block; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.3rem;">Username</label>
+        <input type="text" name="username" required autofocus autocomplete="username"
+               style="width:100%; padding: 0.7rem; border: 1px solid var(--border); border-radius: 6px; font-family: inherit;">
+      </div>
+      <div style="margin-bottom: 1.2rem;">
+        <label style="display:block; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.3rem;">Password</label>
+        <input type="password" name="password" required autocomplete="current-password"
+               style="width:100%; padding: 0.7rem; border: 1px solid var(--border); border-radius: 6px; font-family: inherit;">
+      </div>
+      <button type="submit" class="btn btn-gold" style="width:100%; padding: 0.85rem;">Sign In</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,226 @@
+{% extends 'mall/base.html' %}
+{% block title %}My Watchlist — Market{% endblock %}
+
+{% block extra_css %}
+<style>
+.watchlist-hero {
+  background: linear-gradient(135deg, #1A1410 0%, #2e1f0e 100%);
+  border-radius: 16px; padding: 2rem 2rem;
+  margin-bottom: 2rem; color: white;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; flex-wrap: wrap;
+}
+.watchlist-hero h1 {
+  font-family: 'Playfair Display', serif; font-size: 1.8rem;
+  margin: 0; color: var(--gold);
+}
+.watchlist-hero p { color: rgba(255,255,255,.6); margin: 0.3rem 0 0; font-size: 0.9rem; }
+
+.watchlist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.25rem;
+}
+
+.watch-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: box-shadow .2s, transform .15s;
+  position: relative;
+}
+.watch-card:hover { box-shadow: 0 8px 28px rgba(0,0,0,.09); transform: translateY(-2px); }
+
+.watch-card-img {
+  height: 190px;
+  object-fit: cover;
+  width: 100%;
+  display: block;
+}
+.watch-card-img-ph {
+  height: 190px;
+  background: var(--cream);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+}
+
+.remove-heart {
+  position: absolute;
+  top: 10px; right: 10px;
+  width: 34px; height: 34px;
+  background: white;
+  border: none;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  color: #e74c3c;
+  transition: all .15s;
+  z-index: 2;
+}
+.remove-heart:hover { background: #fff0ef; transform: scale(1.1); }
+
+.watch-card-body { padding: 1rem; }
+.watch-card-cat { font-size: 0.7rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 0.3rem; }
+.watch-card-name { font-weight: 700; font-size: 0.92rem; color: var(--dark); text-decoration: none; display: block; margin-bottom: 0.3rem; line-height: 1.3; }
+.watch-card-name:hover { color: var(--gold); }
+.watch-card-price { font-size: 1.05rem; font-weight: 800; color: var(--gold); margin-bottom: 0.75rem; }
+.watch-stock-ok  { font-size: 0.75rem; color: var(--green); margin-bottom: 0.5rem; }
+.watch-stock-bad { font-size: 0.75rem; color: #dc3545; margin-bottom: 0.5rem; }
+
+.watch-card-footer {
+  display: flex; gap: 0.5rem;
+}
+
+/* Empty state */
+.empty-watchlist {
+  text-align: center;
+  padding: 5rem 2rem;
+  background: white;
+  border: 1px dashed var(--border);
+  border-radius: 16px;
+}
+.empty-watchlist .icon { font-size: 4rem; margin-bottom: 1rem; }
+
+/* Toast */
+.wl-toast {
+  position: fixed; bottom: 1.5rem; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #1A1410; color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 30px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  opacity: 0;
+  transition: all .3s;
+  z-index: 9999;
+  white-space: nowrap;
+  box-shadow: 0 4px 20px rgba(0,0,0,.2);
+}
+.wl-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="watchlist-hero">
+  <div>
+    <h1>♥ My Watchlist</h1>
+    <p>{{ wishlist_items|length }} saved item{{ wishlist_items|length|pluralize }}</p>
+  </div>
+  {% if wishlist_items %}
+  <form method="post" action="{% url 'wishlist_add_all_to_cart' %}">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-gold" style="font-size:0.95rem;padding:0.75rem 1.5rem;">
+      🛒 Add All to Cart
+    </button>
+  </form>
+  {% endif %}
+</div>
+
+{% if wishlist_items %}
+<div class="watchlist-grid" id="watchlist-grid">
+  {% for wi in wishlist_items %}
+  <div class="watch-card" id="wcard-{{ wi.product.id }}">
+    <!-- Remove heart -->
+    <button class="remove-heart wishlist-remove-btn"
+      data-product-id="{{ wi.product.id }}"
+      title="Remove from Watchlist">
+      ♥
+    </button>
+
+    <!-- Image -->
+    <a href="{% url 'product_detail' wi.product.slug %}">
+      {% if wi.product.image %}
+      <img src="{{ wi.product.image.url }}" alt="{{ wi.product.name }}" class="watch-card-img">
+      {% elif wi.product.image_url %}
+      <img src="{{ wi.product.image_url }}" alt="{{ wi.product.name }}" class="watch-card-img">
+      {% else %}
+      <div class="watch-card-img-ph">📦</div>
+      {% endif %}
+    </a>
+
+    <div class="watch-card-body">
+      <div class="watch-card-cat">{{ wi.product.category.name }}</div>
+      <a href="{% url 'product_detail' wi.product.slug %}" class="watch-card-name">
+        {{ wi.product.name|truncatewords:8 }}
+      </a>
+      <div class="watch-card-price">GH₵ {{ wi.product.price }}</div>
+      {% if wi.product.stock > 0 %}
+      <div class="watch-stock-ok">✓ In Stock ({{ wi.product.stock }})</div>
+      {% else %}
+      <div class="watch-stock-bad">✗ Out of Stock</div>
+      {% endif %}
+
+      <div class="watch-card-footer">
+        <form method="post" action="{% url 'add_to_cart' wi.product.id %}" style="flex:1;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-gold btn-sm w-full"
+            {% if wi.product.stock < 1 %}disabled style="opacity:0.4;cursor:not-allowed;"{% endif %}>
+            {% if wi.product.stock > 0 %}🛒 Add to Cart{% else %}Sold Out{% endif %}
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="empty-watchlist">
+  <div class="icon">♡</div>
+  <h3 style="font-family:'Playfair Display',serif;margin-bottom:0.5rem;">Your watchlist is empty</h3>
+  <p style="color:var(--muted);margin-bottom:1.5rem;">Tap the ♡ heart on any product to save it here for later.</p>
+  <a href="{% url 'product_list' %}" class="btn btn-gold">Browse Products</a>
+</div>
+{% endif %}
+
+<!-- Toast notification -->
+<div class="wl-toast" id="wl-toast"></div>
+
+<script>
+function showToast(msg) {
+  const t = document.getElementById('wl-toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+document.querySelectorAll('.wishlist-remove-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const pid = this.dataset.productId;
+    const card = document.getElementById('wcard-' + pid);
+
+    fetch('/wishlist/toggle/' + pid + '/', {
+      method: 'POST',
+      headers: {'X-CSRFToken': '{{ csrf_token }}'},
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok && !data.wishlisted) {
+        // Animate removal
+        card.style.transition = 'all .3s';
+        card.style.opacity = '0';
+        card.style.transform = 'scale(0.9)';
+        setTimeout(() => {
+          card.remove();
+          // Update count
+          const remaining = document.querySelectorAll('.watch-card').length;
+          const hero = document.querySelector('.watchlist-hero p');
+          if (hero) hero.textContent = remaining + ' saved item' + (remaining !== 1 ? 's' : '');
+          // Show empty state if no items left
+          if (remaining === 0) {
+            const grid = document.getElementById('watchlist-grid');
+            if (grid) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--muted);"><p style='font-size:3rem;'>♡</p><h4>Watchlist is empty</h4><a href="/products/" class="btn btn-gold" style="margin-top:1rem;">Browse Products</a></div>';
+          }
+        }, 300);
+        showToast('Removed from watchlist');
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

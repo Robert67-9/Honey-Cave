@@ -1,0 +1,352 @@
+{% extends 'mall/base.html' %}
+{% block title %}My Profile — Market{% endblock %}
+
+{% block extra_css %}
+<style>
+.profile-layout { display: grid; grid-template-columns: 300px 1fr; gap: 2rem; }
+@media (max-width: 700px) { .profile-layout { grid-template-columns: 1fr; } }
+
+.profile-card {
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: 12px; padding: 2rem; text-align: center;
+  position: sticky; top: 90px; align-self: start;
+}
+.avatar {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--dark), #5a3a1a);
+  color: var(--gold); font-family: 'Playfair Display', serif;
+  font-size: 2rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 1rem;
+}
+.profile-name    { font-family: 'Playfair Display', serif; font-size: 1.2rem; font-weight: 700; }
+.profile-username { color: var(--muted); font-size: 0.875rem; margin-top: 0.25rem; }
+.profile-links   { margin-top: 1.5rem; }
+.profile-link {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.6rem 0.75rem; border-radius: 8px;
+  text-decoration: none; color: var(--dark);
+  font-size: 0.875rem; margin-bottom: 0.25rem;
+  transition: background 0.15s;
+}
+.profile-link:hover { background: var(--cream); }
+
+/* ── Nearest Branch Card ── */
+.branch-assigned {
+  background: linear-gradient(135deg, #1A1410 0%, #2e1f0e 100%);
+  border-radius: 14px; padding: 1.5rem; color: white;
+  margin-bottom: 1.75rem; position: relative; overflow: hidden;
+}
+.branch-assigned::before {
+  content: '🏪';
+  position: absolute; right: 1.2rem; top: 1rem;
+  font-size: 3rem; opacity: 0.15;
+}
+.branch-assigned .tag {
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--gold); font-weight: 700; margin-bottom: 0.5rem;
+}
+.branch-assigned h3 { font-family: 'Playfair Display', serif; font-size: 1.2rem; margin: 0 0 0.3rem; }
+.branch-assigned .meta { font-size: 0.82rem; color: rgba(255,255,255,.65); line-height: 1.7; }
+.branch-assigned .dist-pill {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+  border-radius: 20px; padding: 0.25rem 0.8rem;
+  font-size: 0.75rem; color: var(--gold); font-weight: 600;
+  margin-top: 0.75rem;
+}
+.branch-assigned .actions { display: flex; gap: 0.6rem; margin-top: 1rem; flex-wrap: wrap; }
+.branch-assigned .actions a {
+  font-size: 0.8rem; font-weight: 600; padding: 0.4rem 0.9rem;
+  border-radius: 8px; text-decoration: none; transition: opacity .15s;
+}
+.btn-map    { background: var(--gold); color: var(--dark); }
+.btn-change { background: rgba(255,255,255,.12); color: white; border: 1px solid rgba(255,255,255,.2); }
+.btn-map:hover, .btn-change:hover { opacity: .85; }
+
+/* ── Detect location button ── */
+.detect-banner {
+  background: #fdf5e0; border: 1.5px solid #f0c96e;
+  border-radius: 12px; padding: 1.2rem 1.4rem;
+  margin-bottom: 1.75rem;
+  display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+}
+.detect-banner p  { flex: 1; font-size: 0.88rem; color: var(--dark); margin: 0; line-height: 1.5; }
+.detect-banner strong { display: block; margin-bottom: 0.2rem; }
+#detect-btn {
+  padding: 0.55rem 1.2rem; border-radius: 8px;
+  background: var(--gold); border: none; cursor: pointer;
+  font-weight: 700; font-size: 0.85rem; color: var(--dark);
+  white-space: nowrap; transition: opacity .15s;
+}
+#detect-btn:hover   { opacity: .85; }
+#detect-btn:disabled { opacity: .5; cursor: not-allowed; }
+#detect-result { font-size: 0.82rem; color: #155724; margin-top: 0.5rem; display: none; }
+
+/* ── Orders ── */
+.order-mini-card {
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: 10px; padding: 1.25rem; margin-bottom: 1rem;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.order-badge {
+  display: inline-block; padding: 0.2rem 0.65rem;
+  border-radius: 20px; font-size: 0.7rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .5px;
+}
+.badge-pending    { background:#fff3cd; color:#856404; }
+.badge-processing { background:#cce5ff; color:#004085; }
+.badge-shipped    { background:#d1ecf1; color:#0c5460; }
+.badge-delivered  { background:#d4edda; color:#155724; }
+.badge-cancelled  { background:#f8d7da; color:#721c24; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-layout">
+
+  <!-- ── Left sidebar ── -->
+  <div>
+    <div class="profile-card">
+      <div class="avatar">{{ user.first_name.0|upper|default:user.username.0|upper }}</div>
+      <div class="profile-name">{{ user.get_full_name|default:user.username }}</div>
+      <div class="profile-username">@{{ user.username }}</div>
+      <div style="font-size:0.8rem;color:var(--muted);margin-top:0.25rem;">{{ user.email }}</div>
+
+      {% if profile.nearest_branch %}
+      <div style="margin-top:1rem;padding:0.75rem;background:var(--cream);border-radius:8px;font-size:0.8rem;text-align:left;">
+        <div style="font-weight:700;color:var(--dark);margin-bottom:0.2rem;">📍 Your Branch</div>
+        <div style="color:var(--muted);">{{ profile.nearest_branch.name }}</div>
+        <div style="color:var(--muted);">{{ profile.nearest_branch.city }}</div>
+      </div>
+      {% endif %}
+
+      <div class="profile-links">
+        {% if user.profile.is_fulfillment_officer %}
+        <a href="{% url 'fulfillment_officer_dashboard' %}" class="profile-link"
+           style="background:var(--gold);color:#1d1405;font-weight:700;margin-bottom:0.5rem;">
+          🧰 Officer Dashboard
+        </a>
+        <a href="{% url 'product_list' %}" class="profile-link"
+           style="border:1px solid var(--gold);font-weight:600;margin-bottom:0.5rem;">
+          🛍️ Go to Shop
+        </a>
+        {% endif %}
+        <a href="{% url 'my_orders' %}" class="profile-link">📦 My Orders</a>
+        <a href="{% url 'cart' %}"      class="profile-link">🛒 My Cart</a>
+        <form method="post" action="{% url 'logout' %}" style="display:block;">
+          {% csrf_token %}
+          <button type="submit" class="profile-link" style="width:100%;text-align:left;background:none;border:none;cursor:pointer;color:#dc3545;">
+            🚪 Sign Out
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Right content ── -->
+  <div>
+    <div class="page-header" style="text-align:left;margin-bottom:1.5rem;">
+      <p class="eyebrow">Account</p>
+      <h1 style="font-size:2rem;">Welcome back, {{ user.first_name|default:user.username }}!</h1>
+    </div>
+
+    <!-- ── Nearest Branch ── -->
+    {% if profile.nearest_branch %}
+      {% with b=profile.nearest_branch %}
+      <div class="branch-assigned">
+        <div class="tag">✦ Your Nearest Market Branch</div>
+        <h3>{{ b.name }}</h3>
+        <div class="meta">
+          <div>📍 {{ b.address }}, {{ b.city }}</div>
+          {% if b.landmark %}<div>🗺️ {{ b.landmark }}</div>{% endif %}
+          <div>📞 {{ b.phone }}</div>
+          <div>🕐 {{ b.opening_hours }}</div>
+        </div>
+        {% if profile.latitude and profile.longitude %}
+        <div class="dist-pill">
+          📡 ~{{ profile.nearest_branch.distance_to|floatformat:1 }} km away
+        </div>
+        {% endif %}
+        <div class="actions">
+          <a href="https://www.google.com/maps/search/?api=1&query={{ b.latitude }},{{ b.longitude }}"
+             target="_blank" class="btn-map">🗺️ Open in Maps</a>
+          <button onclick="detectLocation()" class="btn-change">📡 Update My Location</button>
+        </div>
+      </div>
+      {% endwith %}
+
+    {% else %}
+      <!-- No branch assigned yet — prompt for location -->
+      <div class="detect-banner">
+        <div style="font-size:1.8rem;">📍</div>
+        <p>
+          <strong>Find your nearest Market branch</strong>
+          Allow location access and we'll automatically assign you the closest branch across all 16 regions of Ghana.
+        </p>
+        <button id="detect-btn" onclick="detectLocation()">📡 Detect My Location</button>
+      </div>
+    {% endif %}
+
+    <div id="location-feedback" style="display:none;margin-bottom:1.5rem;"></div>
+
+    <!-- ── Edit Profile ── -->
+    <details style="margin-bottom:1.75rem;" id="edit-profile-section">
+      <summary style="cursor:pointer;font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:0;padding:1rem 1.25rem;background: var(--bg-elevated);border:1px solid var(--border);border-radius:12px;list-style:none;display:flex;align-items:center;justify-content:space-between;">
+        <span>✏️ &nbsp;Edit Profile</span>
+        <span style="font-size:0.75rem;color:var(--muted);">click to expand</span>
+      </summary>
+      <div style="background: var(--bg-elevated);border:1px solid var(--border);border-top:none;border-radius:0 0 12px 12px;padding:1.5rem;">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <input type="hidden" name="action" value="update_profile">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+            <div class="form-group">
+              <label>First Name</label>
+              <input type="text" name="first_name" value="{{ user.first_name }}" maxlength="50">
+            </div>
+            <div class="form-group">
+              <label>Last Name</label>
+              <input type="text" name="last_name" value="{{ user.last_name }}" maxlength="50">
+            </div>
+            <div class="form-group" style="grid-column:1/-1;">
+              <label>Phone Number</label>
+              {{ profile_form.phone }}
+              {% if profile_form.phone.errors %}<div class="form-errors">{{ profile_form.phone.errors }}</div>{% endif %}
+            </div>
+          </div>
+          <button type="submit" class="btn btn-gold" style="margin-top:0.5rem;">Save Changes</button>
+        </form>
+      </div>
+    </details>
+
+    <!-- ── Change Password ── -->
+    <details style="margin-bottom:1.75rem;">
+      <summary style="cursor:pointer;font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:0;padding:1rem 1.25rem;background: var(--bg-elevated);border:1px solid var(--border);border-radius:12px;list-style:none;display:flex;align-items:center;justify-content:space-between;">
+        <span>🔒 &nbsp;Change Password</span>
+        <span style="font-size:0.75rem;color:var(--muted);">click to expand</span>
+      </summary>
+      <div style="background: var(--bg-elevated);border:1px solid var(--border);border-top:none;border-radius:0 0 12px 12px;padding:1.5rem;">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <input type="hidden" name="action" value="change_password">
+          {% for field in password_form %}
+          <div class="form-group">
+            <label>{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}<div class="form-errors">{{ field.errors }}</div>{% endif %}
+            {% if field.help_text %}<div style="font-size:0.78rem;color:var(--muted);margin-top:0.25rem;">{{ field.help_text }}</div>{% endif %}
+          </div>
+          {% endfor %}
+          <button type="submit" class="btn btn-dark" style="margin-top:0.5rem;">Update Password</button>
+        </form>
+      </div>
+    </details>
+
+    <!-- ── Recent Orders ── -->
+    <h3 style="font-family:'Playfair Display',serif;margin-bottom:1rem;font-size:1.1rem;">Recent Orders</h3>
+    {% if orders %}
+    {% for order in orders %}
+    <div class="order-mini-card">
+      <div>
+        <div style="font-weight:600;margin-bottom:0.25rem;">Order {{ order.order_number }}</div>
+        <div style="font-size:0.8rem;color:var(--muted);">{{ order.created|date:"M d, Y" }} · {{ order.items.count }} item{{ order.items.count|pluralize }}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-weight:700;color:var(--gold);margin-bottom:0.4rem;">GH₵ {{ order.total_price }}</div>
+        <span class="order-badge badge-{{ order.status }}">{{ order.get_status_display }}</span>
+      </div>
+    </div>
+    {% endfor %}
+    <a href="{% url 'my_orders' %}" class="btn btn-outline btn-sm">View All Orders</a>
+    {% else %}
+    <div style="text-align:center;padding:3rem;color:var(--muted);">
+      <div style="font-size:3rem;margin-bottom:1rem;">📦</div>
+      <p>You haven't placed any orders yet.</p>
+      <a href="{% url 'product_list' %}" class="btn btn-gold mt-2">Start Shopping</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+function detectLocation() {
+  const btn = document.getElementById('detect-btn');
+  const fb  = document.getElementById('location-feedback');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Detecting...'; }
+
+  if (!navigator.geolocation) {
+    showFeedback('error', '⚠️ Your browser does not support location detection.');
+    if (btn) btn.disabled = false;
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+
+      try {
+        const csrf = '{{ csrf_token }}';
+        const res  = await fetch('{% url "save_location" %}', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': csrf,
+          },
+          body: `lat=${lat}&lng=${lng}`,
+        });
+        const data = await res.json();
+
+        if (data.ok && data.branch) {
+          const b = data.branch;
+          showFeedback('success',
+            `✅ <strong>Nearest branch found!</strong><br>
+             📍 <strong>${b.name}</strong>, ${b.city}<br>
+             📡 Approximately ${b.distance} km from you<br>
+             🗺️ ${b.address}<br>
+             <em>Refreshing page…</em>`
+          );
+          setTimeout(() => location.reload(), 2000);
+        } else {
+          showFeedback('error', data.error || 'Could not find a nearby branch.');
+          if (btn) { btn.disabled = false; btn.textContent = '📡 Try Again'; }
+        }
+      } catch (err) {
+        showFeedback('error', 'Network error. Please try again.');
+        if (btn) { btn.disabled = false; btn.textContent = '📡 Try Again'; }
+      }
+    },
+    (err) => {
+      const msgs = {
+        1: 'Location access denied. Please allow location in your browser settings.',
+        2: 'Position unavailable. Please try again.',
+        3: 'Location request timed out. Please try again.',
+      };
+      showFeedback('error', '⚠️ ' + (msgs[err.code] || 'Could not get location.'));
+      if (btn) { btn.disabled = false; btn.textContent = '📡 Detect My Location'; }
+    },
+    { timeout: 10000, maximumAge: 300000 }
+  );
+}
+
+function showFeedback(type, html) {
+  const fb = document.getElementById('location-feedback');
+  if (!fb) return;
+  const colors = {
+    success: { bg: '#d4edda', border: '#c3e6cb', color: '#155724' },
+    error:   { bg: '#f8d7da', border: '#f5c6cb', color: '#721c24' },
+  };
+  const c = colors[type] || colors.error;
+  fb.style.cssText = `display:block;padding:1rem 1.2rem;border-radius:10px;font-size:0.88rem;line-height:1.7;background:${c.bg};border:1px solid ${c.border};color:${c.color};`;
+  fb.innerHTML = html;
+}
+
+// Auto-detect on first visit (no branch assigned yet)
+{% if not profile.nearest_branch %}
+window.addEventListener('load', () => {
+  setTimeout(detectLocation, 800);   // slight delay so page is settled
+});
+{% endif %}
+</script>
+{% endblock %}

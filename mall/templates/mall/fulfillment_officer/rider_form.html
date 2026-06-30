@@ -1,0 +1,100 @@
+{% extends 'mall/fulfillment_officer/base.html' %}
+{% block title %}Add Rider — Fulfillment Officer{% endblock %}
+{% block content %}
+
+<a href="{% url 'fulfillment_officer_riders' %}" style="font-size:.85rem; color:var(--muted); text-decoration:none;">← Back to riders</a>
+<h1 style="font-family:'Playfair Display',serif; margin:.4rem 0 1.25rem;">Add a Rider</h1>
+
+<div style="background:#d1ecf1; border:1px solid #bee5eb; padding:.85rem 1rem; border-radius:8px; color:#0c5460; font-size:.88rem; margin-bottom:1.25rem;">
+  ℹ️ The rider you add starts as <strong>Pending verification</strong>. Admin will review and verify them, but
+  you can dispatch to them straight away.
+</div>
+
+<form method="post" style="background:#fff; border:1px solid #e7e2d8; border-radius:10px; padding:1.5rem;">
+  {% csrf_token %}
+
+  <div style="margin-bottom:1.1rem;">
+    <label style="display:block; font-weight:600; font-size:.85rem; margin-bottom:.3rem;">
+      Name <span style="color:#dc3545;">*</span>
+    </label>
+    <input type="text" name="name" required maxlength="120"
+           value="{{ form_data.name|default:'' }}"
+           placeholder="e.g. Kojo Boateng"
+           style="width:100%; padding:.65rem .8rem; border:1px solid #d4cfc4; border-radius:6px; font-family:inherit; font-size:.95rem;">
+  </div>
+
+  <div style="margin-bottom:1.1rem;">
+    <label style="display:block; font-weight:600; font-size:.85rem; margin-bottom:.3rem;">
+      Phone <span style="color:#dc3545;">*</span>
+    </label>
+    <input type="tel" name="phone" required maxlength="20"
+           value="{{ form_data.phone|default:'' }}"
+           placeholder="+233 24 123 4567"
+           inputmode="tel"
+           style="width:100%; padding:.65rem .8rem; border:1px solid #d4cfc4; border-radius:6px; font-family:inherit; font-size:.95rem;">
+    <p style="margin:.25rem 0 0; font-size:.78rem; color:var(--muted);">
+      Used by the rider to log into their portal at /rider/login/.
+    </p>
+  </div>
+
+  <div style="margin-bottom:1.1rem;">
+    <label style="display:block; font-weight:600; font-size:.85rem; margin-bottom:.3rem;">
+      Vehicle type
+    </label>
+    <select name="vehicle_type"
+            style="width:100%; padding:.65rem .8rem; border:1px solid #d4cfc4; border-radius:6px; font-family:inherit; font-size:.95rem; background:#fff;">
+      {% for value, label in vehicle_choices %}
+      <option value="{{ value }}" {% if form_data.vehicle_type == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div style="margin-bottom:1.1rem;">
+    <label style="display:block; font-weight:600; font-size:.85rem; margin-bottom:.3rem;">
+      License number <span style="font-weight:400; color:var(--muted);">(optional)</span>
+    </label>
+    <input type="text" name="license_number" maxlength="40"
+           value="{{ form_data.license_number|default:'' }}"
+           style="width:100%; padding:.65rem .8rem; border:1px solid #d4cfc4; border-radius:6px; font-family:inherit; font-size:.95rem;">
+  </div>
+
+  <div style="margin-bottom:1.1rem;">
+    <label style="display:block; font-weight:600; font-size:.85rem; margin-bottom:.3rem;">
+      Branches <span style="color:#dc3545;">*</span>
+    </label>
+    <p style="margin:0 0 .55rem; font-size:.78rem; color:var(--muted);">
+      Pick the branches this rider will deliver from. You'll only see branches you manage.
+    </p>
+    <div style="display:flex; flex-direction:column; gap:.4rem;">
+      {% for b in branches %}
+      <label style="display:flex; align-items:center; gap:.55rem; padding:.5rem .65rem; background:#fafafa; border:1px solid #e7e2d8; border-radius:6px; cursor:pointer;">
+        <input type="checkbox" name="branch_ids" value="{{ b.id }}"
+               {% if branches|length == 1 %}checked{% endif %}>
+        <span style="font-weight:500;">{{ b.name }}</span>
+        <span style="font-size:.78rem; color:var(--muted); margin-left:auto;">{{ b.address|truncatechars:40 }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div style="margin-bottom:1.5rem;">
+    <label style="display:block; font-weight:600; font-size:.85rem; margin-bottom:.3rem;">
+      Notes <span style="font-weight:400; color:var(--muted);">(optional)</span>
+    </label>
+    <textarea name="notes" rows="2" maxlength="500"
+              placeholder="Anything admin should know — e.g. recommended by another officer, has previous experience…"
+              style="width:100%; padding:.65rem .8rem; border:1px solid #d4cfc4; border-radius:6px; font-family:inherit; font-size:.92rem; resize:vertical;">{{ form_data.notes|default:'' }}</textarea>
+  </div>
+
+  <div style="display:flex; gap:.75rem; flex-wrap:wrap;">
+    <button type="submit" style="background:var(--gold,#C9A84C); color:#1A1410; padding:.75rem 1.5rem; border:none; border-radius:8px; font-weight:600; font-size:.92rem; cursor:pointer; font-family:inherit;">
+      Add Rider
+    </button>
+    <a href="{% url 'fulfillment_officer_riders' %}"
+       style="background:transparent; border:1px solid #d4cfc4; color:#1A1410; padding:.75rem 1.5rem; border-radius:8px; font-weight:600; font-size:.92rem; text-decoration:none;">
+      Cancel
+    </a>
+  </div>
+</form>
+
+{% endblock %}

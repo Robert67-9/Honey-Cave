@@ -1,0 +1,124 @@
+{% extends 'mall/admin/base_admin.html' %}
+{% block title %}Upload Access Requests — Market Admin{% endblock %}
+{% block page_title %}Officer Upload Access{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:1.2rem;">
+  <p style="margin:0.3rem 0 0;color:var(--muted);">
+    {{ pending_count }} pending · {{ total }} total. Require a payment (you set the price)
+    or approve free access. Officers can upload only once access is granted.
+  </p>
+</div>
+
+{% if messages %}
+  {% for m in messages %}
+  <div style="background:#eafaf0;border:1px solid #b6e6c7;border-radius:8px;padding:0.6rem 0.9rem;margin-bottom:0.8rem;">{{ m }}</div>
+  {% endfor %}
+{% endif %}
+
+{% if pending %}
+<h2 style="font-size:1.1rem;margin:1rem 0 0.6rem;">Pending requests</h2>
+{% for req in pending %}
+<div style="border:1px solid var(--border);border-radius:12px;padding:1rem 1.2rem;margin-bottom:1rem;background:#fffdf7;">
+  <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;align-items:center;margin-bottom:0.7rem;">
+    <div>
+      <strong>{{ req.officer.get_full_name|default:req.officer.username }}</strong>
+      <span style="color:var(--muted);font-size:0.85rem;">@{{ req.officer.username }}</span>
+    </div>
+    <span style="font-size:0.8rem;color:var(--muted);">Requested {{ req.created|date:"d M Y, H:i" }}</span>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:1.2rem;align-items:flex-end;">
+    <!-- Require payment -->
+    <form method="post" style="display:flex;gap:0.5rem;align-items:flex-end;flex-wrap:wrap;">
+      {% csrf_token %}
+      <input type="hidden" name="request_id" value="{{ req.id }}">
+      <input type="hidden" name="action" value="require_payment">
+      <label style="font-size:0.8rem;color:var(--muted);display:flex;flex-direction:column;gap:0.2rem;">
+        Price (GH₵)
+        <input type="number" name="amount" step="0.01" min="1" placeholder="50.00" required
+               style="padding:0.45rem 0.6rem;border:1px solid var(--border);border-radius:7px;width:110px;">
+      </label>
+      <input type="text" name="admin_note" placeholder="Optional note"
+             style="padding:0.45rem 0.6rem;border:1px solid var(--border);border-radius:7px;">
+      <button type="submit"
+        style="background:var(--gold,#C9A84C);color:#1d1405;font-weight:700;border:none;padding:0.5rem 1rem;border-radius:7px;cursor:pointer;">
+        Require Payment
+      </button>
+    </form>
+
+    <!-- Approve free -->
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="request_id" value="{{ req.id }}">
+      <input type="hidden" name="action" value="approve_free">
+      <button type="submit"
+        style="background:#1b7e3a;color:#fff;font-weight:700;border:none;padding:0.5rem 1rem;border-radius:7px;cursor:pointer;">
+        Approve Free
+      </button>
+    </form>
+
+    <!-- Reject -->
+    <form method="post" onsubmit="return confirm('Reject this request?');">
+      {% csrf_token %}
+      <input type="hidden" name="request_id" value="{{ req.id }}">
+      <input type="hidden" name="action" value="reject">
+      <button type="submit"
+        style="background:transparent;color:#b3261e;border:1px solid #e8b4af;padding:0.5rem 1rem;border-radius:7px;cursor:pointer;">
+        Reject
+      </button>
+    </form>
+  </div>
+</div>
+{% endfor %}
+{% else %}
+<p style="color:var(--muted);">No pending requests right now.</p>
+{% endif %}
+
+{% if others %}
+<h2 style="font-size:1.1rem;margin:1.6rem 0 0.6rem;">History</h2>
+<div style="overflow-x:auto;">
+<table style="width:100%;border-collapse:collapse;font-size:0.88rem;">
+  <thead>
+    <tr style="text-align:left;border-bottom:2px solid var(--border);">
+      <th style="padding:0.5rem;">Officer</th>
+      <th style="padding:0.5rem;">Status</th>
+      <th style="padding:0.5rem;">Price</th>
+      <th style="padding:0.5rem;">Paid</th>
+      <th style="padding:0.5rem;">Decided by</th>
+      <th style="padding:0.5rem;">When</th>
+      <th style="padding:0.5rem;"></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for req in others %}
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:0.5rem;">{{ req.officer.get_full_name|default:req.officer.username }}</td>
+      <td style="padding:0.5rem;">
+        {% if req.status == 'paid' %}<span style="color:#1b7e3a;font-weight:600;">✅ Paid</span>
+        {% elif req.status == 'approved_free' %}<span style="color:#1b7e3a;font-weight:600;">✅ Free</span>
+        {% elif req.status == 'payment_required' %}<span style="color:#b8860b;font-weight:600;">💳 Awaiting payment</span>
+        {% elif req.status == 'rejected' %}<span style="color:#b3261e;">🚫 Rejected</span>
+        {% else %}{{ req.get_status_display }}{% endif %}
+      </td>
+      <td style="padding:0.5rem;">{% if req.amount %}GH₵ {{ req.amount }}{% else %}—{% endif %}</td>
+      <td style="padding:0.5rem;">{% if req.amount_paid %}GH₵ {{ req.amount_paid }}{% else %}—{% endif %}</td>
+      <td style="padding:0.5rem;">{{ req.decided_by.username|default:"—" }}</td>
+      <td style="padding:0.5rem;">{{ req.decided_at|date:"d M Y"|default:"—" }}</td>
+      <td style="padding:0.5rem;">
+        {% if req.status == 'paid' or req.status == 'approved_free' %}
+        <form method="post" onsubmit="return confirm('Revoke upload access for this officer?');" style="display:inline;">
+          {% csrf_token %}
+          <input type="hidden" name="request_id" value="{{ req.id }}">
+          <input type="hidden" name="action" value="revoke">
+          <button type="submit" style="background:transparent;color:#b3261e;border:1px solid #e8b4af;padding:0.3rem 0.7rem;border-radius:6px;cursor:pointer;font-size:0.8rem;">Revoke</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+{% endblock %}

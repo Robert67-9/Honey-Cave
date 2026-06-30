@@ -1,0 +1,101 @@
+{% extends "mall/admin/base_admin.html" %}
+{% block title %}User: {{ target.username }} — Market Admin{% endblock %}
+{% block page_title %}User: {{ target.username }}{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:1.2rem;display:flex;align-items:center;justify-content:space-between;">
+    <a href="{% url 'admin_users' %}" class="btn btn-ghost btn-sm">← Back to Users</a>
+    {% if target != request.user %}
+    <a href="{% url 'admin_user_delete' target.pk %}" class="btn btn-danger btn-sm">Delete User</a>
+    {% endif %}
+</div>
+
+<div class="detail-grid">
+    <!-- Left: orders -->
+    <div>
+        <div class="card">
+            <div class="card-header"><h2>Orders by {{ target.username }}</h2></div>
+            <table>
+                <thead>
+                    <tr><th>#</th><th>Total</th><th>Status</th><th>Date</th><th></th></tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr>
+                        <td><a href="{% url 'admin_order_detail' order.pk %}" style="color:var(--gold);font-weight:700;">{{ order.order_number }}</a></td>
+                        <td>GH₵ {{ order.total_price }}</td>
+                        <td><span class="badge badge-{{ order.status }}">{{ order.status }}</span></td>
+                        <td style="color:var(--muted);font-size:0.82rem;">{{ order.created|date:"M d, Y" }}</td>
+                        <td><a href="{% url 'admin_order_detail' order.pk %}" class="btn btn-ghost btn-sm">View</a></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" style="text-align:center;padding:1.5rem;color:var(--muted);">No orders yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Right: details and toggles -->
+    <div>
+        <div class="card" style="margin-bottom:1.5rem;">
+            <div class="card-header"><h2>Account Details</h2></div>
+            <div class="card-body">
+                <div class="detail-row"><span class="key">Username</span><span>{{ target.username }}</span></div>
+                <div class="detail-row"><span class="key">Email</span><span>{{ target.email|default:"—" }}</span></div>
+                <div class="detail-row"><span class="key">Full Name</span><span>{{ target.get_full_name|default:"—" }}</span></div>
+                <div class="detail-row"><span class="key">Joined</span><span>{{ target.date_joined|date:"M d, Y" }}</span></div>
+                <div class="detail-row"><span class="key">Last Login</span><span>{{ target.last_login|date:"M d, Y H:i"|default:"Never" }}</span></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><h2>Permissions</h2></div>
+            <div class="card-body" style="display:flex;flex-direction:column;gap:0.75rem;">
+
+                <form method="post" style="display:flex;align-items:center;justify-content:space-between;">
+                    {% csrf_token %}
+                    <div>
+                        <div style="font-weight:500;font-size:0.9rem;">Active Account</div>
+                        <div style="font-size:0.8rem;color:var(--muted);">Can log in to the store</div>
+                    </div>
+                    <button type="submit" name="action" value="toggle_active"
+                        class="btn {% if target.is_active %}btn-danger{% else %}btn-gold{% endif %} btn-sm">
+                        {% if target.is_active %}Deactivate{% else %}Activate{% endif %}
+                    </button>
+                </form>
+
+                <hr style="border:none;border-top:1px solid var(--border);">
+
+                <form method="post" style="display:flex;align-items:center;justify-content:space-between;">
+                    {% csrf_token %}
+                    <div>
+                        <div style="font-weight:500;font-size:0.9rem;">Staff Access</div>
+                        <div style="font-size:0.8rem;color:var(--muted);">Can access this admin panel</div>
+                    </div>
+                    <button type="submit" name="action" value="toggle_staff"
+                        class="btn {% if target.is_staff %}btn-danger{% else %}btn-gold{% endif %} btn-sm">
+                        {% if target.is_staff %}Remove Staff{% else %}Make Staff{% endif %}
+                    </button>
+                </form>
+
+                {% if request.user.is_superuser %}
+                <hr style="border:none;border-top:1px solid var(--border);">
+                <form method="post" style="display:flex;align-items:center;justify-content:space-between;">
+                    {% csrf_token %}
+                    <div>
+                        <div style="font-weight:500;font-size:0.9rem;">Superuser</div>
+                        <div style="font-size:0.8rem;color:var(--muted);">Full unrestricted access</div>
+                    </div>
+                    <button type="submit" name="action" value="toggle_superuser"
+                        class="btn {% if target.is_superuser %}btn-danger{% else %}btn-gold{% endif %} btn-sm">
+                        {% if target.is_superuser %}Remove Superuser{% else %}Make Superuser{% endif %}
+                    </button>
+                </form>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

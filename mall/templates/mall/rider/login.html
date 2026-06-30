@@ -1,0 +1,32 @@
+{% extends 'mall/rider/base.html' %}
+{% block title %}Sign in — Rider Portal{% endblock %}
+{% block content %}
+<div style="max-width: 420px; margin: 3rem auto;">
+  <div class="card">
+    <h1 style="text-align:center; margin-bottom: 0.4rem;">🛵 Rider Sign In</h1>
+    <p style="text-align:center; color: var(--muted); font-size: 0.88rem; margin-bottom: 1.5rem;">
+      Enter the phone number registered for you by admin or your branch officer.
+      We'll send you a 6-digit code via WhatsApp and SMS.
+    </p>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+      <div style="margin-bottom: 1rem;">
+        <label for="rider-phone" style="display:block; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.3rem;">
+          Registered phone number
+        </label>
+        <input type="tel" id="rider-phone" name="phone" required autofocus
+               inputmode="tel" autocomplete="tel"
+               placeholder="e.g. +233 24 123 4567"
+               style="width:100%; padding: 0.85rem; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 1rem; background: var(--surface); color: var(--dark);">
+      </div>
+      <button type="submit" class="btn btn-gold" style="width:100%; padding: 0.95rem; font-size:.95rem;">
+        Send login code
+      </button>
+    </form>
+    <p style="text-align:center; color: var(--muted); font-size: 0.78rem; margin: 1.25rem 0 0;">
+      Trouble signing in? Contact your admin to confirm your number is on file.
+    </p>
+  </div>
+</div>
+{% endblock %}
