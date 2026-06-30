@@ -72,14 +72,14 @@ services:
       #   (B) Cloudinary — uncomment the three keys and set them in the dashboard.
       #   (C) S3-compatible (Cloudflare R2 / Backblaze B2 / Supabase) via
       #       django-storages — add those packages + env vars.
-      # - key: MEDIA_ROOT
-      #   value: /var/data/media
-      # - key: CLOUDINARY_CLOUD_NAME
-      #   sync: false
-      # - key: CLOUDINARY_API_KEY
-      #   sync: false
-      # - key: CLOUDINARY_API_SECRET
-      #   sync: false
+       - key: MEDIA_ROOT
+         value: /var/data/media
+       - key: CLOUDINARY_CLOUD_NAME
+         sync: false
+       - key: CLOUDINARY_API_KEY
+         sync: false
+       - key: CLOUDINARY_API_SECRET
+         sync: false
       # ── Email (SMTP) — set in dashboard ──
       - key: EMAIL_BACKEND
         value: django.core.mail.backends.smtp.EmailBackend
