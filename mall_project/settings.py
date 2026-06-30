@@ -46,7 +46,7 @@ if not any('.onrender.com' in h for h in ALLOWED_HOSTS):
 # ─── Production safety checks ─────────────────────────────────────────────────
 # Raise a clear error at startup rather than silently running with insecure defaults.
 # Skipped during management commands (migrate, collectstatic, etc.) for convenience.
-_mgmt_cmds = {'migrate', 'collectstatic', 'createsuperuser', 'shell', 'test', 'seed_branches', 'populate_data'}
+_mgmt_cmds = {'migrate', 'collectstatic', 'createsuperuser', 'create_admin', 'shell', 'test', 'seed_branches', 'populate_data'}
 _is_mgmt = len(sys.argv) > 1 and sys.argv[1] in _mgmt_cmds
 if not DEBUG and not _is_mgmt:
     if 'insecure' in SECRET_KEY:
