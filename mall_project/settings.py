@@ -22,7 +22,7 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 # environments/tools. Normalize entries to hostnames/IPs so Django's check
 # doesn't reject valid local hosts like "127.0.0.1:8000" or "http://localhost".
 import re
-_raw_allowed = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
+_raw_allowed = config('ALLOWED_HOSTS', default='https://honeycavemarket.com,www.honeycavemarket.com', cast=Csv())
 ALLOWED_HOSTS = []
 for _h in _raw_allowed:
     h = (_h or '').strip()
