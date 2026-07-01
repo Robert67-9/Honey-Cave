@@ -1,0 +1,54 @@
+diff --git a/mall_project/settings.py b/mall_project/settings.py
+index 0e0645b..ee9d320 100644
+--- a/mall_project/settings.py
++++ b/mall_project/settings.py
+@@ -245,11 +245,22 @@ LOGIN_URL = '/login/'
+ LOGIN_REDIRECT_URL = '/'
+ LOGOUT_REDIRECT_URL = '/'
+ 
+-# ─── Email / SMTP Configuration ───────────────────────────────────────────────
++# ─── Email Configuration ───────────────────────────────────────────────────
+ #
+-#  Supported providers (configure in .env):
++#  IMPORTANT (Render free tier): outbound traffic to raw SMTP ports
++#  (25/465/587) is blocked on Render's free web services. Any EMAIL_BACKEND
++#  below that uses SMTP (Gmail, Outlook, Yahoo, custom) will fail with
++#  "OSError: [Errno 101] Network is unreachable" until you either upgrade
++#  to a paid Render plan, or switch to an HTTPS-based provider — SendGrid,
++#  below, is the recommended default for that reason.
++#
++#  SendGrid (recommended — HTTPS API, works on Render's free tier):
++#    pip install django-sendgrid-v5 (already in requirements.txt)
++#    EMAIL_BACKEND=sendgrid_backend.SendgridBackend
++#    SENDGRID_API_KEY=<your SendGrid API key>
+ #
+ #  Gmail (requires App Password — Google 2FA must be ON):
++#    EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+ #    EMAIL_HOST=smtp.gmail.com | EMAIL_PORT=587 | EMAIL_USE_TLS=True
+ #    Get App Password: Google Account > Security > App Passwords
+ #
+@@ -277,6 +288,12 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+ DEFAULT_FROM_EMAIL  = config('DEFAULT_FROM_EMAIL',  default='Honey Cave Market <noreply@honeycavemarket.com>')
+ SERVER_EMAIL        = DEFAULT_FROM_EMAIL   # used for Django error reports to ADMINS
+ 
++# SendGrid (django-sendgrid-v5) — only used when EMAIL_BACKEND is set to
++# "sendgrid_backend.SendgridBackend". Harmless no-op otherwise.
++SENDGRID_API_KEY                = config('SENDGRID_API_KEY', default='')
++SENDGRID_SANDBOX_MODE_IN_DEBUG  = config('SENDGRID_SANDBOX_MODE_IN_DEBUG', default=False, cast=bool)
++SENDGRID_ECHO_TO_STDOUT         = DEBUG   # mirror sent emails to logs while DEBUG=True
++
+ # Fail fast on broken SMTP rather than hanging the request
+ EMAIL_TIMEOUT = 5   # seconds
+ 
+diff --git a/requirements.txt b/requirements.txt
+index b5fa365..f1f316f 100644
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -12,6 +12,7 @@ whitenoise==6.12.0
+ # Database (PostgreSQL on Render)
+ psycopg2-binary==2.9.11
+ dj-database-url==3.1.2
++django-sendgrid-v5==1.3.1
+ 
+ # Config / env
+ python-decouple==3.8
