@@ -41,10 +41,10 @@ class SecurityHeadersMiddleware(MiddlewareMixin):
         response['Content-Security-Policy'] = (
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://js.paystack.co; "
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://paystack.com; "
             "font-src 'self' https://fonts.gstatic.com; "
             "img-src 'self' data: https:; "
-            "connect-src 'self' https://api.paystack.co https://js.paystack.co; "
+            "connect-src 'self' https://api.paystack.co https://js.paystack.co https://paystack.com; "
             "frame-src https://checkout.paystack.com; "
             "frame-ancestors 'self';"
         )
