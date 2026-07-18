@@ -641,7 +641,7 @@ const PICKUP_BRANCH = {% if pickup_branch %}{
         {% endif %}
 
         <!-- Hidden submit — triggered programmatically after payment verified -->
-        <button type="submit" id="real-submit-btn" style="display:none;">Submit</button>
+        <button type="submit" id="real-submit-btn" style="position:absolute;opacity:0;pointer-events:none;width:1px;height:1px;">Submit</button>
 
         <p style="font-size:.73rem;color:var(--muted);text-align:center;margin-top:.75rem;">
             By placing this order you agree to our <a href="{% url 'terms' %}" style="color:var(--gold);">Terms</a>
