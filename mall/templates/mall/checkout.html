@@ -1155,7 +1155,7 @@ function launchPaystack() {
           document.getElementById('{{ form.payment_reference.auto_id }}').value = response.reference;
           showPaymentStatus('✅ Payment verified! Placing your order...', true);
           payBtn.textContent = '✅ Payment Verified — Placing Order...';
-          document.getElementById('real-submit-btn').click();
+          document.getElementById('checkout-form').submit();
         } else {
           payBtn.disabled = false;
           payBtn.textContent = '🔒 Pay Now with Paystack';
