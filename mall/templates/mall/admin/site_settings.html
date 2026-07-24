@@ -1,0 +1,418 @@
+{% extends "mall/admin/base_admin.html" %}
+{% block title %}Site Settings — Market Admin{% endblock %}
+{% block page_title %}Site Settings{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:820px;">
+  <div class="card-header">
+    <h2>Contact Info & Social Links</h2>
+    <p style="margin:.3rem 0 0;font-size:.82rem;color:var(--muted);">
+      These details are shown on the public Contact page and can be used site-wide.
+      Changes go live immediately — no redeploy needed.
+    </p>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" style="padding:1.5rem;display:flex;flex-direction:column;gap:1.1rem;">
+    {% csrf_token %}
+
+    <h3 style="font-size:.82rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin:0;">
+      🎨 Brand Assets
+    </h3>
+
+    <div>
+      <label class="form-label">Site Logo</label>
+      <p style="font-size:.78rem;color:var(--muted);margin:0 0 .5rem;">
+        Square 512×512 PNG with transparent background recommended. Used in the navbar and search engine results.
+      </p>
+      {% if settings.logo %}
+      <div style="display:flex;align-items:center;gap:1rem;background:#fafafa;border:1px solid var(--border);padding:.6rem;border-radius:8px;margin-bottom:.5rem;">
+        <img src="{{ settings.logo.url }}" alt="Current logo"
+             style="height:60px;width:60px;object-fit:contain;background:#fff;border-radius:6px;padding:4px;">
+        <div style="flex:1;font-size:.82rem;">
+          <div style="font-weight:600;">Currently uploaded</div>
+          <label style="display:flex;align-items:center;gap:.4rem;margin-top:.4rem;cursor:pointer;color:#c62828;">
+            <input type="checkbox" name="logo_clear" value="1">
+            <span>Remove this logo (revert to default)</span>
+          </label>
+        </div>
+      </div>
+      {% else %}
+      <p style="font-size:.78rem;color:var(--muted);margin:0 0 .5rem;font-style:italic;">
+        Currently using default fallback (/static/images/logo.png).
+      </p>
+      {% endif %}
+      <input type="file" name="logo" accept="image/*" class="form-input" style="padding:.4rem;">
+    </div>
+
+    <div>
+      <label class="form-label">Social Share Banner (Open Graph image)</label>
+      <p style="font-size:.78rem;color:var(--muted);margin:0 0 .5rem;">
+        1200×630 JPG or PNG. Shown when your site link is pasted on WhatsApp, Facebook, or Twitter.
+      </p>
+      {% if settings.og_image %}
+      <div style="display:flex;align-items:center;gap:1rem;background:#fafafa;border:1px solid var(--border);padding:.6rem;border-radius:8px;margin-bottom:.5rem;">
+        <img src="{{ settings.og_image.url }}" alt="Current OG image"
+             style="height:60px;width:auto;max-width:120px;object-fit:cover;border-radius:6px;">
+        <div style="flex:1;font-size:.82rem;">
+          <div style="font-weight:600;">Currently uploaded</div>
+          <label style="display:flex;align-items:center;gap:.4rem;margin-top:.4rem;cursor:pointer;color:#c62828;">
+            <input type="checkbox" name="og_image_clear" value="1">
+            <span>Remove this image (revert to default)</span>
+          </label>
+        </div>
+      </div>
+      {% else %}
+      <p style="font-size:.78rem;color:var(--muted);margin:0 0 .5rem;font-style:italic;">
+        Currently using default fallback (/static/images/og-image.jpg).
+      </p>
+      {% endif %}
+      <input type="file" name="og_image" accept="image/*" class="form-input" style="padding:.4rem;">
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:.4rem 0;">
+
+    <h3 style="font-size:.82rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin:0;">
+      📞 Contact
+    </h3>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div>
+        <label class="form-label">Primary Phone</label>
+        <input type="text" name="phone_primary" maxlength="40"
+               value="{{ settings.phone_primary }}"
+               placeholder="+233 59 178 4205"
+               class="form-input">
+      </div>
+      <div>
+        <label class="form-label">Secondary Phone <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
+        <input type="text" name="phone_secondary" maxlength="40"
+               value="{{ settings.phone_secondary }}"
+               placeholder="+233 50 536 4835"
+               class="form-input">
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div>
+        <label class="form-label">Support Email</label>
+        <input type="email" name="email" maxlength="254"
+               value="{{ settings.email }}"
+               placeholder="info@honeycave.com"
+               class="form-input">
+      </div>
+      <div>
+        <label class="form-label">WhatsApp Number</label>
+        <input type="text" name="whatsapp" maxlength="40"
+               value="{{ settings.whatsapp }}"
+               placeholder="233591784205"
+               class="form-input">
+        <p style="font-size:.72rem;color:var(--muted);margin-top:.3rem;">
+          Digits only, include country code, no plus sign. Creates a <code>wa.me</code> chat link.
+        </p>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div>
+        <label class="form-label">Weekday Hours</label>
+        <input type="text" name="hours_weekday" maxlength="100"
+               value="{{ settings.hours_weekday }}"
+               placeholder="Mon–Sat: 8am – 10pm"
+               class="form-input">
+      </div>
+      <div>
+        <label class="form-label">Sunday Hours</label>
+        <input type="text" name="hours_sunday" maxlength="100"
+               value="{{ settings.hours_sunday }}"
+               placeholder="Sun: 10am – 6pm"
+               class="form-input">
+      </div>
+    </div>
+
+    <div>
+      <label class="form-label">Head Office Address</label>
+      <input type="text" name="head_office" maxlength="200"
+             value="{{ settings.head_office }}"
+             placeholder="North Legon, Accra, Ghana"
+             class="form-input">
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:.4rem 0;">
+
+    <h3 style="font-size:.82rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin:0;">
+      🌐 Social Media <span style="font-weight:400;text-transform:none;letter-spacing:0;">(all optional)</span>
+    </h3>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div>
+        <label class="form-label">Facebook URL</label>
+        <input type="url" name="facebook_url" maxlength="500"
+               value="{{ settings.facebook_url }}"
+               placeholder="https://facebook.com/honeycavemarket"
+               class="form-input">
+      </div>
+      <div>
+        <label class="form-label">Instagram URL</label>
+        <input type="url" name="instagram_url" maxlength="500"
+               value="{{ settings.instagram_url }}"
+               placeholder="https://instagram.com/honeycavemarket"
+               class="form-input">
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div>
+        <label class="form-label">Twitter / X URL</label>
+        <input type="url" name="twitter_url" maxlength="500"
+               value="{{ settings.twitter_url }}"
+               placeholder="https://twitter.com/honeycavemarket"
+               class="form-input">
+      </div>
+      <div>
+        <label class="form-label">TikTok URL</label>
+        <input type="url" name="tiktok_url" maxlength="500"
+               value="{{ settings.tiktok_url }}"
+               placeholder="https://tiktok.com/@honeycavemarket"
+               class="form-input">
+      </div>
+    </div>
+
+    {% if settings.updated %}
+    <p style="font-size:.78rem;color:var(--muted);margin:0;">
+      Last updated: {{ settings.updated|date:"M d, Y — H:i" }}
+    </p>
+    {% endif %}
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:.4rem 0;">
+
+    <h3 style="font-size:.82rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin:0;">
+      📩 Messaging <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);">(Nalo — SMS + OTP)</span>
+    </h3>
+
+    <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:.85rem 1rem;font-size:.82rem;color:#6b5b00;line-height:1.5;">
+      <strong>Nalo delivers OTP codes and SMS alerts</strong> — sign-up/login codes, order
+      alerts, and rider handoff codes — over SMS to customers, admins, officers and riders.
+      When enabled here, Nalo is used ahead of Tiliow for SMS delivery.
+      <ol style="margin:.4rem 0 0 1.2rem;padding:0;">
+        <li>Create an account with <a href="https://nalosolutions.com" target="_blank" rel="noopener">NaloSolutions</a> and top up.</li>
+        <li>Copy your <strong>username</strong> and <strong>password</strong> from the Nalo dashboard into the fields below.</li>
+        <li>(Optional) Set a <strong>Sender ID</strong> once approved by Nalo.</li>
+        <li>Tick <em>Enable Nalo messaging</em> and save.</li>
+      </ol>
+    </div>
+
+    <div>
+      <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-weight:600;">
+        <input type="checkbox" name="nalo_enabled" {% if settings.nalo_enabled %}checked{% endif %}>
+        <span>Enable Nalo messaging</span>
+      </label>
+      <p style="font-size:.75rem;color:var(--muted);margin:.3rem 0 0 1.7rem;">
+        Master switch. When on, Nalo handles SMS/OTP ahead of Tiliow. When off, Tiliow (if enabled) or email/in-app notifications are used instead.
+      </p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div>
+        <label class="form-label">Nalo Username</label>
+        <input type="text" name="nalo_username" maxlength="150"
+               value="{{ settings.nalo_username }}"
+               placeholder="your Nalo account username"
+               class="form-input" autocomplete="off">
+      </div>
+      <div>
+        <label class="form-label">Nalo Password</label>
+        <input type="password" name="nalo_password" maxlength="300"
+               value=""
+               placeholder="leave blank to keep current password"
+               class="form-input" autocomplete="off">
+        <p style="font-size:.72rem;color:var(--muted);margin-top:.3rem;">
+          Stored securely; leave unchanged to keep the current password.
+        </p>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div>
+        <label class="form-label">API URL</label>
+        <input type="text" name="nalo_api_url" maxlength="300"
+               value="{{ settings.nalo_api_url }}"
+               placeholder="https://sms.nalosolutions.com/smsbackend/clientapi/Resl_Nalo/send-message/"
+               class="form-input" autocomplete="off">
+        <p style="font-size:.72rem;color:var(--muted);margin-top:.3rem;">
+          Leave as the default unless Nalo gives you a different endpoint.
+        </p>
+      </div>
+      <div>
+        <label class="form-label">Sender ID <span style="color:var(--muted);font-weight:400;">(optional, max 11 characters)</span></label>
+        <input type="text" name="nalo_sender_id" maxlength="11"
+               value="{{ settings.nalo_sender_id }}"
+               placeholder="e.g. HoneyCave"
+               class="form-input" autocomplete="off">
+        <p style="font-size:.72rem;color:var(--muted);margin-top:.3rem;">
+          Approved sender name shown to recipients (Nalo enforces an 11-character limit).
+        </p>
+      </div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:.4rem 0;">
+
+    <h3 style="font-size:.82rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin:0;">
+      💬 Messaging <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);">(Tiliow — WhatsApp + SMS + OTP)</span>
+    </h3>
+
+    <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:.85rem 1rem;font-size:.82rem;color:#6b5b00;line-height:1.5;">
+      <strong>Tiliow delivers every phone message</strong> — login OTPs, order alerts,
+      package-processing alerts to officers, and rider/handoff codes — over WhatsApp and SMS to
+      customers, admins, officers and riders.
+      <ol style="margin:.4rem 0 0 1.2rem;padding:0;">
+        <li>Create an account at <a href="https://tiliow.com" target="_blank" rel="noopener">tiliow.com</a> and top up.</li>
+        <li>Copy your <strong>API key</strong> from the Tiliow dashboard into the field below.</li>
+        <li>(Optional) Set a <strong>Sender ID</strong> / approved WhatsApp sender.</li>
+        <li>Tick <em>Enable Tiliow messaging</em> and save.</li>
+      </ol>
+    </div>
+
+    <div>
+      <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-weight:600;">
+        <input type="checkbox" name="tiliow_enabled" {% if settings.tiliow_enabled %}checked{% endif %}>
+        <span>Enable Tiliow messaging</span>
+      </label>
+      <p style="font-size:.75rem;color:var(--muted);margin:.3rem 0 0 1.7rem;">
+        Master switch. When off, the site runs on email + in-app notifications only.
+      </p>
+    </div>
+
+    <div>
+      <label class="form-label">Tiliow API Key</label>
+      <input type="password" name="tiliow_api_key" maxlength="300"
+             value="{{ settings.tiliow_api_key }}"
+             placeholder="paste your Tiliow API key / bearer token"
+             class="form-input" autocomplete="off">
+      <p style="font-size:.72rem;color:var(--muted);margin-top:.3rem;">
+        From your Tiliow dashboard. Stored securely; leave unchanged to keep the current key.
+      </p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div>
+        <label class="form-label">API URL</label>
+        <input type="text" name="tiliow_api_url" maxlength="300"
+               value="{{ settings.tiliow_api_url }}"
+               placeholder="https://api.tiliow.com/v1/messages"
+               class="form-input" autocomplete="off">
+        <p style="font-size:.72rem;color:var(--muted);margin-top:.3rem;">
+          Leave as the default unless Tiliow gives you a different endpoint.
+        </p>
+      </div>
+      <div>
+        <label class="form-label">Sender ID <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
+        <input type="text" name="tiliow_sender_id" maxlength="80"
+               value="{{ settings.tiliow_sender_id }}"
+               placeholder="e.g. HoneyCave"
+               class="form-input" autocomplete="off">
+        <p style="font-size:.72rem;color:var(--muted);margin-top:.3rem;">
+          Approved sender name shown to recipients, if you have one.
+        </p>
+      </div>
+    </div>
+
+    <div>
+      <label class="form-label">Admin WhatsApp Number <span style="color:var(--muted);font-weight:400;">(who gets new-order alerts)</span></label>
+      <input type="text" name="wa_admin_number" maxlength="40"
+             value="{{ settings.wa_admin_number }}"
+             placeholder="233591784205"
+             class="form-input">
+      <p style="font-size:.72rem;color:var(--muted);margin-top:.3rem;">
+        Digits only with country code, no plus sign. e.g. <code>233591784205</code>.
+      </p>
+    </div>
+
+    <div style="display:flex;gap:1.5rem;flex-wrap:wrap;">
+      <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;">
+        <input type="checkbox" name="wa_notify_admin" {% if settings.wa_notify_admin %}checked{% endif %}>
+        <span>Notify admin on new orders</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;">
+        <input type="checkbox" name="wa_notify_customer" {% if settings.wa_notify_customer %}checked{% endif %}>
+        <span>Notify customer on order + status changes</span>
+      </label>
+    </div>
+
+    <!-- ── Maintenance Mode ──────────────────────────────────────── -->
+    <hr style="border:none;border-top:1px solid var(--border);margin:.5rem 0;">
+
+    <h3 style="font-size:.82rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin:0;">
+      🚧 Maintenance Mode
+    </h3>
+
+    <div style="background:rgba(201,168,76,.07);border:1px solid rgba(201,168,76,.25);border-radius:10px;padding:1rem 1.1rem;">
+      <label style="display:flex;align-items:flex-start;gap:.75rem;cursor:pointer;margin-bottom:.9rem;">
+        <input type="checkbox" name="maintenance_mode" {% if settings.maintenance_mode %}checked{% endif %}
+               style="width:18px;height:18px;margin-top:2px;accent-color:var(--gold);flex-shrink:0;">
+        <div>
+          <div style="font-weight:600;font-size:.9rem;color:{% if settings.maintenance_mode %}#f59e0b{% else %}var(--text){% endif %}">
+            {% if settings.maintenance_mode %}⚠️ Maintenance mode is currently ON{% else %}Enable maintenance mode{% endif %}
+          </div>
+          <div style="font-size:.78rem;color:var(--muted);margin-top:.2rem;">
+            When enabled, all visitors (except logged-in staff) will see the maintenance page. Staff can still browse and manage orders normally.
+          </div>
+        </div>
+      </label>
+
+      <div>
+        <label class="form-label">Maintenance Message</label>
+        <textarea name="maintenance_message" rows="2"
+          style="width:100%;padding:.55rem .75rem;border:1px solid var(--border);border-radius:6px;font-size:.88rem;font-family:inherit;resize:vertical;background:var(--bg-input,var(--bg));color:var(--text);"
+          >{{ settings.maintenance_message }}</textarea>
+        <p style="font-size:.75rem;color:var(--muted);margin:.3rem 0 0;">
+          Shown below the heading on the maintenance page.
+        </p>
+      </div>
+
+      <div style="margin-top:.85rem;">
+        <label class="form-label">Bypass Token <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
+        <input type="text" name="maintenance_bypass_token" value="{{ settings.maintenance_bypass_token }}"
+               placeholder="e.g. preview-abc123"
+               class="form-input">
+        <p style="font-size:.75rem;color:var(--muted);margin:.3rem 0 0;">
+          Share this with testers. They visit <code>/?bypass=TOKEN</code> to preview the site during maintenance.
+          Leave blank to disable bypassing.
+        </p>
+      </div>
+
+      <div style="margin-top:.85rem;">
+        <label class="form-label">Expected Back-Online Time <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
+        <input type="datetime-local" name="maintenance_eta"
+               value="{{ settings.maintenance_eta|date:'Y-m-d\TH:i' }}"
+               class="form-input">
+        <p style="font-size:.75rem;color:var(--muted);margin:.3rem 0 0;">
+          If set, visitors see a live countdown to this time instead of a running elapsed-time clock.
+          Leave blank to just show how long the site has been down.
+        </p>
+      </div>
+
+      {% if settings.maintenance_mode %}
+      <div style="margin-top:1rem;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:.7rem 1rem;font-size:.8rem;color:#f59e0b;">
+        🔒 <strong>Site is in maintenance mode.</strong>
+        Public visitors are seeing the maintenance page right now.
+        Uncheck the box above and save to bring the site back online.
+      </div>
+      {% endif %}
+    </div>
+
+    <div style="display:flex;gap:.6rem;margin-top:.4rem;">
+      <button type="submit" class="btn btn-gold">Save Changes</button>
+      <a href="{% url 'contact' %}" target="_blank" class="btn btn-ghost">View Contact Page →</a>
+    </div>
+  </form>
+</div>
+
+<style>
+.form-label { display:block;font-size:.82rem;font-weight:600;margin-bottom:.4rem;color:var(--text); }
+.form-input {
+  width:100%;padding:.55rem .75rem;border:1px solid var(--border);
+  border-radius:6px;font-size:.9rem;font-family:inherit;
+}
+.form-input:focus { outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,.15); }
+</style>
+{% endblock %}
