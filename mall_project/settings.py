@@ -124,17 +124,17 @@ if DATABASE_URL:
     _urlparse.uses_netloc.append('postgresql')
     _u = _urlparse.urlparse(DATABASE_URL)
     DATABASES = {
-        'default': {
-            'ENGINE':   'django.db.backends.postgresql',
-            'NAME':     (_u.path or '/').lstrip('/'),
-            'USER':     _u.username or '',
-            'PASSWORD': _u.password or '',
-            'HOST':     _u.hostname or '',
-            'PORT':     str(_u.port or 5432),
-            'OPTIONS':  {'connect_timeout': 10},
-            'CONN_MAX_AGE': 600,
-        }
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('DB_NAME'),
+        'USER': os.environ.get('DB_USER'),
+        'PASSWORD': os.environ.get('DB_PASSWORD'),
+        'HOST': os.environ.get('DB_HOST'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
+        'CONN_MAX_AGE': 60,          # close/reopen connections older than 60s
+        'CONN_HEALTH_CHECKS': True,  # ping connection before reuse; reconnect if dead
     }
+}
 else:
     DB_ENGINE = config('DB_ENGINE', default='django.db.backends.sqlite3')
 
