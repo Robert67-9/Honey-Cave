@@ -1667,6 +1667,8 @@ class SiteSettings(models.Model):
                                          help_text='Nalo SMS endpoint. Leave as default unless Nalo gives you a different one.')
     nalo_sender_id    = models.CharField(max_length=11, blank=True, default='',
                                          help_text='Approved sender ID shown to recipients (max 11 characters), e.g. HoneyCave.')
+    nalo_auth_key     = models.CharField(max_length=300, blank=True, default='',
+                            help_text='Nalo auth key (alternative to username/password).')
 
     # ── Messaging via Tiliow (WhatsApp + SMS + OTP) ──────────────────────────
     # Secondary messaging provider, used when Nalo isn't enabled. One key
