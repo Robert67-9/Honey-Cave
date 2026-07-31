@@ -2701,6 +2701,7 @@ def admin_site_settings(request):
             # Messaging via Nalo (SMS + OTP) — primary provider
             settings_obj.nalo_enabled     = 'nalo_enabled' in request.POST
             settings_obj.nalo_username    = _clean_str(request.POST, 'nalo_username', 150, required=False)
+            settings_obj.nalo_auth_key = _clean_str(request.POST, 'nalo_auth_key', 300, required=False)
             # Only overwrite the password when a new value is supplied, so an
             # admin saving the form doesn't accidentally wipe a stored secret by
             # leaving the (password) field blank.
@@ -2710,6 +2711,10 @@ def admin_site_settings(request):
             settings_obj.nalo_sender_id   = _clean_str(request.POST, 'nalo_sender_id', 11, required=False)
             settings_obj.nalo_api_url     = (_clean_str(request.POST, 'nalo_api_url', 300, required=False)
                                              or 'https://sms.nalosolutions.com/smsbackend/clientapi/Resl_Nalo/send-message/')
+_new_nalo_auth_key = _clean_str(request.POST, 'nalo_auth_key', 300, required=False)
+if _new_nalo_auth_key:
+    settings_obj.nalo_auth_key = _new_nalo_auth_key
+            
 
             # Messaging via Tiliow (WhatsApp + SMS + OTP) — secondary provider
             settings_obj.tiliow_enabled     = 'tiliow_enabled' in request.POST
