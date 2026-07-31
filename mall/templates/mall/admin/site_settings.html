@@ -214,6 +214,14 @@
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
       <div>
         <label class="form-label">Nalo Username</label>
+        <div class="form-group">
+    <label for="nalo_auth_key">Nalo Auth Key</label>
+    <input type="text" name="nalo_auth_key" maxlength="300"
+           value="{{ settings.nalo_auth_key }}"
+           class="form-control"
+           placeholder="Alternative to username/password">
+    <small class="form-text text-muted">If set, this takes priority over username/password.</small>
+</div>
         <input type="text" name="nalo_username" maxlength="150"
                value="{{ settings.nalo_username }}"
                placeholder="your Nalo account username"
