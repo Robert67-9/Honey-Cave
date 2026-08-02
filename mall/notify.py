@@ -27,7 +27,8 @@ import logging
 from typing import Optional
 
 from django.contrib.auth.models import User
-
+from django.core.mail import send_mail
+from django.conf import settings as django_settings
 logger = logging.getLogger(__name__)
 
 
@@ -43,6 +44,8 @@ def notify(
     whatsapp_template_vars: Optional[list] = None,
     sms_text: Optional[str] = None,
     phone_override: Optional[str] = None,
+    email_subject: Optional[str] = None,
+    email_text: Optional[str] = None,
 ) -> dict:
     """
     Send a notification through all configured channels.
@@ -66,7 +69,7 @@ def notify(
     """
     from .models import Notification
 
-    result = {'in_app': False, 'whatsapp': False, 'sms': False}
+    result = {'in_app': False, 'whatsapp': False, 'sms': False, 'email': False}
 
     # ── In-app ──────────────────────────────────────────────────────
     try:
@@ -81,8 +84,24 @@ def notify(
     except Exception as e:
         logger.warning('In-app notification failed for user %s: %s', user.pk if user else None, e)
 
+    # ── Email ───────────────────────────────────────────────────────
+    if email_subject and email_text:
+        recipient_email = getattr(user, 'email', '') or ''
+        if recipient_email:
+            try:
+                send_mail(
+                    email_subject,
+                    email_text,
+                    django_settings.DEFAULT_FROM_EMAIL if hasattr(django_settings, 'DEFAULT_FROM_EMAIL') else django_settings.EMAIL_HOST_USER,
+                    [recipient_email],
+                    fail_silently=False,
+                )
+                result['email'] = True
+            except Exception as e:
+                logger.warning('Email send failed for user %s: %s', user.pk if user else None, e)
+
     # Resolve recipient phone for WhatsApp / SMS (skip if neither requested)
-    if whatsapp_text is None and whatsapp_template is None and sms_text is None:
+    if whatsapp_text is None and whatsapp_template is None and sms_text is None and (email_subject is None or email_text is None):
         return result
 
     phone = phone_override
