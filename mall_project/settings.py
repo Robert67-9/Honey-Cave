@@ -448,7 +448,7 @@ TWILIO_MESSAGING_SERVICE = config('TWILIO_MESSAGING_SERVICE', default='')
 # these env vars. Site Settings take priority over env when nalo_enabled.
 NALO_USERNAME  = config('NALO_USERNAME',  default='')
 NALO_PASSWORD  = config('NALO_PASSWORD',  default='')
-NALO_SENDER_ID = config('NALO_SENDER_ID', default='HoneyCav')  # Nalo enforces an 11-character sender ID limit
+NALO_SENDER_ID = config('NALO_SENDER_ID', default='HoneyCave')  # Nalo enforces an 11-character sender ID limit
 NALO_API_URL   = config('NALO_API_URL',   default='https://sms.nalosolutions.com/smsbackend/clientapi/Resl_Nalo/send-message/')
 
 # ── Tiliow (secondary messaging: WhatsApp + SMS + OTP) ─────────────────────────
