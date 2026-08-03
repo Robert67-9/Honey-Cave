@@ -1639,6 +1639,179 @@ def _get_cart_for_checkout(request):
     return cart_items, subtotal
 
 
+def _auto_create_order_from_stranded_payment(
+    request, form, cart_items, subtotal, selected_branch_id,
+    submitted_ref_raw, invalid_fields,
+):
+    """
+    Payment has already been captured by Paystack but the checkout form
+    failed validation (missing/invalid phone, address, city, etc). Rather
+    than leaving the customer's paid items unreserved until a staff member
+    manually reconciles, create the Order now with whatever valid data we
+    have, filling required-but-missing fields from the user's profile or
+    prior orders, or an explicit "NEEDS FOLLOW-UP" placeholder.
+
+    The resulting order is created with status='pending' and is NOT sent
+    through _autostart_handoff_chain -- a fulfilment officer should not
+    start picking/packing an order whose address may be wrong or missing.
+    Staff and the customer are both notified to fix the details.
+
+    Returns the created Order, or None if creation could not proceed at all
+    (no valid branch, or every item is out of stock) -- in which case the
+    caller should fall back to the manual-reconcile alert.
+    """
+    branch = None
+    if selected_branch_id:
+        branch = Branch.objects.filter(id=selected_branch_id, is_active=True).first()
+    if branch is None:
+        branch = _default_pickup_branch(getattr(request.user, 'profile', None))
+    if branch is None:
+        return None
+
+    cleaned = getattr(form, 'cleaned_data', {}) or {}
+    last_order = (
+        Order.objects.filter(user=request.user).order_by('-created').first()
+    )
+    profile = getattr(request.user, 'profile', None)
+
+    full_name = (
+        cleaned.get('full_name')
+        or request.user.get_full_name()
+        or request.user.username
+    )
+    email = cleaned.get('email') or request.user.email or ''
+    phone = (
+        cleaned.get('phone')
+        or (profile.phone if profile else '')
+        or (last_order.phone if last_order else '')
+        or 'NEEDS FOLLOW-UP'
+    )
+    address = (
+        cleaned.get('address')
+        or (last_order.address if last_order else '')
+        or 'NEEDS FOLLOW-UP -- customer to confirm delivery address'
+    )
+    city = (
+        cleaned.get('city')
+        or (last_order.city if last_order else '')
+        or 'NEEDS FOLLOW-UP'
+    )
+
+    server_shipping_fee = Decimal('0.00')
+    fulfillment = cleaned.get('fulfillment_type', 'pickup')
+    if fulfillment == 'delivery':
+        confirmed_fee = request.session.get('delivery_fee_confirmed', '')
+        confirmed_branch = request.session.get('delivery_branch_id', '')
+        if confirmed_fee and confirmed_branch == str(branch.id):
+            try:
+                server_shipping_fee = Decimal(confirmed_fee)
+            except Exception:
+                server_shipping_fee = REGION_FEES.get(branch.region, DELIVERY_BASE_FEE)
+        else:
+            server_shipping_fee = REGION_FEES.get(branch.region, DELIVERY_BASE_FEE)
+
+    annotated, branch_subtotal, _all_avail = reconcile_cart_with_branch(cart_items, branch)
+    priced_items = [
+        {
+            'product': it['product'],
+            'quantity': it['quantity'],
+            'branch_price': it.get('branch_price', it['product'].price),
+        }
+        for it in annotated
+    ]
+    subtotal = sum(i['branch_price'] * i['quantity'] for i in priced_items)
+    grand_total = subtotal + server_shipping_fee
+
+    order = Order(
+        user=request.user,
+        branch=branch,
+        region=branch.region,
+        status='pending',
+        full_name=sanitize_text(full_name, 200),
+        email=email,
+        phone=sanitize_text(phone, 20),
+        address=sanitize_text(address, 2000),
+        city=sanitize_text(city, 100),
+        shipping_fee=server_shipping_fee,
+        total_price=grand_total,
+        fulfillment_type=fulfillment if fulfillment in ('pickup', 'delivery') else 'pickup',
+        delivery_address=sanitize_text(cleaned.get('delivery_address', ''), 500),
+        delivery_landmark=sanitize_text(cleaned.get('delivery_landmark', ''), 200),
+        delivery_lat=cleaned.get('delivery_lat'),
+        delivery_lng=cleaned.get('delivery_lng'),
+        payment_reference=sanitize_text(submitted_ref_raw, 100),
+        paid=True,
+    )
+
+    session_key = request.session.session_key
+    try:
+        with transaction.atomic():
+            order.save()
+
+            if session_key:
+                reservations = StockReservation.objects.filter(session_key=session_key).select_related('product')
+                for res in reservations:
+                    Product.objects.filter(pk=res.product.pk).update(stock=F('stock') + res.quantity)
+                reservations.delete()
+
+            any_item_created = False
+            for item in priced_items:
+                BranchProduct.objects.filter(
+                    product=item['product'], branch=branch,
+                    stock__gte=item['quantity'],
+                ).update(stock=F('stock') - item['quantity'])
+                Product.objects.filter(
+                    pk=item['product'].pk, stock__gte=item['quantity'],
+                ).update(stock=F('stock') - item['quantity'])
+
+                OrderItem.objects.create(
+                    order=order,
+                    product=item['product'],
+                    quantity=item['quantity'],
+                    price=item['branch_price'],
+                )
+                any_item_created = True
+
+            if not any_item_created:
+                raise ValueError('NO_ITEMS')
+    except Exception as e:
+        logger.warning('Auto-create-order-from-stranded-payment failed: %s', e)
+        return None
+
+    try:
+        send_order_receipt(order)
+    except Exception as e:
+        logger.warning('Order receipt send failed for %s: %s', order.order_number, e)
+
+    try:
+        from django.contrib.auth.models import User as _SU
+        for staff in _SU.objects.filter(is_staff=True, is_active=True):
+            _notify(
+                user=staff,
+                notif_type='stock_alert',
+                title=f'Auto-created order {order.order_number} -- needs delivery info',
+                message=(
+                    f'Paystack ref {submitted_ref_raw} was verified and charged. '
+                    f'The checkout form failed ({invalid_fields}), so order '
+                    f'{order.order_number} was auto-created with placeholder/'
+                    f'best-effort contact details. Customer: {request.user.username} '
+                    f'({request.user.email}). Please confirm phone/address/city '
+                    f'before dispatch.'
+                ),
+                link=f'/panel/orders/{order.id}/',
+            )
+    except Exception:
+        pass
+
+    try:
+        from . import whatsapp as _wa
+        _wa.notify_admin_new_order(order)
+    except Exception as e:
+        logger.warning('WhatsApp notification failed silently: %s', e)
+
+    return order
+
+
 @login_required
 def checkout(request):
     cart = get_cart(request)
@@ -2084,10 +2257,28 @@ def checkout(request):
         else:
             # Form did not validate. If a Paystack payment was already captured
             # for this request, we CANNOT just re-render the page silently —
-            # the customer's money is gone and they will have no idea why the
-            # order did not go through. Flag and reconcile manually.
+            # the customer's money is gone. Auto-create the order with best-effort
+            # contact/delivery info instead of only alerting staff, so the paid
+            # items are reserved and fulfilment isn't blocked on a human noticing.
             if payment_already_taken:
                 invalid_fields = ', '.join(form.errors.keys()) or 'unknown fields'
+                auto_order = _auto_create_order_from_stranded_payment(
+                    request, form, cart_items, subtotal,
+                    selected_branch_id, submitted_ref_raw, invalid_fields,
+                )
+                if auto_order is not None:
+                    request.session['cart'] = {}
+                    request.session.pop('paystack_verified_ref', None)
+                    request.session.pop('paystack_verified_pesewas', None)
+                    messages.warning(
+                        request,
+                        f'Payment received — order {auto_order.order_number} was created, '
+                        f'but we need you to confirm your delivery details. Our team has '
+                        f'also been notified.'
+                    )
+                    return redirect('order_confirmation', order_id=auto_order.id)
+                # Auto-create itself failed (e.g. no branch/stock available) —
+                # fall back to the original manual-reconcile alert.
                 _flag_stranded_payment(f'form invalid: {invalid_fields}')
                 return redirect('product_list')
     else:
