@@ -1,0 +1,88 @@
+{% extends "mall/admin/base_admin.html" %}
+{% block title %}Products — Market Admin{% endblock %}
+{% block page_title %}Products{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2>All Products ({{ page_obj.paginator.count }})</h2>
+        <a href="{% url 'admin_product_add' %}" class="btn btn-gold">+ Add Product</a>
+    </div>
+    <div class="card-body" style="padding-bottom:0;">
+        <form method="get" class="filters">
+            <input type="text" name="q" placeholder="Search products..." value="{{ q }}">
+            <select name="category">
+                <option value="">All Categories</option>
+                {% for c in categories %}
+                <option value="{{ c.slug }}" {% if cat == c.slug %}selected{% endif %}>{{ c.name }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary">Filter</button>
+            <a href="{% url 'admin_products' %}" class="btn btn-ghost">Clear</a>
+        </form>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in products %}
+            <tr>
+                <td>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        {% if p.image %}
+                        <img src="{{ p.image.url }}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;">
+                        {% else %}
+                        <div style="width:40px;height:40px;background:#f2ede7;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">📦</div>
+                        {% endif %}
+                        <div>
+                            <div style="font-weight:500;">{{ p.name }}</div>
+                            <div style="font-size:0.75rem;color:var(--muted);">{{ p.slug }}</div>
+                        </div>
+                    </div>
+                </td>
+                <td>{{ p.category.name }}</td>
+                <td style="font-weight:600;">GH₵ {{ p.price }}</td>
+                <td>
+                    <span style="color:{% if p.stock == 0 %}var(--red){% elif p.stock < 5 %}#b45309{% else %}var(--green){% endif %};font-weight:600;">
+                        {{ p.stock }}
+                    </span>
+                </td>
+                <td>
+                    <span class="badge {% if p.available %}badge-active{% else %}badge-inactive{% endif %}">
+                        {% if p.available %}Active{% else %}Hidden{% endif %}
+                    </span>
+                </td>
+                <td>
+                    <div style="display:flex;gap:0.4rem;">
+                        <a href="{% url 'admin_product_edit' p.pk %}" class="btn btn-ghost btn-sm">Edit</a>
+                        <a href="{% url 'admin_product_delete' p.pk %}" class="btn btn-danger btn-sm">Delete</a>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--muted);">No products found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if page_obj.has_other_pages %}
+    <div style="display:flex;justify-content:center;align-items:center;gap:0.5rem;padding:1.25rem;">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if cat %}&category={{ cat }}{% endif %}" class="btn btn-ghost btn-sm">← Prev</a>
+        {% endif %}
+        <span style="font-size:0.85rem;color:var(--muted);">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if cat %}&category={{ cat }}{% endif %}" class="btn btn-ghost btn-sm">Next →</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

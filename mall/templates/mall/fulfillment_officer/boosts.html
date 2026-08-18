@@ -1,0 +1,160 @@
+{% extends "mall/fulfillment_officer/base.html" %}
+{% block title %}Boost Products — Fulfillment Officer{% endblock %}
+
+{% block content %}
+<h1>🚀 Boost Your Products</h1>
+<p style="color:var(--muted);margin-top:-0.4rem;">
+  Pay a little extra to have a product rank higher in listings and show a Boosted badge.
+  Pay from your wallet balance or by card.
+</p>
+
+<div class="card">
+  <h2>Available balance for boosts</h2>
+  <div style="font-size:1.6rem;font-weight:700;color:var(--success);">GH₵ {{ wallet.available_balance|floatformat:2 }}</div>
+</div>
+
+{% if pending_boost %}
+<div class="card" style="border:2px solid var(--gold);text-align:center;">
+  <p style="margin:0 0 0.3rem;color:var(--muted);">Complete payment to activate</p>
+  <div style="font-size:1.3rem;font-weight:700;">{{ pending_boost.product.name }} — {{ pending_boost.get_tier_display }}</div>
+  <div style="font-size:2rem;font-weight:800;color:#1d1405;margin:0.3rem 0;">GH₵ {{ pending_boost.amount }}</div>
+
+  {% if paystack_configured %}
+  <button id="payBoostBtn"
+    style="margin-top:0.6rem;background:var(--gold);color:#1d1405;font-weight:700;border:none;padding:0.8rem 1.8rem;border-radius:8px;cursor:pointer;font-size:1rem;">
+    Pay GH₵ {{ pending_boost.amount }} Now
+  </button>
+  <p id="boostPayStatus" style="margin-top:0.8rem;font-size:0.88rem;color:var(--muted);"></p>
+  {% else %}
+  <p style="margin-top:1rem;color:#b3261e;">Paystack isn't configured yet — ask your admin, or pay from your wallet balance instead.</p>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>Start a boost</h2>
+  <form method="post" action="{% url 'officer_boost_start' %}">
+    {% csrf_token %}
+    <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.3rem;">Product</label>
+    <select name="product_id" required style="width:100%;padding:0.7rem;border:1px solid var(--border);border-radius:8px;margin-bottom:0.9rem;">
+      {% for p in products %}
+        <option value="{{ p.id }}">{{ p.name }}</option>
+      {% empty %}
+        <option value="" disabled selected>You haven't uploaded any products yet</option>
+      {% endfor %}
+    </select>
+
+    <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.3rem;">Tier</label>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:0.75rem;margin-bottom:0.9rem;">
+      <label style="border:1px solid var(--border);border-radius:10px;padding:0.8rem;cursor:pointer;display:block;">
+        <input type="radio" name="tier" value="boost" checked style="margin-right:0.4rem;">
+        <strong>Boost — 3 days</strong>
+        <div style="color:var(--muted);font-size:0.85rem;margin-top:0.2rem;">GH₵30.00</div>
+      </label>
+      <label style="border:1px solid var(--border);border-radius:10px;padding:0.8rem;cursor:pointer;display:block;">
+        <input type="radio" name="tier" value="spotlight" style="margin-right:0.4rem;">
+        <strong>Spotlight — 7 days</strong>
+        <div style="color:var(--muted);font-size:0.85rem;margin-top:0.2rem;">GH₵60.00</div>
+      </label>
+      <label style="border:1px solid var(--border);border-radius:10px;padding:0.8rem;cursor:pointer;display:block;">
+        <input type="radio" name="tier" value="featured" style="margin-right:0.4rem;">
+        <strong>Featured — 14 days</strong>
+        <div style="color:var(--muted);font-size:0.85rem;margin-top:0.2rem;">GH₵100.00</div>
+      </label>
+    </div>
+
+    <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.3rem;">Pay with</label>
+    <select name="method" style="width:100%;padding:0.7rem;border:1px solid var(--border);border-radius:8px;margin-bottom:0.9rem;">
+      <option value="wallet">Wallet balance</option>
+      {% if paystack_configured %}<option value="card">Card (Paystack)</option>{% endif %}
+    </select>
+
+    <button type="submit" style="background:var(--gold);color:#1d1405;font-weight:700;border:none;padding:0.8rem 1.6rem;border-radius:8px;cursor:pointer;">
+      Boost it
+    </button>
+  </form>
+</div>
+
+{% if active_boosts %}
+<div class="card">
+  <h2>Active boosts</h2>
+  <table>
+    <thead><tr><th>Product</th><th>Tier</th><th>Ends</th></tr></thead>
+    <tbody>
+    {% for b in active_boosts %}
+      <tr>
+        <td>{{ b.product.name }}</td>
+        <td>{{ b.get_tier_display }}</td>
+        <td>{{ b.ends_at|date:"d M Y, H:i" }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% if past_boosts %}
+<div class="card">
+  <h2>Boost history</h2>
+  <table>
+    <thead><tr><th>Product</th><th>Tier</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
+    <tbody>
+    {% for b in past_boosts %}
+      <tr>
+        <td>{{ b.product.name }}</td>
+        <td>{{ b.get_tier_display }}</td>
+        <td>GH₵{{ b.amount|floatformat:2 }}</td>
+        <td>{{ b.get_status_display }}</td>
+        <td>{{ b.created_at|date:"d M Y" }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% if pending_boost and paystack_configured %}
+<script src="https://js.paystack.co/v1/inline.js"></script>
+<script>
+(function () {
+  var btn = document.getElementById('payBoostBtn');
+  var statusEl = document.getElementById('boostPayStatus');
+  if (!btn) return;
+
+  function setStatus(msg, color) { statusEl.textContent = msg; statusEl.style.color = color || 'var(--muted)'; }
+
+  btn.addEventListener('click', function () {
+    btn.disabled = true;
+    setStatus('Opening secure payment…');
+    var handler = PaystackPop.setup({
+      key: '{{ paystack_public_key }}',
+      email: '{{ officer_email|default:"officer@honeycave.local" }}',
+      amount: {{ pending_boost_amount_pesewas }},
+      currency: 'GHS',
+      onClose: function () { btn.disabled = false; setStatus('Payment window closed.'); },
+      callback: function (response) {
+        setStatus('Verifying payment…');
+        fetch('{% url "officer_boost_verify" %}', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+          body: JSON.stringify({ reference: response.reference, boost_id: {{ pending_boost.id }} }),
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d.verified) {
+            setStatus('✅ Payment confirmed! Your boost is live.', '#1b5e20');
+            window.location.href = d.redirect || '{% url "officer_boosts" %}';
+          } else {
+            btn.disabled = false;
+            setStatus('❌ ' + (d.error || 'Verification failed.'), '#b3261e');
+          }
+        })
+        .catch(function () { btn.disabled = false; setStatus('❌ Network error verifying payment.', '#b3261e'); });
+      },
+    });
+    handler.openIframe();
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}

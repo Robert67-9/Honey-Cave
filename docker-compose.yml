@@ -1,0 +1,124 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  Market — Production Docker Compose
+#  Stack: PostgreSQL + Redis + Django/Gunicorn + Nginx
+#
+#  Shutdown behaviour:
+#    `docker compose down`  → all containers stop and are removed
+#    `docker compose stop`  → all containers stop gracefully (no auto-restart)
+#    Ctrl+C (foreground)    → SIGTERM sent → Gunicorn drains in-flight requests
+#                             then exits cleanly within the grace period
+# ─────────────────────────────────────────────────────────────────────────────
+version: '3.9'
+
+services:
+
+  # ── PostgreSQL 15 ────────────────────────────────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    restart: "no"
+    stop_signal: SIGTERM
+    stop_grace_period: 20s
+    environment:
+      POSTGRES_DB:       ${DB_NAME:-market}
+      POSTGRES_USER:     ${DB_USER:-market_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}        # required — set in .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: [\"CMD-SHELL\", \"pg_isready -U ${DB_USER:-market_user} -d ${DB_NAME:-market}\"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Do NOT expose port 5432 to host — DB only reachable inside Docker network
+
+  # ── Redis (cache + rate limiting) ────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: "no"
+    stop_signal: SIGTERM
+    stop_grace_period: 10s
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-changeme}
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend
+    healthcheck:
+      test: [\"CMD\", \"redis-cli\", \"-a\", \"${REDIS_PASSWORD:-changeme}\", \"ping\"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Do NOT expose port 6379 to host
+
+  # ── Django + Gunicorn ─────────────────────────────────────────────────────────
+  web:
+    build: .
+    restart: "no"
+    # SIGTERM → Gunicorn graceful shutdown: finishes active requests then exits
+    stop_signal: SIGTERM
+    stop_grace_period: 30s
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             gunicorn mall_project.wsgi:application
+               --bind 0.0.0.0:8000
+               --workers 3
+               --timeout 60
+               --graceful-timeout 30
+               --access-logfile -
+               --error-logfile -
+               --log-level info"
+    volumes:
+      - media_files:/app/media         # persistent media uploads
+      - static_files:/app/staticfiles  # served by Nginx
+    networks:
+      - backend
+      - frontend
+    env_file:
+      - .env
+    environment:
+      DB_HOST:        db
+      REDIS_URL:      redis://:${REDIS_PASSWORD:-changeme}@redis:6379/1
+      CACHE_BACKEND:  django_redis.cache.RedisCache
+      CACHE_LOCATION: redis://:${REDIS_PASSWORD:-changeme}@redis:6379/1
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # No exposed ports — Nginx connects via internal network only
+
+  # ── Nginx (reverse proxy + static files) ─────────────────────────────────────
+  nginx:
+    image: nginx:1.25-alpine
+    restart: "no"
+    stop_signal: SIGQUIT
+    stop_grace_period: 10s
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - static_files:/app/staticfiles:ro   # serve Django static directly
+      - media_files:/app/media:ro          # serve uploaded media directly
+      - ./nginx/ssl:/etc/nginx/ssl:ro      # SSL certificates
+      - nginx_logs:/var/log/nginx
+    networks:
+      - frontend
+    depends_on:
+      - web
+
+networks:
+  backend:   # DB + Redis + web — internal only, not exposed
+    driver: bridge
+  frontend:  # Nginx + web — handles public traffic
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  media_files:
+  static_files:
+  nginx_logs:

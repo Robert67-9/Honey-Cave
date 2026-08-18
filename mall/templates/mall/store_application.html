@@ -1,0 +1,121 @@
+{% extends 'mall/base.html' %}
+{% block title %}Own a Store — Honey Cave Market{% endblock %}
+
+{% block extra_css %}
+<style>
+.store-wrapper { max-width: 640px; margin: 0 auto; }
+.store-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 2.5rem;
+}
+.status-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 2.5rem;
+    text-align: center;
+}
+.status-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+.status-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 0.35rem 0.9rem;
+    border-radius: 20px;
+    margin-bottom: 1rem;
+}
+.status-pending  { background: #fff3cd; color: #8a6400; }
+.status-approved { background: #d4edda; color: #1e7d34; }
+.status-rejected { background: #f8d7da; color: #a12833; }
+.store-card h2 { font-family: 'Playfair Display', serif; font-size: 1.25rem; margin-bottom: 1.5rem; }
+.file-hint { font-size: 0.78rem; color: var(--muted); margin-top: 0.35rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="store-wrapper">
+    <div class="page-header" style="text-align:center;">
+        <p class="eyebrow">✦ Own a Store ✦</p>
+        <h1>Open Your Store on Honey Cave</h1>
+        <p>Apply to become a fulfillment officer and run your own store on the market.</p>
+    </div>
+
+    {% if messages %}
+    {% for m in messages %}
+    <div class="alert alert-{{ m.tags|default:'info' }}" style="margin-bottom:1.25rem;">{{ m }}</div>
+    {% endfor %}
+    {% endif %}
+
+    {% if application %}
+    <div class="status-card">
+        <div class="status-icon">
+            {% if application.status == 'approved' %}🎉{% elif application.status == 'rejected' %}✕{% else %}⏳{% endif %}
+        </div>
+        <span class="status-badge status-{{ application.status }}">{{ application.get_status_display }}</span>
+        <h2 style="font-family:'Playfair Display',serif; margin-bottom:0.5rem;">{{ application.store_name }}</h2>
+        <p style="color:var(--muted); font-size:0.9rem; margin-bottom:1.25rem;">
+            Submitted {{ application.created|date:"M j, Y" }}
+        </p>
+
+        {% if application.status == 'pending' %}
+        <p style="color:var(--muted); font-size:0.9rem;">
+            We're reviewing your application. We'll notify you as soon as a decision is made.
+        </p>
+        {% elif application.status == 'approved' %}
+        <p style="color:var(--muted); font-size:0.9rem; margin-bottom:1.25rem;">
+            Your store has been approved. You can now log in to the fulfillment officer portal to get started.
+        </p>
+        <a href="{% url 'fulfillment_officer_login' %}" class="btn btn-gold">Go to Officer Portal</a>
+        {% elif application.status == 'rejected' %}
+        <p style="color:var(--muted); font-size:0.9rem; margin-bottom:1.25rem;">
+            {% if application.decision_note %}{{ application.decision_note }}{% else %}Your application wasn't approved this time.{% endif %}
+        </p>
+        <a href="{% url 'contact' %}" class="btn btn-outline">Contact Support</a>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="store-card">
+        <h2>Tell Us About Your Store</h2>
+        <form method="post" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
+            <div class="form-group">
+                <label>Store Name</label>
+                {{ form.store_name }}
+                {% if form.store_name.errors %}<div class="form-errors">{{ form.store_name.errors }}</div>{% endif %}
+            </div>
+            <div class="form-group">
+                <label>Business Registration No.</label>
+                {{ form.business_reg_no }}
+                {% if form.business_reg_no.errors %}<div class="form-errors">{{ form.business_reg_no.errors }}</div>{% endif %}
+            </div>
+            <div class="form-group">
+                <label>Location</label>
+                {{ form.location }}
+                {% if form.location.errors %}<div class="form-errors">{{ form.location.errors }}</div>{% endif %}
+            </div>
+            <div class="form-group">
+                <label>Product Category</label>
+                {{ form.product_category }}
+                {% if form.product_category.errors %}<div class="form-errors">{{ form.product_category.errors }}</div>{% endif %}
+            </div>
+            <div class="form-group">
+                <label>Phone Number</label>
+                {{ form.phone }}
+                {% if form.phone.errors %}<div class="form-errors">{{ form.phone.errors }}</div>{% endif %}
+            </div>
+            <div class="form-group">
+                <label>ID Upload</label>
+                {{ form.id_document }}
+                <p class="file-hint">National ID, passport, or business registration certificate (PDF or image, max 10MB).</p>
+                {% if form.id_document.errors %}<div class="form-errors">{{ form.id_document.errors }}</div>{% endif %}
+            </div>
+            <button type="submit" class="btn btn-gold" style="width:100%; margin-top:0.5rem;">Submit Application →</button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

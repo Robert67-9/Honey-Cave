@@ -1,0 +1,202 @@
+{% extends "mall/admin/base_admin.html" %}
+{% load form_filters %}
+{% block title %}{{ action }} Product — Market Admin{% endblock %}
+{% block page_title %}{{ action }} Product{% endblock %}
+
+{% block content %}
+<div style="max-width:720px;">
+    <div style="margin-bottom:1.2rem;">
+        <a href="{% url 'admin_products' %}" class="btn btn-ghost btn-sm">← Back to Products</a>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h2>{{ action }} Product</h2></div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Product Name</label>
+                        <input type="text" name="name" value="{{ product.name|default:'' }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Slug (URL identifier)</label>
+                        <input type="text" name="slug" value="{{ product.slug|default:'' }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select name="category" required>
+                            {% for c in categories %}
+                            <option value="{{ c.pk }}" {% if product.category_id == c.pk %}selected{% endif %}>{{ c.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Price (GH₵)</label>
+                        <input type="number" name="price" step="0.01" min="0" value="{{ product.price|default:'0.00' }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Stock Quantity</label>
+                        <input type="number" name="stock" min="0" value="{{ product.stock|default:0 }}" required>
+                    </div>
+                    <div class="form-group full">
+                        <label>Product Images <span style="font-weight:400;color:var(--muted);">(0–6 images, slot 1 is the main image)</span></label>
+                        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.6rem;margin-top:.4rem;">
+
+                          
+                          <div class="img-slot">
+                            <div class="img-slot-label">1 · Main image</div>
+                            {% if product.image %}
+                            <img src="{{ product.image.url }}" class="img-slot-preview"
+                                 alt="Current main image">
+                            <div style="font-size:.7rem;color:var(--muted);margin-top:.2rem;">Replacing will overwrite</div>
+                            {% endif %}
+                            <input type="file" name="image_1" accept="image/*"
+                                   style="font-size:.78rem;margin-top:.3rem;width:100%;">
+                          </div>
+
+                          
+                          {% for slot in "23456" %}
+                          <div class="img-slot">
+                            <div class="img-slot-label">{{ slot }}</div>
+                            <input type="file" name="image_{{ slot }}" accept="image/*"
+                                   style="font-size:.78rem;margin-top:.3rem;width:100%;">
+                          </div>
+                          {% endfor %}
+                        </div>
+
+                        {% if gallery_images %}
+                        <div style="margin-top:1rem;">
+                          <p style="font-size:.78rem;font-weight:600;color:var(--muted);margin:0 0 .4rem;">EXISTING GALLERY IMAGES</p>
+                          <div style="display:flex;flex-wrap:wrap;gap:.5rem;">
+                            {% for gi in gallery_images %}
+                            <div style="position:relative;border:1px solid var(--border);border-radius:6px;overflow:hidden;">
+                              <img src="{{ gi.image.url }}" style="height:80px;width:80px;object-fit:cover;display:block;">
+                              <label style="display:flex;align-items:center;gap:.3rem;padding:.3rem;background:#fafafa;font-size:.7rem;cursor:pointer;">
+                                <input type="checkbox" name="delete_gallery_id" value="{{ gi.pk }}" style="margin:0;">
+                                <span style="color:#c62828;">Delete</span>
+                              </label>
+                            </div>
+                            {% endfor %}
+                          </div>
+                          <p style="font-size:.72rem;color:var(--muted);margin:.5rem 0 0;">Tick a checkbox to remove the image when you save.</p>
+                        </div>
+                        {% endif %}
+
+                        <details style="margin-top:.7rem;">
+                          <summary style="cursor:pointer;color:var(--muted);font-size:.8rem;">Or paste an image URL instead</summary>
+                          <input type="url" name="image_url" placeholder="https://example.com/product.jpg"
+                                 value="{{ product.image_url|default:'' }}"
+                                 style="margin-top:.4rem;width:100%;">
+                          <p style="font-size:.72rem;color:var(--muted);margin:.3rem 0 0;">
+                            Used if no main image is uploaded. Will be downloaded and saved as the main image.
+                          </p>
+                        </details>
+                    </div>
+
+                    <style>
+                    .img-slot {
+                      border: 1px dashed var(--border);
+                      border-radius: 8px;
+                      padding: .55rem;
+                      background: #fafafa;
+                      min-height: 110px;
+                      display: flex;
+                      flex-direction: column;
+                    }
+                    .img-slot-label {
+                      font-size: .7rem;
+                      font-weight: 600;
+                      color: var(--muted);
+                      letter-spacing: .5px;
+                    }
+                    .img-slot-preview {
+                      width: 100%;
+                      height: 80px;
+                      object-fit: cover;
+                      border-radius: 4px;
+                      margin-top: .35rem;
+                    }
+                    </style>
+                    <div class="form-group full">
+                        <label>Description</label>
+                        <textarea name="description" rows="4">{{ product.description|default:'' }}</textarea>
+                    </div>
+                    <div class="form-group full">
+                        <div class="checkbox-row">
+                            <input type="checkbox" name="available" id="available" {% if product.available or action == 'Add' %}checked{% endif %}>
+                            <label for="available" style="font-size:0.9rem;color:var(--dark);">Available / Visible in store</label>
+                        </div>
+                    </div>
+                </div>
+
+                
+                {% if branches %}
+                <h3 style="margin-top:2rem;font-size:0.95rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);">
+                  🏬 Per-Branch Pricing & Stock
+                </h3>
+                <p style="font-size:.82rem;color:var(--muted);margin:.3rem 0 .8rem;">
+                  Set the selling price and current stock for each branch that carries this product.
+                  <strong>Leave both Price and Stock blank for branches that don't carry it.</strong>
+                  No row = the branch can't sell this product.
+                </p>
+                <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+                  <table style="width:100%;border-collapse:collapse;">
+                    <thead style="background:#fafafa;">
+                      <tr>
+                        <th style="text-align:left;padding:.6rem .8rem;font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);">Branch</th>
+                        <th style="text-align:left;padding:.6rem .8rem;font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);">Region</th>
+                        <th style="text-align:left;padding:.6rem .8rem;font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);width:140px;">Price (GH₵)</th>
+                        <th style="text-align:left;padding:.6rem .8rem;font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);width:100px;">Stock</th>
+                        <th style="text-align:center;padding:.6rem .8rem;font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);width:90px;">Active</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for branch in branches %}
+                      {% with bp=branch_products_by_id|get_item:branch.id %}
+                      <tr>
+                        <td style="padding:.5rem .8rem;border-top:1px solid var(--border);font-size:.88rem;">
+                          {{ branch.name }}
+                          <input type="hidden" name="branch_id" value="{{ branch.id }}">
+                        </td>
+                        <td style="padding:.5rem .8rem;border-top:1px solid var(--border);font-size:.82rem;color:var(--muted);">
+                          {{ branch.get_region_display }}
+                        </td>
+                        <td style="padding:.5rem .8rem;border-top:1px solid var(--border);">
+                          <input type="number" step="0.01" min="0" name="branch_price"
+                                 value="{% if bp %}{{ bp.price }}{% endif %}"
+                                 placeholder="—"
+                                 style="width:100%;padding:.4rem .55rem;border:1px solid var(--border);border-radius:5px;font-size:.88rem;">
+                        </td>
+                        <td style="padding:.5rem .8rem;border-top:1px solid var(--border);">
+                          <input type="number" min="0" name="branch_stock"
+                                 value="{% if bp %}{{ bp.stock }}{% endif %}"
+                                 placeholder="0"
+                                 style="width:100%;padding:.4rem .55rem;border:1px solid var(--border);border-radius:5px;font-size:.88rem;">
+                        </td>
+                        <td style="padding:.5rem .8rem;border-top:1px solid var(--border);text-align:center;">
+                          <input type="checkbox" name="branch_available_{{ branch.id }}" value="1"
+                                 {% if bp.is_available or not bp %}checked{% endif %}
+                                 style="width:18px;height:18px;cursor:pointer;">
+                        </td>
+                      </tr>
+                      {% endwith %}
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+                {% else %}
+                <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:.85rem 1rem;margin-top:1.5rem;font-size:.85rem;color:#6b5b00;">
+                  ⚠ No active branches found. Add branches first so you can set per-branch pricing.
+                </div>
+                {% endif %}
+
+                <div style="display:flex;gap:0.75rem;margin-top:1.5rem;">
+                    <button type="submit" class="btn btn-gold">{{ action }} Product</button>
+                    <a href="{% url 'admin_products' %}" class="btn btn-ghost">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

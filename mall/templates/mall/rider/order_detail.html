@@ -1,0 +1,205 @@
+{% extends 'mall/rider/base.html' %}
+{% block title %}{{ order.order_number }} — Rider Portal{% endblock %}
+{% block content %}
+
+<a href="{% url 'rider_dashboard' %}" style="font-size:.85rem; color:var(--muted); text-decoration:none;">← Back to dashboard</a>
+<h1 style="margin-top:.4rem;">{{ order.order_number }}</h1>
+
+{% if error %}
+<div class="alert alert-error">{{ error }}</div>
+{% endif %}
+
+{% if submitted or delivery.delivered_at %}
+<div class="card" style="background:#d4edda; border-color:#c3e6cb; text-align:center;">
+  <div style="font-size:2.5rem; margin-bottom:.4rem;">✅</div>
+  <h2 style="color:#155724;">Delivered &amp; Confirmed</h2>
+  <p style="margin:.25rem 0;">
+    {% if delivery.delivered_at %}
+      Closed at {{ delivery.delivered_at|date:"M d, H:i" }}.
+    {% endif %}
+    Chain of custody complete.
+  </p>
+  {% if delivery.rider_note %}
+  <p style="font-size:.85rem; color:var(--muted); margin-top:.65rem;">
+    Note recorded: "{{ delivery.rider_note }}"
+  </p>
+  {% endif %}
+  <div style="margin-top:1rem;">
+    <a href="{% url 'rider_dashboard' %}" class="btn btn-gold">Back to dashboard</a>
+  </div>
+</div>
+
+{% else %}
+
+<div class="card">
+  <h2>Customer</h2>
+  <p style="margin:.5rem 0 .85rem; font-size:.92rem;">
+    <strong>{{ order.full_name }}</strong><br>
+    📞 <a href="tel:{{ order.phone }}" style="color:var(--gold); text-decoration:none; font-weight:600;">{{ order.phone }}</a>
+    {% if order.delivery_address %}<br>📍 {{ order.delivery_address }}{% endif %}
+    {% if order.city %}<br>🏙 {{ order.city }}{% endif %}
+    {% if order.delivery_landmark %}<br>🏷 <em>{{ order.delivery_landmark }}</em>{% endif %}
+  </p>
+
+  
+  {% if order.maps_directions_url %}
+  <div style="display:flex; gap:.5rem; flex-wrap:wrap; align-items:center;">
+    <a href="{{ order.maps_directions_url }}" target="_blank" rel="noopener"
+       style="display:inline-flex; align-items:center; gap:.45rem; background:#1a73e8; color:#fff; padding:.7rem 1.1rem; border-radius:8px; font-weight:600; text-decoration:none; font-size:.92rem;">
+      🗺 Navigate to customer
+    </a>
+    {% if order.has_gps_pin %}
+    <span style="font-size:.78rem; color:var(--success-text, #155724); background:var(--success-bg, #d4edda); padding:.2rem .55rem; border-radius:4px; font-weight:600;">
+      📍 GPS pin
+    </span>
+    {% else %}
+    <span style="font-size:.78rem; color:var(--text-muted); background:var(--bg-sunken, #f0ece4); padding:.2rem .55rem; border-radius:4px;">
+      address only
+    </span>
+    {% endif %}
+  </div>
+  {% if not order.has_gps_pin %}
+  <p style="margin-top:.5rem; font-size:.78rem; color:var(--text-muted); font-style:italic;">
+    No GPS pin — the customer didn't share their location. Use the address and landmark to find them.
+  </p>
+  {% endif %}
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Items ({{ order.items.count }})</h2>
+  <div style="font-size:.9rem;">
+    {% for item in order.items.all %}
+    <div style="display:flex; justify-content:space-between; padding:.4rem 0; {% if not forloop.last %}border-bottom:1px dashed var(--border);{% endif %}">
+      <span>{{ item.product.name }}</span>
+      <strong>× {{ item.quantity }}</strong>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% if not keeper_code or not keeper_code.is_verified %}
+<div class="card">
+  <h2>Step 1 — Confirm pickup from officer</h2>
+  <p style="font-size:.92rem; color:var(--muted);">
+    The fulfillment officer at {{ order.branch.name|default:"the branch" }} will
+    show you a 6-digit code on their screen. Enter it here to confirm you've received the package.
+  </p>
+
+  {% if keeper_code and keeper_code.locked %}
+  <div class="alert alert-error">
+    🔒 This code has been locked after 3 wrong attempts. Ask the officer to request a new one from admin.
+  </div>
+  {% elif keeper_code and keeper_code.is_expired %}
+  <div class="alert alert-error">
+    ⏰ The pickup code has expired. Ask the officer to request a fresh one.
+  </div>
+  {% elif keeper_code %}
+    {% if handoff_status == 'wrong' %}
+    <div class="alert alert-error">Wrong code — {{ handoff_remaining }} attempt(s) left.</div>
+    {% elif handoff_status == 'locked' %}
+    <div class="alert alert-error">🔒 Locked after 3 wrong attempts.</div>
+    {% elif handoff_status == 'expired' %}
+    <div class="alert alert-error">⏰ Code expired — ask for a new one.</div>
+    {% endif %}
+
+    <form method="post" id="keeper-code-form">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="verify_keeper_code">
+      <input type="text" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6"
+             placeholder="• • • • • •" required autofocus class="code-input">
+      <button type="submit" class="btn btn-gold" style="width:100%; padding:.85rem;">
+        Confirm pickup
+      </button>
+      <p class="timer" style="text-align:center; margin:.65rem 0 0;">
+        {{ keeper_code.remaining_attempts }} attempt(s) left ·
+        expires in <span data-countdown="{{ keeper_code.seconds_until_expiry }}">{{ keeper_code.seconds_until_expiry }}s</span>
+      </p>
+    </form>
+  {% else %}
+  <div class="alert alert-info">
+    No pickup code yet. The officer hasn't issued one — ask them to issue a Step-1 code from their portal.
+  </div>
+  {% endif %}
+</div>
+
+{% elif customer_code and not customer_code.is_verified and not customer_code.locked and not customer_code.is_expired %}
+<div class="card">
+  <h2>Step 2 — Confirm delivery to customer</h2>
+  <p style="font-size:.92rem; color:var(--muted);">
+    Hand the package to <strong>{{ order.full_name }}</strong>, then ask them to read out
+    the 6-digit code shown on their phone (or scan the QR they show you). Enter it here to close the order.
+  </p>
+
+  {% if handoff_status == 'wrong' %}
+  <div class="alert alert-error">Wrong code — {{ handoff_remaining }} attempt(s) left. Make sure the customer is reading the latest code.</div>
+  {% elif handoff_status == 'locked' %}
+  <div class="alert alert-error">🔒 Locked after 3 wrong attempts. Admin notified — call them before leaving.</div>
+  {% elif handoff_status == 'expired' %}
+  <div class="alert alert-error">⏰ Code expired. Ask the customer to refresh their page for a new one.</div>
+  {% endif %}
+
+  <form method="post" id="customer-code-form">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="verify_customer_code">
+    <input type="text" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6"
+           placeholder="• • • • • •" required autofocus class="code-input">
+    <label for="rider-note" style="font-size:.78rem; font-weight:600; color:var(--muted); margin-top:.5rem; display:block;">
+      📝 Delivery note <span style="font-weight:400;">(optional)</span>
+    </label>
+    <textarea name="rider_note" id="rider-note" rows="2"
+              placeholder="e.g. Handed to customer in person."
+              style="width:100%; padding:.65rem; border:1px solid var(--border); border-radius:8px; font-family:inherit; margin-bottom:.75rem; background:var(--surface); color:var(--dark);"></textarea>
+    <button type="submit" class="btn btn-gold" style="width:100%; padding:.95rem; background:var(--success); color:#fff;">
+      ✅ Confirm &amp; Close Delivery
+    </button>
+    <p class="timer" style="text-align:center; margin:.65rem 0 0;">
+      {{ customer_code.remaining_attempts }} attempt(s) left ·
+      expires in <span data-countdown="{{ customer_code.seconds_until_expiry }}">{{ customer_code.seconds_until_expiry }}s</span>
+    </p>
+  </form>
+</div>
+
+{% elif customer_code and customer_code.locked %}
+<div class="card">
+  <div class="alert alert-error" style="text-align:center;">
+    🔒 The delivery code has been locked. Admin has been notified — please call them before handing over the package.
+  </div>
+</div>
+
+{% elif customer_code and customer_code.is_expired %}
+<div class="card">
+  <div class="alert alert-error" style="text-align:center;">
+    ⏰ The delivery code has expired. Ask the customer to refresh their phone screen for a fresh code, then retry.
+  </div>
+  <a href="{% url 'rider_order' order.id %}" class="btn btn-ghost" style="display:block; text-align:center; margin-top:.75rem;">🔄 Refresh</a>
+</div>
+{% endif %}
+
+{% endif %}
+
+<script>
+// Live countdown for code expiry
+document.querySelectorAll('[data-countdown]').forEach(function(el) {
+  var remaining = parseInt(el.dataset.countdown, 10);
+  if (!remaining || remaining <= 0) return;
+  var iv = setInterval(function() {
+    remaining -= 1;
+    if (remaining <= 0) { el.textContent = 'expired — refresh page'; clearInterval(iv); return; }
+    var m = Math.floor(remaining / 60); var s = remaining % 60;
+    el.textContent = (m > 0 ? m + 'm ' : '') + s + 's';
+  }, 1000);
+});
+
+// Prevent double-submit on each verify form
+['keeper-code-form','customer-code-form'].forEach(function(id) {
+  var form = document.getElementById(id);
+  if (!form) return;
+  form.addEventListener('submit', function() {
+    var btn = form.querySelector('button[type="submit"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Verifying…'; }
+  });
+});
+</script>
+
+{% endblock %}

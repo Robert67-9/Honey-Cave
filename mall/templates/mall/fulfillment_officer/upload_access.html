@@ -1,0 +1,104 @@
+{% extends 'mall/fulfillment_officer/base.html' %}
+{% block title %}Upload Access — Fulfillment Officer{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:620px;margin:0 auto;">
+  <h1 style="margin-top:0;">Product Upload Access</h1>
+
+  {% if not req or req.status == 'rejected' %}
+    {% if req and req.status == 'rejected' and req.admin_note %}
+    <div style="background:#fdecea;border:1px solid #f3c0bb;border-radius:8px;padding:0.8rem 1rem;margin-bottom:1rem;color:#9a2820;">
+      Your previous request was declined: {{ req.admin_note }}
+    </div>
+    {% endif %}
+    <p style="color:var(--muted);line-height:1.6;">
+      You don't yet have permission to upload products. Send a request to your
+      admin — they'll either grant free access or set a one-time price to unlock it.
+    </p>
+    <form method="post" action="{% url 'officer_request_upload_access' %}">
+      {% csrf_token %}
+      <textarea name="note" rows="2" placeholder="Optional note to your admin…"
+        style="width:100%;padding:0.6rem;border:1px solid var(--border);border-radius:8px;margin-bottom:0.8rem;"></textarea>
+      <button type="submit"
+        style="background:var(--gold,#C9A84C);color:#1d1405;font-weight:700;border:none;padding:0.7rem 1.4rem;border-radius:8px;cursor:pointer;">
+        Request Upload Access
+      </button>
+    </form>
+
+  {% elif req.status == 'pending' %}
+    <div style="background:#fff8e6;border:1px solid #f0e0a8;border-radius:8px;padding:1rem;color:#7a5b00;">
+      ⏳ Your request is <strong>awaiting admin review</strong>. You'll be notified once
+      they set a price or grant access.
+    </div>
+
+  {% elif req.status == 'payment_required' %}
+    <div style="background:#fff;border:2px solid var(--gold,#C9A84C);border-radius:12px;padding:1.4rem;text-align:center;">
+      <p style="margin:0 0 0.3rem;color:var(--muted);">One-time fee to unlock product uploads</p>
+      <div style="font-size:2.2rem;font-weight:800;color:#1d1405;">GH₵ {{ req.amount }}</div>
+      {% if req.admin_note %}<p style="color:var(--muted);font-size:0.88rem;">{{ req.admin_note }}</p>{% endif %}
+
+      {% if paystack_configured %}
+      <button id="payBtn"
+        style="margin-top:1rem;background:var(--gold,#C9A84C);color:#1d1405;font-weight:700;border:none;padding:0.8rem 1.8rem;border-radius:8px;cursor:pointer;font-size:1rem;">
+        Pay GH₵ {{ req.amount }} Now
+      </button>
+      <p id="payStatus" style="margin-top:0.8rem;font-size:0.88rem;color:var(--muted);"></p>
+      {% else %}
+      <p style="margin-top:1rem;color:#b3261e;">Paystack isn't configured yet. Ask your admin to set it up under Panel → Payment Methods.</p>
+      {% endif %}
+    </div>
+
+  {% elif req.status == 'paid' or req.status == 'approved_free' %}
+    <div style="background:#eafaf0;border:1px solid #b6e6c7;border-radius:8px;padding:1rem;color:#1b5e20;">
+      ✅ You have upload access.
+      <a href="{% url 'officer_product_upload' %}" style="font-weight:700;color:#1b5e20;">Go to Upload Product →</a>
+    </div>
+  {% endif %}
+</div>
+
+{% if req and req.status == 'payment_required' and paystack_configured %}
+<script src="https://js.paystack.co/v1/inline.js"></script>
+<script>
+(function () {
+  var btn = document.getElementById('payBtn');
+  var statusEl = document.getElementById('payStatus');
+  if (!btn) return;
+  var amountPesewas = {{ amount_pesewas }}; // computed server-side from GH₵ price
+
+  function setStatus(msg, color) { statusEl.textContent = msg; statusEl.style.color = color || 'var(--muted)'; }
+
+  btn.addEventListener('click', function () {
+    btn.disabled = true;
+    setStatus('Opening secure payment…');
+    var handler = PaystackPop.setup({
+      key: '{{ paystack_public_key }}',
+      email: '{{ officer_email|default:"officer@honeycave.local" }}',
+      amount: amountPesewas,
+      currency: 'GHS',
+      onClose: function () { btn.disabled = false; setStatus('Payment window closed.'); },
+      callback: function (response) {
+        setStatus('Verifying payment…');
+        fetch('{% url "officer_upload_pay_verify" %}', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+          body: JSON.stringify({ reference: response.reference }),
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d.verified) {
+            setStatus('✅ Payment confirmed! Redirecting…', '#1b5e20');
+            window.location.href = d.redirect || '{% url "officer_product_upload" %}';
+          } else {
+            btn.disabled = false;
+            setStatus('❌ ' + (d.error || 'Verification failed.'), '#b3261e');
+          }
+        })
+        .catch(function () { btn.disabled = false; setStatus('❌ Network error verifying payment.', '#b3261e'); });
+      },
+    });
+    handler.openIframe();
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}

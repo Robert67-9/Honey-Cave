@@ -1,0 +1,58 @@
+{% extends 'mall/fulfillment_officer/base.html' %}
+
+{% block title %}CSV Product Upload — Fulfillment Officer{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h1>CSV Product Upload</h1>
+  <p style="margin-bottom:1rem; color:var(--muted);">Upload a CSV file with product rows. Valid rows will be queued for admin review.</p>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <label style="display:block;">
+      CSV File<br>
+      <input type="file" name="csv_file" accept=".csv,text/csv" required style="margin-top:0.5rem;">
+    </label>
+    <div style="margin-top:1rem;display:flex;gap:1rem;flex-wrap:wrap;align-items:center;">
+      <button type="submit" class="btn btn-gold">Upload CSV</button>
+      <a href="{% url 'officer_product_upload' %}" class="btn btn-ghost">Add Single Product</a>
+    </div>
+  </form>
+
+  {% if results %}
+    <div class="card" style="margin-top:1.5rem;">
+      <h2>Upload summary</h2>
+      <p><strong>Total rows:</strong> {{ results.total_rows }}</p>
+      <p><strong>Queued for review:</strong> {{ results.valid_items }}</p>
+      <p><strong>Errors:</strong> {{ results.errors }}</p>
+      {% if results.upload_id %}
+        <p><strong>Upload ID:</strong> {{ results.upload_id }}</p>
+      {% endif %}
+      {% if results.error_rows %}
+        <div style="margin-top:1rem;">
+          <h3>Row errors</h3>
+          <table>
+            <thead>
+              <tr><th>Row</th><th>Product</th><th>Issue</th></tr>
+            </thead>
+            <tbody>
+              {% for row in results.error_rows %}
+              <tr>
+                <td>{{ row.row }}</td>
+                <td>{{ row.name }}</td>
+                <td>{{ row.reason }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <div class="card" style="margin-top:1.5rem;">
+    <h2>CSV format</h2>
+    <p>Required columns: <strong>name, category, price</strong>. Optional: <strong>description, sku, image_filename</strong>.</p>
+    <p>The CSV must be UTF-8 encoded. Category names are matched case-insensitively and created automatically if missing.</p>
+  </div>
+</div>
+{% endblock %}

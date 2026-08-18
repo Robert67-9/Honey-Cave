@@ -1,0 +1,21 @@
+{% extends "mall/admin/base_admin.html" %}
+{% block title %}Delete {{ type }} — Market Admin{% endblock %}
+{% block page_title %}Delete {{ type }}{% endblock %}
+
+{% block content %}
+<div class="confirm-box">
+    <div class="icon-big">🗑️</div>
+    <h2>Delete {{ type }}?</h2>
+    <p>
+        You are about to permanently delete <strong>"{{ object }}"</strong>.<br>
+        This action cannot be undone.
+    </p>
+    <div class="confirm-actions">
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Yes, Delete</button>
+        </form>
+        <a href="javascript:history.back()" class="btn btn-ghost">Cancel</a>
+    </div>
+</div>
+{% endblock %}

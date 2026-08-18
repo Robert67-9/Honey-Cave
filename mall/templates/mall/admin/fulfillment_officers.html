@@ -1,0 +1,92 @@
+{% extends "mall/admin/base_admin.html" %}
+{% block title %}Fulfillment Officers — Market Admin{% endblock %}
+{% block page_title %}Fulfillment Officers{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.6rem;">
+    <p style="color:var(--muted);font-size:.88rem;">
+        {{ rows|length }} fulfillment officer{{ rows|length|pluralize }} registered
+        {% if unassigned %} · {{ unassigned|length }} branch{{ unassigned|length|pluralize:"es" }} without a fulfillment officer{% endif %}
+    </p>
+    <a href="{% url 'admin_fulfillment_officer_add' %}" class="btn btn-gold btn-sm">+ Register Fulfillment Officer</a>
+</div>
+
+<div style="background:#fffaf0;border:1px solid #ffe082;border-radius:8px;padding:.7rem 1rem;margin-bottom:1.25rem;font-size:.83rem;color:#856404;">
+    💡 <strong>How it works:</strong> when you register a fulfillment officer, the system creates their login account, marks them as a fulfillment officer, and assigns them to a branch — all in one step. The system generates a strong password for them; you'll see it once on the next page so you can share it with them. They can change it after their first login.
+</div>
+
+{% if rows %}
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Username</th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th>Branch</th>
+            <th>Status</th>
+            <th>Last login</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in rows %}
+        <tr>
+            <td style="font-weight:600;">{{ row.user.get_full_name|default:row.user.username }}</td>
+            <td style="font-family:monospace;font-size:.85rem;">{{ row.user.username }}</td>
+            <td style="font-size:.85rem;">{{ row.phone|default:"—" }}</td>
+            <td style="font-size:.82rem;color:var(--muted);">{{ row.user.email|default:"—" }}</td>
+            <td>
+                {% if row.branch %}
+                    <strong>{{ row.branch.name }}</strong>
+                    <div style="font-size:.75rem;color:var(--muted);">{{ row.branch.get_region_display }}</div>
+                {% else %}
+                    <span style="color:#c62828;font-size:.82rem;">Not assigned</span>
+                {% endif %}
+            </td>
+            <td>
+                <span class="badge {% if row.user.is_active %}badge-delivered{% else %}badge-cancelled{% endif %}">
+                    {% if row.user.is_active %}Active{% else %}Inactive{% endif %}
+                </span>
+            </td>
+            <td style="font-size:.78rem;color:var(--muted);">
+                {% if row.user.last_login %}{{ row.user.last_login|date:"M d, H:i" }}{% else %}Never{% endif %}
+            </td>
+            <td>
+                <a href="{% url 'admin_fulfillment_officer_edit' row.user.pk %}" class="btn btn-ghost btn-sm">Edit</a>
+                <a href="{% url 'admin_fulfillment_officer_reset_password' row.user.pk %}" class="btn btn-ghost btn-sm" style="color:#1976d2;">Reset Password</a>
+                {% if row.user.is_active %}
+                <a href="{% url 'admin_fulfillment_officer_deactivate' row.user.pk %}" class="btn btn-danger btn-sm">Deactivate</a>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:2.5rem;text-align:center;">
+    <div style="font-size:2.5rem;margin-bottom:.6rem;">📦</div>
+    <p style="font-weight:600;margin-bottom:.3rem;">No fulfillment officers registered yet</p>
+    <p style="color:var(--muted);font-size:.86rem;margin-bottom:1.2rem;">
+        Fulfillment Officers process orders at branches — admin → keeper → rider → customer chain of custody.
+    </p>
+    <a href="{% url 'admin_fulfillment_officer_add' %}" class="btn btn-gold">+ Register your first fulfillment officer</a>
+</div>
+{% endif %}
+
+{% if unassigned %}
+<h3 style="margin-top:2rem;font-family:'Playfair Display',serif;font-size:1rem;color:var(--muted);">⚠ Branches without a fulfillment officer</h3>
+<p style="font-size:.82rem;color:var(--muted);margin-bottom:.6rem;">
+    These branches can't process orders through the chain-of-custody flow until you assign a fulfillment officer.
+</p>
+<ul style="list-style:none;padding:0;margin:0;">
+    {% for b in unassigned %}
+    <li style="padding:.5rem .8rem;background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:.3rem;display:flex;justify-content:space-between;align-items:center;font-size:.86rem;">
+        <span>🏪 <strong>{{ b.name }}</strong> · {{ b.get_region_display }}</span>
+        <a href="{% url 'admin_fulfillment_officer_add' %}" class="btn btn-ghost btn-sm">Assign fulfillment officer</a>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% endblock %}

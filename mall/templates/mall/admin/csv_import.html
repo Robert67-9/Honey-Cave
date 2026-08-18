@@ -1,0 +1,53 @@
+{% extends "mall/admin/base_admin.html" %}
+{% block title %}CSV Import — Market Admin{% endblock %}
+{% block page_title %}CSV Import{% endblock %}
+
+{% block content %}
+<div style="max-width:760px;">
+
+  <p style="color:var(--muted);margin-bottom:2rem;">
+    Bulk-import records by uploading a CSV file. Download a sample template first to see the exact columns required.
+    Files must be UTF-8 encoded, maximum 1 000 rows and 2 MB per upload.
+  </p>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1.25rem;">
+
+    <div class="card" style="padding:1.5rem;">
+      <div style="font-size:2rem;margin-bottom:0.75rem;">📦</div>
+      <h3 style="margin:0 0 0.4rem;font-size:1rem;">Products</h3>
+      <p style="color:var(--muted);font-size:0.85rem;margin:0 0 1.25rem;line-height:1.5;">
+        Import products with name, category, price, and stock. Categories are auto-created if they don't exist.
+      </p>
+      <div style="display:flex;flex-direction:column;gap:0.5rem;">
+        <a href="{% url 'admin_csv_import_products' %}" class="btn btn-gold" style="text-align:center;">Upload Products CSV</a>
+        <a href="{% url 'admin_csv_template_download' 'products' %}" class="btn btn-ghost" style="text-align:center;font-size:0.8rem;">⬇ Download Template</a>
+      </div>
+    </div>
+
+    <div class="card" style="padding:1.5rem;">
+      <div style="font-size:2rem;margin-bottom:0.75rem;">🏢</div>
+      <h3 style="margin:0 0 0.4rem;font-size:1rem;">Branches</h3>
+      <p style="color:var(--muted);font-size:0.85rem;margin:0 0 1.25rem;line-height:1.5;">
+        Import branches with name, address, city, and region. GPS coordinates are optional.
+      </p>
+      <div style="display:flex;flex-direction:column;gap:0.5rem;">
+        <a href="{% url 'admin_csv_import_branches' %}" class="btn btn-gold" style="text-align:center;">Upload Branches CSV</a>
+        <a href="{% url 'admin_csv_template_download' 'branches' %}" class="btn btn-ghost" style="text-align:center;font-size:0.8rem;">⬇ Download Template</a>
+      </div>
+    </div>
+
+    <div class="card" style="padding:1.5rem;">
+      <div style="font-size:2rem;margin-bottom:0.75rem;">🎟</div>
+      <h3 style="margin:0 0 0.4rem;font-size:1rem;">Promo Codes</h3>
+      <p style="color:var(--muted);font-size:0.85rem;margin:0 0 1.25rem;line-height:1.5;">
+        Import discount codes with type (percent/fixed), value, and optional expiry dates.
+      </p>
+      <div style="display:flex;flex-direction:column;gap:0.5rem;">
+        <a href="{% url 'admin_csv_import_promo_codes' %}" class="btn btn-gold" style="text-align:center;">Upload Promo Codes CSV</a>
+        <a href="{% url 'admin_csv_template_download' 'promo_codes' %}" class="btn btn-ghost" style="text-align:center;font-size:0.8rem;">⬇ Download Template</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

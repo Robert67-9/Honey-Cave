@@ -1,0 +1,116 @@
+{% extends 'mall/admin/base_admin.html' %}
+{% block title %}{{ action }} Rider — Admin{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:1.5rem;">
+  <a href="{% url 'admin_riders' %}" style="color:var(--text-muted); text-decoration:none; font-size:.88rem;">← Back to all riders</a>
+  <h1 style="font-family:'Playfair Display',serif; font-size:1.6rem; margin:.4rem 0 .25rem;">{{ action }} Rider</h1>
+  <p style="color:var(--text-muted); margin:0; font-size:.92rem;">
+    {% if rider %}Editing rider <strong>{{ rider.name }}</strong>{% else %}New rider — fill in their details below{% endif %}
+  </p>
+</div>
+
+{% if messages %}
+{% for m in messages %}
+<div class="alert alert-{{ m.tags|default:'info' }}" style="margin-bottom:1rem;">{{ m }}</div>
+{% endfor %}
+{% endif %}
+
+<form method="post" enctype="multipart/form-data" style="background:var(--bg-elevated); border:1px solid var(--border); border-radius:12px; padding:1.5rem; max-width:760px;">
+  {% csrf_token %}
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
+    <div>
+      <label style="display:block; font-size:.78rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:.35rem;">Full name *</label>
+      <input type="text" name="name" required maxlength="150"
+             value="{{ rider.name|default:'' }}"
+             placeholder="e.g. Kofi Mensah"
+             style="width:100%; padding:.65rem; border:1px solid var(--border); border-radius:8px; background:var(--bg-input); color:var(--text);">
+    </div>
+    <div>
+      <label style="display:block; font-size:.78rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:.35rem;">Phone (WhatsApp) *</label>
+      <input type="tel" name="phone" required maxlength="20"
+             value="{{ rider.phone|default:'' }}"
+             placeholder="+233 24 123 4567"
+             style="width:100%; padding:.65rem; border:1px solid var(--border); border-radius:8px; background:var(--bg-input); color:var(--text);">
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
+    <div>
+      <label style="display:block; font-size:.78rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:.35rem;">Alternate phone</label>
+      <input type="tel" name="alt_phone" maxlength="20"
+             value="{{ rider.alt_phone|default:'' }}"
+             style="width:100%; padding:.65rem; border:1px solid var(--border); border-radius:8px; background:var(--bg-input); color:var(--text);">
+    </div>
+    <div>
+      <label style="display:block; font-size:.78rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:.35rem;">Vehicle</label>
+      <select name="vehicle_type" style="width:100%; padding:.65rem; border:1px solid var(--border); border-radius:8px; background:var(--bg-input); color:var(--text);">
+        {% for value, label in vehicle_choices %}
+        <option value="{{ value }}" {% if rider.vehicle_type == value or not rider and value == 'motorcycle' %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
+    <div>
+      <label style="display:block; font-size:.78rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:.35rem;">License number</label>
+      <input type="text" name="license_number" maxlength="50"
+             value="{{ rider.license_number|default:'' }}"
+             style="width:100%; padding:.65rem; border:1px solid var(--border); border-radius:8px; background:var(--bg-input); color:var(--text);">
+    </div>
+    <div>
+      <label style="display:block; font-size:.78rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:.35rem;">Photo</label>
+      <input type="file" name="photo" accept="image/*"
+             style="width:100%; padding:.45rem; border:1px solid var(--border); border-radius:8px; background:var(--bg-input); color:var(--text);">
+      {% if rider.photo %}
+      <div style="margin-top:.35rem; font-size:.78rem; color:var(--text-muted);">
+        Current: <a href="{{ rider.photo.url }}" target="_blank" style="color:var(--accent);">view</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div style="margin-bottom:1.25rem;">
+    <label style="display:block; font-size:.78rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:.35rem;">Branches this rider serves</label>
+    <p style="font-size:.82rem; color:var(--text-muted); margin:0 0 .5rem;">
+      Officers will only see this rider in dropdowns for orders at these branches.
+    </p>
+    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:.4rem; padding:.75rem; border:1px solid var(--border); border-radius:8px; background:var(--bg-sunken);">
+      {% for b in branches %}
+      <label style="display:flex; align-items:center; gap:.5rem; cursor:pointer; padding:.3rem; font-size:.88rem;">
+        <input type="checkbox" name="branch_ids" value="{{ b.id }}"
+               {% if rider and b in rider.branches.all %}checked{% endif %}>
+        <span>{{ b.name }} <span style="color:var(--text-muted); font-size:.78rem;">· {{ b.get_region_display }}</span></span>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div style="margin-bottom:1.25rem;">
+    <label style="display:block; font-size:.78rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:.35rem;">Internal notes</label>
+    <textarea name="notes" rows="2" maxlength="500"
+              placeholder="e.g. Reliable, knows East Legon area well. Available evenings only."
+              style="width:100%; padding:.65rem; border:1px solid var(--border); border-radius:8px; background:var(--bg-input); color:var(--text); font-family:inherit;">{{ rider.notes|default:'' }}</textarea>
+  </div>
+
+  <div style="display:flex; gap:1.25rem; flex-wrap:wrap; padding-top:1rem; border-top:1px solid var(--border); margin-bottom:1.25rem;">
+    <label style="display:flex; align-items:center; gap:.4rem; cursor:pointer; font-size:.92rem;">
+      <input type="checkbox" name="is_active" {% if rider.is_active or not rider %}checked{% endif %}>
+      <strong>Active</strong> <span style="color:var(--text-muted); font-size:.82rem;">(shown in dropdowns)</span>
+    </label>
+    <label style="display:flex; align-items:center; gap:.4rem; cursor:pointer; font-size:.92rem;">
+      <input type="checkbox" name="is_verified" {% if rider.is_verified %}checked{% endif %}>
+      <strong>✓ Verified</strong> <span style="color:var(--text-muted); font-size:.82rem;">(admin-reviewed)</span>
+    </label>
+  </div>
+
+  <div style="display:flex; gap:.6rem;">
+    <button type="submit" class="btn btn-gold" style="padding:.65rem 1.6rem;">
+      {% if rider %}Save Changes{% else %}Add Rider{% endif %}
+    </button>
+    <a href="{% url 'admin_riders' %}" class="btn" style="padding:.65rem 1.4rem; background:var(--bg-sunken); color:var(--text); border:1px solid var(--border); text-decoration:none;">Cancel</a>
+  </div>
+</form>
+{% endblock %}

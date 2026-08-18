@@ -1,0 +1,47 @@
+{% extends 'mall/base.html' %}
+{% block title %}Admin Login — Market{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:420px;margin:80px auto;">
+  <div class="card shadow-sm border-0">
+    <div class="card-body p-4">
+
+      <div class="text-center mb-4">
+        <span class="badge bg-dark text-warning px-3 py-2 mb-2" style="font-size:11px;letter-spacing:2px;">STAFF ACCESS</span>
+        <h4 class="fw-bold mb-0">Admin Panel Login</h4>
+        <p class="text-muted small mt-1">This login is for Market staff only.</p>
+      </div>
+
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} alert-dismissible fade show py-2" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="mb-3">
+          <label class="form-label fw-semibold small">Username</label>
+          <input type="text" name="username" class="form-control" autocomplete="username" autofocus required>
+        </div>
+        <div class="mb-4">
+          <label class="form-label fw-semibold small">Password</label>
+          <input type="password" name="password" class="form-control" autocomplete="current-password" required>
+        </div>
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger py-2 small">{{ form.non_field_errors }}</div>
+        {% endif %}
+        <button type="submit" class="btn btn-dark w-100 fw-bold">Sign In to Panel</button>
+      </form>
+
+      <p class="text-center text-muted small mt-3 mb-0">
+        Not staff? <a href="{% url 'login' %}">Customer login →</a>
+      </p>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends 'mall/base.html' %}
+{% block title %}My Shipments — Honey Cave Market{% endblock %}
+
+{% block extra_css %}
+<style>
+.ms-wrapper { max-width: 900px; margin: 0 auto; }
+.ms-filters { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+.ms-filter-chip {
+    padding: 0.4rem 0.9rem; border-radius: 20px; font-size: 0.78rem; font-weight: 600;
+    text-decoration: none; border: 1.5px solid var(--border); color: var(--text-muted); background: var(--bg-elevated);
+}
+.ms-filter-chip.active { background: var(--dark-brand); color: #fff; border-color: var(--dark-brand); }
+.ms-card {
+    background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 16px;
+    padding: 1.25rem 1.5rem; margin-bottom: 1rem;
+}
+.ms-card-top { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem; }
+.ms-code { font-family: monospace; font-weight: 800; font-size: 1.1rem; color: var(--text); }
+.ms-route { font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem; }
+.ms-status-pill { padding: 0.35rem 0.85rem; border-radius: 10px; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
+.ms-status-picked_up { background: var(--accent-soft); color: var(--gold-deep); }
+.ms-status-processing { background: var(--accent-soft); color: var(--gold-deep); }
+.ms-status-in_transit { background: #dbeafe; color: #1e40af; }
+.ms-status-out_for_delivery { background: #fef3c7; color: #92400e; }
+.ms-status-delivered { background: var(--success-bg); color: var(--success-text); }
+.ms-meta { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: 0.9rem; padding-top: 0.9rem; border-top: 1px solid var(--border); font-size: 0.8rem; color: var(--text-muted); }
+.ms-meta strong { color: var(--text); }
+.ms-empty { text-align: center; padding: 4rem 2rem; color: var(--text-muted); }
+.ms-empty .icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ms-wrapper">
+    <div class="page-header" style="text-align:center;">
+        <p class="eyebrow">✦ Shipping (HCL) ✦</p>
+        <h1>My Shipments</h1>
+        <p>All the shipments you've booked with Honey Cave Shipping, in one place.</p>
+    </div>
+
+    <div class="ms-filters">
+        <a href="?" class="ms-filter-chip{% if not status_filter %} active{% endif %}">All</a>
+        {% for key, label in status_choices %}
+        <a href="?status={{ key }}" class="ms-filter-chip{% if status_filter == key %} active{% endif %}">{{ label }}</a>
+        {% endfor %}
+    </div>
+
+    {% if shipments %}
+    {% for s in shipments %}
+    <div class="ms-card">
+        <div class="ms-card-top">
+            <div>
+                <div class="ms-code">{{ s.tracking_code }}</div>
+                <div class="ms-route">{{ s.pickup_city }}, {{ s.pickup_country }} → {{ s.dest_city }}, {{ s.dest_country }}</div>
+            </div>
+            <span class="ms-status-pill ms-status-{{ s.status }}">{{ s.get_status_display }}</span>
+        </div>
+        <div class="ms-meta">
+            <span>Method: <strong>{{ s.get_shipping_method_display }}</strong></span>
+            <span>Service: <strong>{{ s.get_delivery_option_display }}</strong></span>
+            <span>Cost: <strong>GH₵ {{ s.total_cost }}</strong></span>
+            <span>Booked: <strong>{{ s.created|date:"M j, Y" }}</strong></span>
+        </div>
+        <div style="margin-top:1rem;">
+            <a href="{% url 'shipping_import_export' %}?track={{ s.tracking_code }}#hcl-track" class="btn btn-outline btn-sm">🔍 Track This Shipment</a>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="ms-empty">
+        <div class="icon">📦</div>
+        <h3 style="color:var(--text); font-family:'Playfair Display',serif; margin-bottom:0.5rem;">
+            {% if status_filter %}No shipments with this status{% else %}No shipments yet{% endif %}
+        </h3>
+        <p>When you book a shipment with Shipping (HCL), it'll show up here.</p>
+        <a href="{% url 'shipping_import_export' %}" class="btn btn-gold" style="margin-top:1rem; display:inline-flex;">Ship a Package →</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

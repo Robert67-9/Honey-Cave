@@ -1,0 +1,119 @@
+{% extends 'mall/fulfillment_officer/base.html' %}
+
+{% block title %}My Products — Fulfillment Officer{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.8rem;margin-bottom:1rem;">
+    <div>
+      <h1 style="margin:0;">My Products</h1>
+      <p style="margin:0.25rem 0 0;color:var(--muted);font-size:0.88rem;">
+        {{ total }} product{{ total|pluralize }} —
+        {% if scope == 'branch' %}everything stocked at your branch{{ branches|length|pluralize:'es' }}{% else %}products you uploaded{% endif %}.
+      </p>
+    </div>
+    <a href="{% url 'officer_product_upload' %}"
+       style="background:var(--gold,#C9A84C);color:#1d1405;padding:0.6rem 1.1rem;border-radius:8px;font-weight:700;text-decoration:none;">
+      ＋ Upload Product
+    </a>
+  </div>
+
+  <!-- Scope tabs + search -->
+  <form method="get" style="display:flex;flex-wrap:wrap;gap:0.6rem;align-items:center;margin-bottom:1.2rem;">
+    <div style="display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+      <button type="submit" name="scope" value="mine"
+              style="padding:0.5rem 0.9rem;border:none;cursor:pointer;font-weight:600;
+                     background:{% if scope == 'mine' %}var(--gold,#C9A84C){% else %}transparent{% endif %};
+                     color:{% if scope == 'mine' %}#1d1405{% else %}inherit{% endif %};">
+        Uploaded by me
+      </button>
+      <button type="submit" name="scope" value="branch"
+              style="padding:0.5rem 0.9rem;border:none;cursor:pointer;font-weight:600;border-left:1px solid var(--border);
+                     background:{% if scope == 'branch' %}var(--gold,#C9A84C){% else %}transparent{% endif %};
+                     color:{% if scope == 'branch' %}#1d1405{% else %}inherit{% endif %};">
+        At my branch
+      </button>
+    </div>
+    <input type="text" name="q" value="{{ q }}" placeholder="Search products…"
+           style="flex:1;min-width:180px;padding:0.55rem 0.8rem;border:1px solid var(--border);border-radius:8px;">
+    <input type="hidden" name="scope" value="{{ scope }}">
+    <button type="submit" style="padding:0.55rem 1rem;border:1px solid var(--border);border-radius:8px;background:transparent;cursor:pointer;font-weight:600;">Search</button>
+  </form>
+
+  {% if rows %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:1rem;">
+    {% for row in rows %}
+    <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;background:#fff;">
+      <a href="{% url 'product_detail' row.product.slug %}" target="_blank" rel="noopener" style="display:block;">
+        {% if row.product.image %}
+          <img src="{{ row.product.image.url }}" alt="{{ row.product.name }}"
+               style="width:100%;height:150px;object-fit:cover;display:block;background:#faf6ee;">
+        {% elif row.product.image_url %}
+          <img src="{{ row.product.image_url }}" alt="{{ row.product.name }}"
+               style="width:100%;height:150px;object-fit:cover;display:block;background:#faf6ee;">
+        {% else %}
+          <div style="width:100%;height:150px;display:flex;align-items:center;justify-content:center;background:#faf6ee;font-size:2rem;">🛍️</div>
+        {% endif %}
+      </a>
+      <div style="padding:0.75rem 0.85rem;flex:1;display:flex;flex-direction:column;gap:0.35rem;">
+        <div style="font-weight:700;font-size:0.92rem;line-height:1.3;">{{ row.product.name }}</div>
+        <div style="font-size:0.78rem;color:var(--muted);">{{ row.product.category.name }}</div>
+        <div style="font-weight:700;color:var(--gold,#9a7b1f);">GH₵ {{ row.product.price }}</div>
+
+        {% if row.branch_rows %}
+          {% for bp in row.branch_rows %}
+          <div style="font-size:0.76rem;display:flex;justify-content:space-between;gap:0.4rem;background:#faf6ee;border-radius:6px;padding:0.3rem 0.5rem;">
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">🏪 {{ bp.branch.name }}</span>
+            <span style="font-weight:700;color:{% if bp.stock > 0 %}#1b5e20{% else %}#b3261e{% endif %};">
+              {{ bp.stock }} in stock
+            </span>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div style="font-size:0.76rem;color:#b3261e;background:#fdecea;border-radius:6px;padding:0.3rem 0.5rem;">
+            ⚠️ Not stocked at your branch yet
+          </div>
+        {% endif %}
+
+        <div style="margin-top:auto;display:flex;gap:0.4rem;align-items:center;font-size:0.74rem;color:var(--muted);">
+          <span>{% if row.product.available %}✅ Live{% else %}🚫 Hidden{% endif %}</span>
+          <span>·</span>
+          <span>{{ row.product.created|date:"d M Y" }}</span>
+        </div>
+        <a href="{% url 'product_detail' row.product.slug %}" target="_blank" rel="noopener"
+           style="margin-top:0.4rem;text-align:center;border:1px solid var(--border);border-radius:7px;padding:0.4rem;text-decoration:none;font-weight:600;font-size:0.8rem;color:inherit;">
+          View on storefront ↗
+        </a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if paginator.num_pages > 1 %}
+  <div style="display:flex;justify-content:center;gap:0.5rem;margin-top:1.4rem;align-items:center;">
+    {% if page.has_previous %}
+      <a href="?scope={{ scope }}&q={{ q|urlencode }}&page={{ page.previous_page_number }}"
+         style="padding:0.45rem 0.85rem;border:1px solid var(--border);border-radius:7px;text-decoration:none;color:inherit;">← Prev</a>
+    {% endif %}
+    <span style="font-size:0.84rem;color:var(--muted);">Page {{ page.number }} of {{ paginator.num_pages }}</span>
+    {% if page.has_next %}
+      <a href="?scope={{ scope }}&q={{ q|urlencode }}&page={{ page.next_page_number }}"
+         style="padding:0.45rem 0.85rem;border:1px solid var(--border);border-radius:7px;text-decoration:none;color:inherit;">Next →</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div style="text-align:center;padding:2.5rem 1rem;color:var(--muted);">
+    <div style="font-size:2.4rem;">📦</div>
+    <p style="margin:0.6rem 0 0.9rem;">
+      {% if q %}No products match "{{ q }}".{% elif scope == 'branch' %}No products are stocked at your branch yet.{% else %}You haven't uploaded any products yet.{% endif %}
+    </p>
+    <a href="{% url 'officer_product_upload' %}"
+       style="background:var(--gold,#C9A84C);color:#1d1405;padding:0.6rem 1.2rem;border-radius:8px;font-weight:700;text-decoration:none;">
+      Upload your first product
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

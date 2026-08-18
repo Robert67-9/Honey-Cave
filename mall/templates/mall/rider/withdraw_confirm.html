@@ -1,0 +1,27 @@
+{% extends "mall/rider/base.html" %}
+{% block title %}Confirm Withdrawal — Rider{% endblock %}
+
+{% block content %}
+<h1>🔐 Confirm Your Cash Out</h1>
+
+{% if messages %}
+  {% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}
+{% endif %}
+
+<div class="card" style="max-width:420px;">
+  <p>We sent a 6-digit code to your registered phone number to confirm this withdrawal:</p>
+  <p style="font-size:1.1rem;font-weight:700;">GH₵ {{ wr.amount|floatformat:2 }} → {{ wr.get_method_display }}</p>
+  <p style="font-size:0.85rem;color:var(--muted);">
+    Net payout after fee: GH₵ {{ wr.net_amount|floatformat:2 }}
+  </p>
+
+  <form method="post">
+    {% csrf_token %}
+    <input type="text" name="code" maxlength="6" inputmode="numeric" pattern="[0-9]{6}"
+           class="code-input" placeholder="000000" autofocus required>
+    <button type="submit" class="btn btn-gold" style="width:100%;">Confirm Cash Out</button>
+  </form>
+</div>
+
+<a href="{% url 'rider_withdraw' %}" class="btn btn-ghost">← Start Over</a>
+{% endblock %}
