@@ -610,6 +610,7 @@ const PICKUP_BRANCH = {% if pickup_branch %}{
             <span class="amount" id="summary-total">GH₵ {{ subtotal }}</span>
         </div>
 
+        {% comment %}
         {# ── Per-branch availability warning (Combo 3 + Option C) ─────── #}
         <div id="branch-availability-warn" style="display:none;background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:.85rem 1rem;margin-top:1rem;font-size:.86rem;color:#5c4a00;">
           <p style="margin:0 0 .4rem;font-weight:700;">📦 Some items will be sourced by your branch officer</p>
@@ -618,7 +619,7 @@ const PICKUP_BRANCH = {% if pickup_branch %}{
             Your order will be forwarded to the branch officer who will arrange these items for delivery. Go ahead and pay — we'll handle the rest.
           </p>
         </div>
-
+        {% end comment %}
         {% if messages %}
         {% for msg in messages %}
         <div class="alert alert-{% if msg.tags == 'error' %}error{% else %}success{% endif %}" style="margin-top:1rem;font-size:.85rem;">
