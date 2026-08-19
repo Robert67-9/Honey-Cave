@@ -619,7 +619,8 @@ const PICKUP_BRANCH = {% if pickup_branch %}{
             Your order will be forwarded to the branch officer who will arrange these items for delivery. Go ahead and pay — we'll handle the rest.
           </p>
         </div>
-        {% end comment %}
+        {% endcomment %}
+        
         {% if messages %}
         {% for msg in messages %}
         <div class="alert alert-{% if msg.tags == 'error' %}error{% else %}success{% endif %}" style="margin-top:1rem;font-size:.85rem;">
