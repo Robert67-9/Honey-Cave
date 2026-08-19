@@ -240,26 +240,26 @@ class Product(models.Model):
         """
         if branch is None:
             return self.price
-        bp = self.branch_products.filter(branch=branch, is_available=True).first()
+        bp = self.branch_pricing.filter(branch=branch, is_available=True).first()
         return bp.price if bp else None
 
     def stock_at_branch(self, branch):
         """Return per-branch stock, or 0 if not carried."""
         if branch is None:
             return self.stock  # legacy single-stock fallback for un-branched flows
-        bp = self.branch_products.filter(branch=branch, is_available=True).first()
+        bp = self.branch_pricing.filter(branch=branch, is_available=True).first()
         return bp.stock if bp else 0
 
     def is_available_at_branch(self, branch):
         """True if `branch` carries this product and it's marked available."""
         if branch is None:
             return self.available
-        return self.branch_products.filter(branch=branch, is_available=True).exists()
+        return self.branch_pricing.filter(branch=branch, is_available=True).exists()
 
     def branches_carrying(self):
         """Queryset of branches that currently carry this product (in stock + available)."""
         from django.db.models import F
-        return (self.branch_products
+        return (self.branch_pricing
                 .filter(is_available=True, stock__gt=0)
                 .select_related('branch')
                 .order_by('branch__name'))
@@ -486,7 +486,7 @@ class BranchProduct(models.Model):
     known yet (browsing, search, home page). It's only replaced by
     BranchProduct.price during checkout reconciliation.
     """
-    product      = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='branch_products')
+    product      = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='branch_pricing')
     branch       = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name='stocked_products')
     price        = models.DecimalField(max_digits=10, decimal_places=2,
                                        help_text='Price at this branch (overrides Product.price for this branch only).')
