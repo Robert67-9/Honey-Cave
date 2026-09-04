@@ -1,0 +1,140 @@
+{% extends "mall/admin/base_admin.html" %}
+{% block title %}{{ wallet.owner_label }} Wallet — Admin{% endblock %}
+{% block page_title %}{{ wallet.owner_label }} — {{ wallet.get_owner_type_display }} Wallet{% endblock %}
+
+{% block content %}
+{% if messages %}
+  {% for message in messages %}<div class="alert alert-{{ message.tags }}" style="padding:0.7rem 1rem;border-radius:8px;margin-bottom:1rem;">{{ message }}</div>{% endfor %}
+{% endif %}
+
+<div class="stats-grid">
+    <div class="stat-card green">
+        <span class="label">Available</span>
+        <span class="value">GH₵ {{ wallet.available_balance|floatformat:2 }}</span>
+    </div>
+    <div class="stat-card">
+        <span class="label">Pending (Hold)</span>
+        <span class="value">GH₵ {{ wallet.pending_balance|floatformat:2 }}</span>
+    </div>
+    <div class="stat-card">
+        <span class="label">Reserve Held</span>
+        <span class="value">GH₵ {{ wallet.reserve_held|floatformat:2 }}</span>
+    </div>
+    <div class="stat-card gold">
+        <span class="label">Withdrawn Total</span>
+        <span class="value">GH₵ {{ wallet.withdrawn_total|floatformat:2 }}</span>
+    </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2>Account Controls</h2></div>
+  <div class="card-body" style="display:flex;flex-wrap:wrap;gap:0.75rem;">
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="toggle_frozen">
+      <button type="submit" class="btn {% if wallet.is_frozen %}btn-ghost{% else %}btn-danger{% endif %}">
+        {% if wallet.is_frozen %}Unfreeze Wallet{% else %}Freeze Wallet (pause withdrawals){% endif %}
+      </button>
+    </form>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="toggle_trusted">
+      <button type="submit" class="btn btn-ghost">
+        {% if wallet.is_trusted %}Mark Untrusted{% else %}Mark Trusted (shorter hold){% endif %}
+      </button>
+    </form>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="toggle_fee_waived">
+      <button type="submit" class="btn btn-ghost">
+        {% if wallet.fee_waived %}Un-waive Withdrawal Fee{% else %}Waive Withdrawal Fee{% endif %}
+      </button>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2>Manual Adjustment</h2></div>
+  <div class="card-body">
+    <p style="font-size:0.85rem;color:var(--muted);">Use this to resolve a dispute directly — e.g. crediting back an incorrectly-deducted commission, or debiting a chargeback. Positive amount credits, negative debits.</p>
+    <form method="post" style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:flex-end;">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="adjustment">
+      <div>
+        <label style="display:block;font-size:0.8rem;font-weight:600;margin-bottom:0.25rem;">Amount (GH₵)</label>
+        <input type="number" step="0.01" name="amount" required style="padding:0.6rem;border:1px solid var(--border);border-radius:8px;width:160px;">
+      </div>
+      <div style="flex:1;min-width:220px;">
+        <label style="display:block;font-size:0.8rem;font-weight:600;margin-bottom:0.25rem;">Reason (visible in ledger)</label>
+        <input type="text" name="note" required maxlength="300" style="padding:0.6rem;border:1px solid var(--border);border-radius:8px;width:100%;">
+      </div>
+      <button type="submit" class="btn btn-gold">Apply Adjustment</button>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2>Withdrawals</h2></div>
+  <div class="card-body" style="padding:0;">
+    <table>
+      <thead><tr><th>Reference</th><th>Amount</th><th>Method</th><th>Status</th><th>Requested</th><th></th></tr></thead>
+      <tbody>
+        {% for w in withdrawals %}
+        <tr>
+          <td>{{ w.unique_reference }}</td>
+          <td>GH₵ {{ w.net_amount|floatformat:2 }}</td>
+          <td>{{ w.get_method_display }} {% if w.momo_network %}({{ w.momo_network }}){% endif %}</td>
+          <td><span class="badge {% if w.status == 'completed' %}badge-done{% elif w.status == 'failed' or w.status == 'reversed' %}badge-locked{% else %}badge-pending{% endif %}">{{ w.get_status_display }}</span>
+            {% if w.failure_reason %}<div style="font-size:0.75rem;color:var(--muted);margin-top:0.2rem;">{{ w.failure_reason }}</div>{% endif %}
+          </td>
+          <td>{{ w.requested_at|date:"d M Y, H:i" }}</td>
+          <td>
+            {% if w.status == 'processing' %}
+            <form method="post" onsubmit="return confirm('Reverse this withdrawal and return funds to the wallet?');">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="reverse_withdrawal">
+              <input type="hidden" name="withdrawal_id" value="{{ w.id }}">
+              <input type="hidden" name="reason" value="Manually reversed by admin — stuck in processing">
+              <button type="submit" class="btn btn-danger" style="padding:0.35rem 0.75rem;font-size:0.8rem;">Reverse</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="empty">No withdrawals yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2>Full Ledger</h2></div>
+  <div class="card-body" style="padding:0;">
+    <table>
+      <thead><tr><th>Date</th><th>Type</th><th>Order</th><th>Amount</th><th>Status</th><th>Note</th></tr></thead>
+      <tbody>
+        {% for tx in transactions %}
+        <tr>
+          <td>{{ tx.created_at|date:"d M Y, H:i" }}</td>
+          <td>{{ tx.get_type_display }}</td>
+          <td>{% if tx.order %}<a href="{% url 'admin_order_detail' tx.order.pk %}" class="row-link">{{ tx.order.order_number }}</a>{% else %}—{% endif %}</td>
+          <td style="color:{% if tx.amount < 0 %}var(--danger,#c62828){% else %}var(--success,#2e7d32){% endif %};font-weight:600;">
+            GH₵ {{ tx.amount|floatformat:2 }}
+          </td>
+          <td><span class="badge {% if tx.status == 'available' or tx.status == 'withdrawn' %}badge-done{% elif tx.status == 'reversed' %}badge-locked{% else %}badge-pending{% endif %}">{{ tx.get_status_display }}</span></td>
+          <td style="font-size:0.82rem;color:var(--muted);max-width:300px;">
+            {{ tx.note }}
+            {% if tx.created_by %}<div>— by {{ tx.created_by.username }}</div>{% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="empty">No ledger activity yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<a href="{% url 'admin_wallets' %}" class="btn btn-ghost">← Back to Wallets</a>
+{% endblock %}

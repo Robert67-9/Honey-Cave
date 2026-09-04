@@ -1,0 +1,57 @@
+{% extends "mall/admin/base_admin.html" %}
+{% block title %}Withdrawals — Admin{% endblock %}
+{% block page_title %}Withdrawal Queue{% endblock %}
+
+{% block content %}
+<div class="stats-grid">
+    <div class="stat-card"><span class="label">All</span><span class="value">{{ counts.all }}</span></div>
+    <div class="stat-card"><span class="label">Awaiting OTP</span><span class="value">{{ counts.pending_otp }}</span></div>
+    <div class="stat-card gold"><span class="label">Processing</span><span class="value">{{ counts.processing }}</span></div>
+    <div class="stat-card green"><span class="label">Completed</span><span class="value">{{ counts.completed }}</span></div>
+    <div class="stat-card red"><span class="label">Failed</span><span class="value">{{ counts.failed }}</span></div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2>Withdrawal Requests</h2>
+    <form method="get">
+      <select name="status" onchange="this.form.submit()" style="padding:0.5rem 0.75rem;border:1px solid var(--border);border-radius:8px;">
+        <option value="" {% if not status %}selected{% endif %}>All statuses</option>
+        <option value="pending_otp" {% if status == 'pending_otp' %}selected{% endif %}>Awaiting OTP</option>
+        <option value="processing" {% if status == 'processing' %}selected{% endif %}>Processing</option>
+        <option value="completed" {% if status == 'completed' %}selected{% endif %}>Completed</option>
+        <option value="failed" {% if status == 'failed' %}selected{% endif %}>Failed</option>
+        <option value="reversed" {% if status == 'reversed' %}selected{% endif %}>Reversed</option>
+      </select>
+    </form>
+  </div>
+  <div class="card-body" style="padding:0;">
+    <table>
+      <thead><tr><th>Reference</th><th>Owner</th><th>Amount</th><th>Method</th><th>Status</th><th>Requested</th><th></th></tr></thead>
+      <tbody>
+        {% for w in page_obj %}
+        <tr>
+          <td>{{ w.unique_reference }}</td>
+          <td>{{ w.wallet.owner_label }} <span class="badge" style="background:#eee;color:#555;">{{ w.wallet.get_owner_type_display }}</span></td>
+          <td>GH₵ {{ w.net_amount|floatformat:2 }}</td>
+          <td>{{ w.get_method_display }}</td>
+          <td><span class="badge {% if w.status == 'completed' %}badge-done{% elif w.status == 'failed' or w.status == 'reversed' %}badge-locked{% else %}badge-pending{% endif %}">{{ w.get_status_display }}</span></td>
+          <td>{{ w.requested_at|date:"d M, H:i" }}</td>
+          <td><a href="{% url 'admin_wallet_detail' w.wallet_id %}" class="row-link">View Wallet →</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="empty">No withdrawals match this filter.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if page_obj.has_other_pages %}
+<div style="display:flex;gap:0.5rem;justify-content:center;margin-top:1rem;">
+  {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="btn btn-ghost">← Prev</a>{% endif %}
+  <span style="align-self:center;font-size:0.85rem;color:var(--muted);">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+  {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="btn btn-ghost">Next →</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

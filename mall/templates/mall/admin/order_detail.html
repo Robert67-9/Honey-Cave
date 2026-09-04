@@ -1,0 +1,503 @@
+{% extends "mall/admin/base_admin.html" %}
+{% block title %}Order {{ order.order_number }} — Market Admin{% endblock %}
+{% block page_title %}Order {{ order.order_number }}{% endblock %}
+
+{% block content %}
+<div style="display:grid;grid-template-columns:1fr 340px;gap:1.5rem;align-items:start;">
+
+  <!-- Left column -->
+  <div style="display:flex;flex-direction:column;gap:1.5rem;">
+
+    <!-- Items -->
+    <div class="card">
+      <div class="card-header"><h2>Items</h2></div>
+      <table>
+        <thead><tr><th>Product</th><th>Price</th><th>Qty</th><th>Total</th></tr></thead>
+        <tbody>
+          {% for item in items %}
+          <tr>
+            <td>{{ item.product.name }}</td>
+            <td>GH₵ {{ item.price }}</td>
+            <td>{{ item.quantity }}</td>
+            <td style="font-weight:600;">GH₵ {{ item.get_total_price }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div style="padding:1rem 1.25rem;border-top:1px solid var(--border);text-align:right;">
+        <span style="color:var(--muted);font-size:0.85rem;">Subtotal: GH₵ {{ order.subtotal }} &nbsp;|&nbsp; Shipping: GH₵ {{ order.shipping_fee }}</span>
+        {% if order.discount_amount %}<span style="color:var(--muted);font-size:0.85rem;"> &nbsp;|&nbsp; Discount: -GH₵ {{ order.discount_amount }}</span>{% endif %}
+        <div style="font-size:1.1rem;font-weight:700;margin-top:0.25rem;">Total: GH₵ {{ order.total_price }}</div>
+      </div>
+    </div>
+
+    <!-- Chain of Custody / Handoff Codes -->
+    <div class="card">
+      <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;">
+        <h2>🔐 Chain of Custody</h2>
+        <span style="font-size:.78rem;color:var(--muted);">
+          {% if order.fulfillment_type == 'pickup' %}Pickup: 2 handoffs{% else %}Delivery: 3 handoffs{% endif %}
+        </span>
+      </div>
+      <div style="padding:1.25rem;">
+
+        
+        <div style="border-left:3px solid var(--gold);padding:.6rem 0 .6rem 1rem;margin-bottom:1rem;">
+          <p style="margin:0 0 .25rem;font-weight:600;font-size:.92rem;">1. Admin → Fulfillment Officer</p>
+          {% with h=handoff_by_stage.admin_to_officer %}
+            {% if h %}
+              {% if h.is_verified %}
+                <p style="margin:0;font-size:.85rem;color:#155724;">✓ Confirmed at {{ h.used_at|date:"M d, H:i" }}{% if h.used_by %} by {{ h.used_by.username }}{% endif %}</p>
+              {% elif h.locked %}
+                <p style="margin:0 0 .35rem;font-size:.85rem;color:#721c24;">🔒 Locked after {{ h.attempts }} wrong attempts</p>
+                <form method="post" style="display:inline;">{% csrf_token %}
+                  <input type="hidden" name="action" value="unlock_handoff">
+                  <input type="hidden" name="handoff_id" value="{{ h.id }}">
+                  <button class="btn btn-ghost" style="padding:.25rem .65rem;font-size:.75rem;">Unlock</button>
+                </form>
+                <form method="post" style="display:inline;">{% csrf_token %}
+                  <input type="hidden" name="action" value="issue_handoff_code">
+                  <input type="hidden" name="stage" value="admin_to_officer">
+                  <button class="btn btn-gold" style="padding:.25rem .65rem;font-size:.75rem;">Re-issue Code</button>
+                </form>
+              {% elif h.is_expired %}
+                <p style="margin:0 0 .35rem;font-size:.85rem;color:#856404;">⏰ Expired — re-issue if fulfillment officer still needs it</p>
+                <form method="post">{% csrf_token %}
+                  <input type="hidden" name="action" value="issue_handoff_code">
+                  <input type="hidden" name="stage" value="admin_to_officer">
+                  <button class="btn btn-gold" style="padding:.3rem .8rem;font-size:.78rem;">Re-issue Code</button>
+                </form>
+              {% else %}
+                <p style="margin:0 0 .25rem;font-size:.85rem;">
+                  Code <strong style="font-family:monospace;letter-spacing:.15em;">{{ h.code }}</strong> issued to fulfillment officer.
+                  <span style="color:var(--muted);">Awaiting confirmation · {{ h.remaining_attempts }} attempts left.</span>
+                </p>
+              {% endif %}
+            {% else %}
+              
+              {% if handoff_diag.can_autostart %}
+                <p style="margin:0 0 .35rem;font-size:.85rem;color:var(--text-muted);">
+                  No code issued yet. {{ handoff_diag.reason }}
+                </p>
+              {% else %}
+                <div style="margin:0 0 .55rem;padding:.55rem .75rem;background:#fff3cd;border:1px solid #ffe082;border-radius:6px;font-size:.82rem;color:#6b5b00;">
+                  ⚠️ <strong>Cannot auto-issue:</strong> {{ handoff_diag.reason }}
+                </div>
+              {% endif %}
+              <form method="post">{% csrf_token %}
+                <input type="hidden" name="action" value="issue_handoff_code">
+                <input type="hidden" name="stage" value="admin_to_officer">
+                <button class="btn btn-gold" style="padding:.4rem 1rem;font-size:.85rem;" {% if not handoff_diag.can_autostart %}disabled title="Fix the issue above first"{% endif %}>
+                  ▶ Issue Code to Fulfillment Officer
+                </button>
+              </form>
+            {% endif %}
+          {% endwith %}
+        </div>
+
+        
+        {% if order.fulfillment_type == 'delivery' %}
+        <div style="border-left:3px solid var(--gold);padding:.6rem 0 .6rem 1rem;margin-bottom:1rem;{% if not handoff_by_stage.admin_to_officer.is_verified %}opacity:.5;{% endif %}">
+          <p style="margin:0 0 .25rem;font-weight:600;font-size:.92rem;">2. Fulfillment Officer → Rider</p>
+          {% with h=handoff_by_stage.officer_to_rider %}
+            {% if h %}
+              {% if h.is_verified %}
+                <p style="margin:0;font-size:.85rem;color:#155724;">✓ Rider confirmed pickup at {{ h.used_at|date:"M d, H:i" }}</p>
+              {% elif h.locked %}
+                <p style="margin:0 0 .35rem;font-size:.85rem;color:#721c24;">🔒 Locked after {{ h.attempts }} wrong attempts</p>
+                <form method="post" style="display:inline;">{% csrf_token %}
+                  <input type="hidden" name="action" value="unlock_handoff">
+                  <input type="hidden" name="handoff_id" value="{{ h.id }}">
+                  <button class="btn btn-ghost" style="padding:.25rem .65rem;font-size:.75rem;">Unlock</button>
+                </form>
+              {% else %}
+                <p style="margin:0;font-size:.85rem;">
+                  Code <strong style="font-family:monospace;letter-spacing:.15em;">{{ h.code }}</strong> ready for rider.
+                  <span style="color:var(--muted);">{{ h.remaining_attempts }} attempts left.</span>
+                </p>
+              {% endif %}
+            {% else %}
+              <p style="margin:0;font-size:.85rem;color:var(--muted);">Waiting for fulfillment officer to confirm receipt — code will auto-issue.</p>
+            {% endif %}
+          {% endwith %}
+        </div>
+        {% endif %}
+
+        
+        {% if order.fulfillment_type == 'delivery' %}
+        <div style="border-left:3px solid var(--gold);padding:.6rem 0 .6rem 1rem;margin-bottom:.5rem;{% if not handoff_by_stage.officer_to_rider.is_verified %}opacity:.5;{% endif %}">
+          <p style="margin:0 0 .25rem;font-weight:600;font-size:.92rem;">3. Rider → Customer</p>
+          {% with h=handoff_by_stage.rider_to_customer %}
+            {% if h %}
+              {% if h.is_verified %}
+                <p style="margin:0;font-size:.85rem;color:#155724;">✓ Customer confirmed receipt at {{ h.used_at|date:"M d, H:i" }}</p>
+              {% elif h.locked %}
+                <p style="margin:0 0 .35rem;font-size:.85rem;color:#721c24;">🔒 Locked after {{ h.attempts }} wrong attempts</p>
+                <form method="post" style="display:inline;">{% csrf_token %}
+                  <input type="hidden" name="action" value="unlock_handoff">
+                  <input type="hidden" name="handoff_id" value="{{ h.id }}">
+                  <button class="btn btn-ghost" style="padding:.25rem .65rem;font-size:.75rem;">Unlock</button>
+                </form>
+              {% else %}
+                <p style="margin:0;font-size:.85rem;">
+                  Code <strong style="font-family:monospace;letter-spacing:.15em;">{{ h.code }}</strong> issued — customer enters on order page.
+                </p>
+              {% endif %}
+            {% else %}
+              <p style="margin:0;font-size:.85rem;color:var(--muted);">Waiting for rider to confirm pickup — code will auto-issue.</p>
+            {% endif %}
+          {% endwith %}
+        </div>
+        {% endif %}
+
+        
+        {% if order.fulfillment_type == 'pickup' %}
+        <div style="border-left:3px solid var(--gold);padding:.6rem 0 .6rem 1rem;{% if not handoff_by_stage.admin_to_officer.is_verified %}opacity:.5;{% endif %}">
+          <p style="margin:0 0 .25rem;font-weight:600;font-size:.92rem;">2. Fulfillment Officer → Customer (collection)</p>
+          {% with h=handoff_by_stage.officer_to_customer %}
+            {% if h %}
+              {% if h.is_verified %}
+                <p style="margin:0;font-size:.85rem;color:#155724;">✓ Customer collected at {{ h.used_at|date:"M d, H:i" }}</p>
+              {% elif h.locked %}
+                <p style="margin:0 0 .35rem;font-size:.85rem;color:#721c24;">🔒 Locked after {{ h.attempts }} wrong attempts</p>
+                <form method="post" style="display:inline;">{% csrf_token %}
+                  <input type="hidden" name="action" value="unlock_handoff">
+                  <input type="hidden" name="handoff_id" value="{{ h.id }}">
+                  <button class="btn btn-ghost" style="padding:.25rem .65rem;font-size:.75rem;">Unlock</button>
+                </form>
+              {% else %}
+                <p style="margin:0;font-size:.85rem;">
+                  Code <strong style="font-family:monospace;letter-spacing:.15em;">{{ h.code }}</strong> issued — customer collects with this code.
+                </p>
+              {% endif %}
+            {% else %}
+              <p style="margin:0;font-size:.85rem;color:var(--muted);">Waiting for fulfillment officer to confirm — code will auto-issue on confirmation.</p>
+            {% endif %}
+          {% endwith %}
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+
+    <!-- Customer -->
+    <div class="card">
+      <div class="card-header"><h2>Customer Details</h2></div>
+      <div style="padding:1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:0.75rem 2rem;font-size:0.9rem;">
+        <div><strong>Name</strong><br>{{ order.full_name }}</div>
+        <div><strong>User</strong><br>{{ order.user.username }}</div>
+        <div><strong>Email</strong><br>{{ order.email }}</div>
+        <div><strong>Phone</strong><br>{{ order.phone }}</div>
+        <div><strong>Region</strong><br>{{ order.get_region_display_name }}</div>
+        <div><strong>Fulfillment</strong><br>{{ order.get_fulfillment_type_display }}</div>
+        {% if order.fulfillment_type == 'delivery' %}
+        <div style="grid-column:1/-1;">
+          <strong>Delivery Address</strong><br>
+          {{ order.delivery_address }}
+          {% if order.delivery_landmark %}
+          <br><span style="color:var(--text-muted);">🏷 Landmark: <em>{{ order.delivery_landmark }}</em></span>
+          {% endif %}
+          {% if order.maps_directions_url %}
+          <br>
+          <a href="{{ order.maps_directions_url }}" target="_blank" rel="noopener"
+             style="display:inline-block; margin-top:.4rem; background:#1a73e8; color:#fff; padding:.35rem .75rem; border-radius:6px; font-size:.82rem; font-weight:600; text-decoration:none;">
+            🗺 Open in Maps{% if order.has_gps_pin %} 📍{% endif %}
+          </a>
+          {% if not order.has_gps_pin %}
+          <span style="font-size:.78rem; color:var(--text-muted); margin-left:.4rem;">(address only — no GPS pin from customer)</span>
+          {% endif %}
+          {% endif %}
+        </div>
+        {% endif %}
+        {% if order.branch %}
+        <div style="grid-column:1/-1;"><strong>Pickup Branch</strong><br>{{ order.branch.name }} — {{ order.branch.address }}</div>
+        {% endif %}
+        {% if order.payment_reference %}
+        <div style="grid-column:1/-1;"><strong>Payment Ref</strong><br>{{ order.payment_reference }}</div>
+        {% endif %}
+        {% if order.promo_code %}
+        <div><strong>Promo Code</strong><br>{{ order.promo_code.code }}</div>
+        <div><strong>Discount</strong><br>GH₵ {{ order.discount_amount }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- FEAT-08: Staff Notes -->
+    <div class="card">
+      <div class="card-header"><h2>📝 Staff Notes <span style="font-size:0.78rem;font-weight:400;color:var(--muted);">(internal — not visible to customer)</span></h2></div>
+      <div style="padding:1.25rem;display:flex;flex-direction:column;gap:0.75rem;">
+        {% for note in notes %}
+        <div style="background:var(--bg);border-radius:8px;padding:0.85rem 1rem;">
+          <div style="font-size:0.78rem;color:var(--muted);margin-bottom:0.25rem;">
+            {{ note.staff.get_full_name|default:note.staff.username }} &nbsp;·&nbsp; {{ note.created|date:"M d, Y H:i" }}
+          </div>
+          <div style="font-size:0.9rem;">{{ note.note }}</div>
+        </div>
+        {% empty %}
+        <p style="color:var(--muted);font-size:0.88rem;margin:0;">No notes yet.</p>
+        {% endfor %}
+        <form method="post" style="margin-top:0.25rem;">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="add_note">
+          <textarea name="note" rows="3" placeholder="Add internal note…"
+            style="width:100%;border:1px solid var(--border);border-radius:8px;padding:0.6rem 0.75rem;font-size:0.9rem;resize:vertical;box-sizing:border-box;"
+            required></textarea>
+          <button type="submit" class="btn btn-primary btn-sm" style="margin-top:0.5rem;">Add Note</button>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right column -->
+  <div style="display:flex;flex-direction:column;gap:1.5rem;">
+
+    <div class="card">
+      <div class="card-header"><h2>Update Status</h2></div>
+      <div style="padding:1.25rem;">
+        <div style="margin-bottom:1rem;">
+          <span class="badge badge-{{ order.status }}">{{ order.get_status_display }}</span>
+          &nbsp;
+          <span class="badge {% if order.paid %}badge-paid{% else %}badge-unpaid{% endif %}">{% if order.paid %}Paid{% else %}Unpaid{% endif %}</span>
+        </div>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="status">
+          <select name="status" style="width:100%;margin-bottom:0.75rem;padding:0.5rem;border-radius:6px;border:1px solid var(--border);">
+            {% for val, label in status_choices %}
+            <option value="{{ val }}" {% if order.status == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="btn btn-gold w-100">Update Status</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Rider Delivery Card -->
+    {% if order.fulfillment_type == 'delivery' %}
+    <div class="card">
+      <div class="card-header">
+        <h2>🛵 Rider Delivery</h2>
+      </div>
+      <div style="padding:1.25rem;">
+
+        {% if rider %}
+        <!-- Rider assigned -->
+        <div style="font-size:.88rem;color:var(--muted);display:flex;flex-direction:column;gap:.4rem;margin-bottom:1rem;">
+          <div>Rider: <strong style="color:var(--text);">{{ rider.rider_name }}</strong></div>
+          <div>Phone: <strong style="color:var(--text);">{{ rider.rider_phone }}</strong></div>
+          <div>Dispatched: <strong style="color:var(--text);">{{ rider.dispatched_at|date:"M d, Y H:i" }}</strong></div>
+          {% if rider.delivered_at %}
+          <div>Delivered: <strong style="color:#166534;">{{ rider.delivered_at|date:"M d, Y H:i" }}</strong></div>
+          {% endif %}
+          {% if rider.confirmed_at %}
+          <div>Customer confirmed: <strong style="color:#166534;">{{ rider.confirmed_at|date:"M d, Y H:i" }}</strong></div>
+          {% endif %}
+          {% if rider.rider_note %}
+          <div style="margin-top:.3rem;background:#f5f0e8;padding:.5rem .7rem;border-radius:6px;font-size:.82rem;color:#5a5047;">
+            📝 {{ rider.rider_note }}
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Status pills -->
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;">
+          <span style="background:#FFF3E0;color:#E65100;padding:3px 10px;border-radius:20px;font-size:.78rem;font-weight:600;">
+            🛵 Dispatched
+          </span>
+          {% if rider.is_delivered %}
+          <span style="background:#E8F5E9;color:#1B5E20;padding:3px 10px;border-radius:20px;font-size:.78rem;font-weight:600;">
+            ✅ Delivered
+          </span>
+          {% endif %}
+          {% if rider.is_confirmed %}
+          <span style="background:#E8F5E9;color:#1B5E20;padding:3px 10px;border-radius:20px;font-size:.78rem;font-weight:600;">
+            🎉 Customer Confirmed
+          </span>
+          {% endif %}
+        </div>
+
+        <!-- Rider portal link -->
+        {% if rider_portal_url and not rider.is_delivered %}
+        <div style="background:#e8f4fd;border:1px solid #b8daff;border-radius:8px;padding:.85rem;margin-bottom:1rem;font-size:.82rem;color:#004085;">
+          <strong>📱 Rider Portal Link</strong><br>
+          <span style="word-break:break-all;">{{ rider_portal_url }}</span>
+          <br>
+          <button type="button" onclick="navigator.clipboard.writeText('{{ rider_portal_url }}');this.textContent='✅ Copied!';setTimeout(()=>this.textContent='📋 Copy Link',2000);"
+            style="margin-top:.5rem;background:#004085;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:.82rem;cursor:pointer;">
+            📋 Copy Link
+          </button>
+        </div>
+        {% endif %}
+
+        <!-- Update rider info -->
+        <details style="font-size:.85rem;">
+          <summary style="cursor:pointer;color:var(--text-muted);margin-bottom:.5rem;">✏️ Reassign Rider</summary>
+
+          <!-- Mode tabs -->
+          <div style="display:flex; gap:.4rem; margin: .65rem 0 .75rem; border-bottom: 1px solid var(--border);">
+            <button type="button" id="adm-mode-roster-{{ order.pk }}"
+                    onclick="admSwitchMode({{ order.pk }}, 'roster')"
+                    style="background:none; border:none; padding:.45rem .75rem; cursor:pointer; font-size:.82rem; font-weight:600; color:var(--text); border-bottom:2px solid var(--accent);">
+              📇 Roster
+            </button>
+            <button type="button" id="adm-mode-adhoc-{{ order.pk }}"
+                    onclick="admSwitchMode({{ order.pk }}, 'adhoc')"
+                    style="background:none; border:none; padding:.45rem .75rem; cursor:pointer; font-size:.82rem; font-weight:600; color:var(--text-muted); border-bottom:2px solid transparent;">
+              ⚡ Ad-hoc
+            </button>
+          </div>
+
+          <!-- Roster picker -->
+          <form method="post" id="adm-form-roster-{{ order.pk }}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="assign_rider">
+            <input type="hidden" name="rider_mode" value="roster">
+            {% if rider_roster %}
+            <select name="rider_id" required
+                    style="width:100%; padding:.55rem; border:1px solid var(--border); border-radius:6px; background:var(--bg-input); color:var(--text); font-size:.88rem; margin-bottom:.55rem;">
+              <option value="">— Pick a rider —</option>
+              {% for r in rider_roster %}
+              <option value="{{ r.id }}" {% if rider.rider_id == r.id %}selected{% endif %}>
+                {% if r.is_verified %}✓{% else %}⚠{% endif %} {{ r.name }} · {{ r.phone }}
+              </option>
+              {% endfor %}
+            </select>
+            {% else %}
+            <p style="font-size:.82rem; color:var(--text-muted); margin-bottom:.55rem;">
+              No riders in roster yet — use the Ad-hoc tab to dispatch the first rider.
+            </p>
+            {% endif %}
+            <button type="submit" class="btn btn-primary btn-sm" style="font-size:.85rem;" {% if not rider_roster %}disabled{% endif %}>
+              Update Rider
+            </button>
+          </form>
+
+          <!-- Ad-hoc form -->
+          <form method="post" id="adm-form-adhoc-{{ order.pk }}" style="display:none;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="assign_rider">
+            <input type="hidden" name="rider_mode" value="adhoc">
+            <input type="text" name="rider_name" value="{{ rider.rider_name }}"
+              placeholder="Rider name" required maxlength="100"
+              style="width:100%;padding:.5rem .65rem;border:1px solid var(--border);border-radius:6px;font-size:.88rem;margin-bottom:.5rem;background:var(--bg-input);color:var(--text);">
+            <input type="text" name="rider_phone" value="{{ rider.rider_phone }}"
+              placeholder="Rider phone" required maxlength="30"
+              style="width:100%;padding:.5rem .65rem;border:1px solid var(--border);border-radius:6px;font-size:.88rem;margin-bottom:.65rem;background:var(--bg-input);color:var(--text);">
+            <button type="submit" class="btn btn-primary btn-sm" style="font-size:.85rem;">Update Rider</button>
+          </form>
+        </details>
+
+        {% else %}
+        <!-- No rider yet -->
+        <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:1rem;">
+          No rider assigned yet. Pick from the roster, or dispatch ad-hoc.
+        </p>
+
+        <!-- Mode tabs -->
+        <div style="display:flex; gap:.4rem; margin-bottom:.75rem; border-bottom:1px solid var(--border);">
+          <button type="button" id="adm-mode-roster-new"
+                  onclick="admSwitchMode('new', 'roster')"
+                  style="background:none; border:none; padding:.45rem .75rem; cursor:pointer; font-size:.82rem; font-weight:600; color:var(--text); border-bottom:2px solid var(--accent);">
+            📇 From Roster
+          </button>
+          <button type="button" id="adm-mode-adhoc-new"
+                  onclick="admSwitchMode('new', 'adhoc')"
+                  style="background:none; border:none; padding:.45rem .75rem; cursor:pointer; font-size:.82rem; font-weight:600; color:var(--text-muted); border-bottom:2px solid transparent;">
+            ⚡ Ad-hoc
+          </button>
+        </div>
+
+        <!-- Roster pick -->
+        <form method="post" id="adm-form-roster-new">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="assign_rider">
+          <input type="hidden" name="rider_mode" value="roster">
+          {% if rider_roster %}
+          <select name="rider_id" required
+                  style="width:100%; padding:.55rem .7rem; border:1px solid var(--border); border-radius:6px; background:var(--bg-input); color:var(--text); font-size:.9rem; margin-bottom:.75rem;">
+            <option value="">— Pick a rider for this delivery —</option>
+            {% for r in rider_roster %}
+            <option value="{{ r.id }}">{% if r.is_verified %}✓{% else %}⚠{% endif %} {{ r.name }} · {{ r.phone }} · {{ r.get_vehicle_type_display }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="btn btn-gold w-100" style="font-size:.92rem; padding:.75rem;">
+            🛵 Assign Rider &amp; Dispatch
+          </button>
+          {% else %}
+          <p style="background:var(--warning-bg); border:1px solid var(--warning-border); color:var(--warning-text); padding:.75rem; border-radius:6px; font-size:.85rem;">
+            No riders in the roster yet. <a href="{% url 'admin_rider_add' %}" style="color:inherit; text-decoration:underline;">Add the first one</a>, or use Ad-hoc.
+          </p>
+          {% endif %}
+        </form>
+
+        <!-- Ad-hoc -->
+        <form method="post" id="adm-form-adhoc-new" style="display:none;">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="assign_rider">
+          <input type="hidden" name="rider_mode" value="adhoc">
+          <div style="margin-bottom:.65rem;">
+            <input type="text" name="rider_name" placeholder="Rider full name" required maxlength="100"
+              style="width:100%;padding:.55rem .7rem;border:1px solid var(--border);border-radius:6px;font-size:.9rem;background:var(--bg-input);color:var(--text);">
+          </div>
+          <div style="margin-bottom:.75rem;">
+            <input type="text" name="rider_phone" placeholder="Rider phone e.g. 0244000000" required maxlength="30"
+              style="width:100%;padding:.55rem .7rem;border:1px solid var(--border);border-radius:6px;font-size:.9rem;background:var(--bg-input);color:var(--text);">
+          </div>
+          <button type="submit" class="btn btn-gold w-100" style="font-size:.92rem;padding:.75rem;">
+            🛵 Dispatch Ad-hoc &amp; Add to Roster
+          </button>
+        </form>
+
+        <script>
+        // Lazily defined once per page; calls multiple times are no-ops thanks to the guard.
+        if (typeof window.admSwitchMode !== 'function') {
+          window.admSwitchMode = function(suffix, mode) {
+            var rosterForm = document.getElementById('adm-form-roster-' + suffix);
+            var adhocForm  = document.getElementById('adm-form-adhoc-' + suffix);
+            var rosterTab  = document.getElementById('adm-mode-roster-' + suffix);
+            var adhocTab   = document.getElementById('adm-mode-adhoc-' + suffix);
+            if (!rosterForm || !adhocForm) return;
+            if (mode === 'adhoc') {
+              rosterForm.style.display = 'none';
+              adhocForm.style.display  = 'block';
+              rosterTab.style.borderBottomColor = 'transparent';
+              adhocTab.style.borderBottomColor  = 'var(--accent)';
+              rosterTab.style.color = 'var(--text-muted)';
+              adhocTab.style.color  = 'var(--text)';
+            } else {
+              rosterForm.style.display = 'block';
+              adhocForm.style.display  = 'none';
+              adhocTab.style.borderBottomColor  = 'transparent';
+              rosterTab.style.borderBottomColor = 'var(--accent)';
+              adhocTab.style.color  = 'var(--text-muted)';
+              rosterTab.style.color = 'var(--text)';
+            }
+          };
+        }
+        </script>
+
+        {% endif %}
+
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <div class="card-header"><h2>Order Info</h2></div>
+      <div style="padding:1.25rem;font-size:0.88rem;display:flex;flex-direction:column;gap:0.5rem;color:var(--muted);">
+        <div>Order: <strong style="color:var(--text);">{{ order.order_number }}</strong></div>
+        <div>Placed: <strong style="color:var(--text);">{{ order.created|date:"M d, Y H:i" }}</strong></div>
+        <div>Updated: <strong style="color:var(--text);">{{ order.updated|date:"M d, Y H:i" }}</strong></div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:0.5rem;">
+      <a href="{% url 'admin_orders' %}" class="btn btn-ghost w-100">← Back to Orders</a>
+      <a href="{% url 'admin_export_orders' %}" class="btn btn-ghost w-100">⬇ Export CSV</a>
+      <a href="{% url 'admin_order_delete' order.pk %}" class="btn btn-danger w-100">Delete Order</a>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

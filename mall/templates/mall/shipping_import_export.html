@@ -1,0 +1,821 @@
+{% extends 'mall/base.html' %}
+{% block title %}Shipping (HCL) — Import & Export — Honey Cave Market{% endblock %}
+
+{% block extra_css %}
+<style>
+.hcl-section { padding: 3.5rem 0; border-bottom: 1px solid var(--border); }
+.hcl-eyebrow {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    background: var(--accent-soft); color: var(--gold-deep);
+    padding: 0.3rem 0.9rem; border-radius: 20px;
+    font-size: 0.7rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+    margin-bottom: 0.75rem;
+}
+.hcl-h2 { font-family: 'Playfair Display', serif; font-size: 1.9rem; font-weight: 700; color: var(--text); text-align: center; }
+.hcl-sub { color: var(--text-muted); text-align: center; max-width: 560px; margin: 0.5rem auto 0; font-size: 0.95rem; }
+.hcl-center { text-align: center; margin-bottom: 2.25rem; }
+
+.hcl-hero { display: grid; grid-template-columns: 1.4fr 1fr; gap: 2.5rem; align-items: center; }
+@media (max-width: 900px) { .hcl-hero { grid-template-columns: 1fr; } }
+.hcl-hero h1 { font-family: 'Playfair Display', serif; font-size: 2.6rem; line-height: 1.15; color: var(--text); margin: 0.5rem 0 1rem; }
+.hcl-hero h1 em { font-style: normal; color: var(--gold-deep); }
+.hcl-hero p.lead { color: var(--text-muted); font-size: 1.02rem; max-width: 480px; }
+.hcl-hero-btns { display: flex; gap: 0.75rem; margin-top: 1.25rem; flex-wrap: wrap; }
+.hcl-btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.85rem 1.5rem; border-radius: 999px; font-weight: 700; font-size: 0.85rem; cursor: pointer; border: none; text-decoration: none; }
+.hcl-btn-dark { background: var(--dark-brand); color: #fff; }
+.hcl-btn-gold { background: var(--gold); color: var(--dark-brand); }
+.hcl-btn-outline { background: transparent; border: 1.5px solid var(--border-strong); color: var(--text); }
+.hcl-hero-checks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+@media (max-width: 640px) { .hcl-hero-checks { grid-template-columns: 1fr 1fr; } }
+.hcl-hero-checks span { font-size: 0.78rem; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 0.4rem; }
+.hcl-hero-img { border-radius: 20px; overflow: hidden; border: 1px solid var(--border); box-shadow: var(--shadow-lg); }
+.hcl-hero-img img { width: 100%; display: block; }
+
+.hcl-track-card { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 18px; padding: 1.5rem; box-shadow: var(--shadow-md); max-width: 760px; margin: 0 auto; }
+.hcl-track-row { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+.hcl-track-input { flex: 1; min-width: 220px; padding: 0.8rem 1rem; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-input); font-size: 0.9rem; text-transform: uppercase; }
+.hcl-track-error { margin-top: 0.9rem; padding: 0.7rem 0.9rem; background: var(--danger-bg); color: var(--danger-text); border-radius: 10px; font-size: 0.82rem; }
+.hcl-track-result { max-width: 760px; margin: 1.5rem auto 0; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 18px; overflow: hidden; box-shadow: var(--shadow-md); display: none; }
+.hcl-track-head { background: var(--dark-brand); color: #fff; padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; }
+.hcl-track-code { font-family: monospace; font-size: 1.3rem; font-weight: 700; letter-spacing: 1px; }
+.hcl-status-pill { padding: 0.4rem 0.9rem; border-radius: 10px; font-size: 0.75rem; font-weight: 700; background: var(--accent-soft); color: var(--gold-deep); }
+.hcl-track-specs { background: var(--bg-sunken); padding: 1.25rem 1.5rem; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.9rem; }
+@media (max-width: 700px) { .hcl-track-specs { grid-template-columns: 1fr 1fr !important; } }
+.hcl-spec { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 10px; padding: 0.7rem 0.85rem; }
+.hcl-spec .lbl { font-size: 0.65rem; text-transform: uppercase; font-weight: 700; color: var(--text-faint); }
+.hcl-spec .val { font-size: 0.88rem; font-weight: 700; color: var(--text); margin-top: 0.15rem; }
+.hcl-timeline { padding: 1.5rem; position: relative; }
+.hcl-timeline-track { border-left: 2px solid var(--border); padding-left: 1.5rem; display: flex; flex-direction: column; gap: 1rem; margin-left: 0.5rem; }
+.hcl-tl-item { position: relative; }
+.hcl-tl-node { position: absolute; left: -1.95rem; top: 0; width: 1.6rem; height: 1.6rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; border: 2px solid var(--gold); }
+.hcl-tl-node.done { background: var(--gold); color: #fff; }
+.hcl-tl-node.pending { background: var(--bg-elevated); color: var(--text-faint); }
+.hcl-tl-body { background: var(--bg-sunken); border: 1px solid var(--border); border-radius: 10px; padding: 0.8rem 0.9rem; }
+.hcl-tl-label { font-size: 0.72rem; font-weight: 700; color: var(--gold-deep); background: var(--accent-soft); padding: 0.15rem 0.5rem; border-radius: 6px; display: inline-block; }
+.hcl-tl-loc { font-size: 0.72rem; color: var(--text-faint); float: right; }
+.hcl-tl-desc { font-size: 0.85rem; font-weight: 600; color: var(--text); margin-top: 0.4rem; clear: both; }
+
+.hcl-book-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 2rem; align-items: flex-start; }
+@media (max-width: 900px) { .hcl-book-grid { grid-template-columns: 1fr; } }
+.hcl-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; max-width: 700px; margin: 0 auto 1.5rem; }
+.hcl-step-btn { padding: 0.7rem 0.4rem; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-elevated); text-align: center; font-size: 0.72rem; font-weight: 700; color: var(--text-faint); cursor: default; }
+.hcl-step-btn.active { background: var(--dark-brand); color: #fff; border-color: var(--dark-brand); }
+.hcl-step-btn.done { background: var(--accent-soft); color: var(--gold-deep); border-color: var(--gold); cursor: pointer; }
+.hcl-form-card { background: var(--bg-elevated); border: 1px solid var(--border); border-top: 6px solid var(--gold); border-radius: 20px; padding: 1.75rem; box-shadow: var(--shadow-lg); }
+.hcl-form-step { display: none; }
+.hcl-form-step.active { display: block; }
+.hcl-form-step h3 { font-size: 1.1rem; font-weight: 700; color: var(--text); border-bottom: 1px solid var(--border); padding-bottom: 0.7rem; margin-bottom: 1.1rem; }
+.hcl-fieldset { background: var(--bg-sunken); border: 1px solid var(--border); border-radius: 14px; padding: 1rem; margin-bottom: 1rem; }
+.hcl-fieldset .tag { font-size: 0.65rem; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; color: var(--gold-deep); margin-bottom: 0.6rem; display: block; }
+.hcl-field { margin-bottom: 0.85rem; }
+.hcl-field label { display: block; font-size: 0.65rem; text-transform: uppercase; font-weight: 700; color: var(--text-faint); margin-bottom: 0.25rem; }
+.hcl-field input, .hcl-field select {
+    width: 100%; border: none; border-bottom: 1.5px solid var(--border-strong);
+    background: transparent; padding: 0.4rem 0; font-size: 0.9rem; font-weight: 500; color: var(--text);
+}
+.hcl-field input:focus, .hcl-field select:focus { outline: none; border-color: var(--gold); }
+.hcl-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.hcl-err { color: var(--danger); font-size: 0.75rem; font-weight: 700; margin-top: 0.25rem; }
+.hcl-delivery-opt { padding: 0.85rem; border-radius: 14px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; cursor: pointer; margin-bottom: 0.6rem; }
+.hcl-delivery-opt.selected { background: var(--accent-soft); border-color: var(--gold); }
+.hcl-delivery-opt .badge { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; background: var(--gold); color: #fff; padding: 0.1rem 0.4rem; border-radius: 8px; margin-left: 0.4rem; }
+.hcl-insure { display: flex; gap: 0.75rem; align-items: center; padding: 0.85rem; background: var(--bg-sunken); border: 1px solid var(--border); border-radius: 14px; cursor: pointer; }
+.hcl-nav-btns { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; }
+
+.hcl-estimate { background: var(--dark-brand); color: #fff; border-radius: 20px; border-top: 6px solid var(--gold); padding: 1.75rem; position: sticky; top: 90px; }
+.hcl-estimate h4 { font-size: 1.05rem; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.15); padding-bottom: 0.8rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
+.hcl-estimate .line { display: flex; justify-content: space-between; font-size: 0.85rem; color: rgba(255,255,255,0.7); margin-bottom: 0.7rem; }
+.hcl-estimate .line span:last-child { color: #fff; font-family: monospace; }
+.hcl-estimate .total { padding-top: 1rem; margin-top: 0.4rem; border-top: 1px solid rgba(255,255,255,0.15); display: flex; justify-content: space-between; align-items: baseline; }
+.hcl-estimate .total .amt { font-size: 1.9rem; font-weight: 800; color: var(--gold); font-family: monospace; }
+
+.hcl-cards3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+@media (max-width: 800px) { .hcl-cards3 { grid-template-columns: 1fr; } }
+.hcl-service-card { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; position: relative; }
+.hcl-service-card .badge { position: absolute; top: 1.25rem; right: 1.25rem; font-size: 0.6rem; font-weight: 700; text-transform: uppercase; background: var(--gold); color: #fff; padding: 0.2rem 0.5rem; border-radius: 8px; }
+.hcl-service-card .icon { font-size: 1.8rem; margin-bottom: 0.75rem; }
+.hcl-service-card h3 { font-family: 'Playfair Display', serif; font-size: 1.1rem; margin-bottom: 0.4rem; }
+.hcl-service-card p { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.9rem; }
+.hcl-service-card ul { list-style: none; padding: 0; margin: 0 0 1rem; font-size: 0.8rem; }
+.hcl-service-card li { display: flex; gap: 0.4rem; margin-bottom: 0.4rem; color: var(--text); }
+.hcl-service-card .price-row { display: flex; justify-content: space-between; padding-top: 0.8rem; border-top: 1px solid var(--border); font-size: 0.8rem; }
+.hcl-service-card .price { font-weight: 800; color: var(--gold-deep); }
+
+.hcl-steps4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; }
+@media (max-width: 800px) { .hcl-steps4 { grid-template-columns: 1fr 1fr; } }
+.hcl-hiw-card { text-align: center; }
+.hcl-hiw-num { width: 2.5rem; height: 2.5rem; border-radius: 50%; background: var(--dark-brand); color: var(--gold); display: flex; align-items: center; justify-content: center; font-weight: 800; margin: 0 auto 0.75rem; }
+.hcl-hiw-card h4 { font-size: 0.92rem; font-weight: 700; margin-bottom: 0.35rem; }
+.hcl-hiw-card p { font-size: 0.8rem; color: var(--text-muted); }
+
+.hcl-cards4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; }
+@media (max-width: 800px) { .hcl-cards4 { grid-template-columns: 1fr 1fr; } }
+.hcl-trust-card { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 16px; padding: 1.4rem; }
+.hcl-trust-card .icon { font-size: 1.6rem; margin-bottom: 0.6rem; }
+.hcl-trust-card h4 { font-size: 0.92rem; font-weight: 700; margin-bottom: 0.4rem; }
+.hcl-trust-card p { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.6rem; }
+.hcl-trust-card .badgepill { font-size: 0.65rem; font-weight: 700; background: var(--accent-soft); color: var(--gold-deep); padding: 0.2rem 0.5rem; border-radius: 8px; }
+
+.hcl-faq { max-width: 720px; margin: 0 auto; }
+.hcl-faq-item { border: 1px solid var(--border); border-radius: 12px; margin-bottom: 0.6rem; padding: 1rem 1.1rem; background: var(--bg-elevated); }
+.hcl-faq-item h5 { font-size: 0.9rem; font-weight: 700; margin-bottom: 0.4rem; }
+.hcl-faq-item p { font-size: 0.83rem; color: var(--text-muted); }
+
+.hcl-modal-backdrop { position: fixed; inset: 0; background: rgba(26,20,16,0.6); display: none; align-items: center; justify-content: center; padding: 1rem; z-index: 999; }
+.hcl-modal { background: #fff; border-radius: 20px; max-width: 460px; width: 100%; padding: 2rem; border: 2px solid var(--success); position: relative; }
+.hcl-modal-close { position: absolute; top: 1rem; right: 1rem; background: var(--accent-soft); border: none; border-radius: 50%; width: 2rem; height: 2rem; cursor: pointer; font-weight: 700; }
+.hcl-modal-icon { width: 3.5rem; height: 3.5rem; border-radius: 50%; background: var(--success-bg); color: var(--success); display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem; font-size: 1.7rem; }
+.hcl-modal h3 { text-align: center; font-family: 'Playfair Display', serif; font-size: 1.35rem; }
+.hcl-modal .sub { text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 1.25rem; }
+.hcl-modal-code { background: var(--dark-brand); color: #fff; text-align: center; padding: 1rem; border-radius: 14px; margin-bottom: 1.25rem; }
+.hcl-modal-code .lbl { font-size: 0.65rem; text-transform: uppercase; font-weight: 700; color: var(--gold); }
+.hcl-modal-code .code { font-family: monospace; font-size: 1.4rem; font-weight: 800; letter-spacing: 1px; color: var(--gold); }
+.hcl-modal-summary { background: var(--bg-sunken); border-radius: 14px; padding: 0.9rem 1rem; font-size: 0.78rem; margin-bottom: 1.25rem; }
+.hcl-modal-summary .row { display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px solid var(--border); }
+.hcl-modal-summary .row:last-child { border: none; }
+.hcl-modal-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+.hcl-loading { display: inline-block; animation: hcl-spin 0.8s linear infinite; }
+@keyframes hcl-spin { to { transform: rotate(360deg); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:1180px; margin:0 auto;">
+
+<!-- HERO -->
+<section class="hcl-section" style="border-top:none;">
+    <div class="hcl-hero">
+        <div>
+            <span class="hcl-eyebrow">✦ Premier Logistics ✦</span>
+            <h1>Simple, Safe &amp; <em>Reliable</em> Shipping</h1>
+            <p class="lead">Efficient local and international delivery solutions for your business and personal needs — safe, fast, and transparent door-to-door courier logistics.</p>
+            <div class="hcl-hero-btns">
+                <a href="#hcl-ship" class="hcl-btn hcl-btn-dark">Ship a Package →</a>
+                <a href="#hcl-track" class="hcl-btn hcl-btn-gold">🔍 Track Package</a>
+                {% if user.is_authenticated %}
+                <a href="{% url 'my_shipments' %}" class="hcl-btn hcl-btn-outline">📦 My Shipments</a>
+                {% endif %}
+            </div>
+            <div class="hcl-hero-checks">
+                <span>✓ Real-Time Tracking</span>
+                <span>✓ Customs Included</span>
+                <span>✓ Fully Insured</span>
+            </div>
+        </div>
+        <div class="hcl-hero-img">
+            <img src="https://images.unsplash.com/photo-1601924994987-69e26d50dc26?q=80&w=900&auto=format&fit=crop" alt="Honey Cave Shipping courier and delivery">
+        </div>
+    </div>
+</section>
+
+<!-- QUICK TRACKING -->
+<section class="hcl-section" id="hcl-track">
+    <div class="hcl-center">
+        <span class="hcl-eyebrow">📦 Instant Tracking</span>
+        <h2 class="hcl-h2">Track Your Shipment</h2>
+        <p class="hcl-sub">Enter your tracking number for real-time status and milestone history.</p>
+    </div>
+
+    <div class="hcl-track-card">
+        <form id="hcl-track-form" class="hcl-track-row">
+            <input type="text" id="hcl-track-input" class="hcl-track-input" placeholder="Enter Tracking Number (e.g. HC-9482017)">
+            <button type="submit" class="hcl-btn hcl-btn-gold" id="hcl-track-submit">Track →</button>
+        </form>
+        <div id="hcl-track-error" class="hcl-track-error" style="display:none;"></div>
+    </div>
+
+    <div id="hcl-track-result" class="hcl-track-result">
+        <div class="hcl-track-head">
+            <div>
+                <div style="font-size:0.65rem; text-transform:uppercase; letter-spacing:1px; color:var(--gold); font-weight:700;">Shipment Details</div>
+                <div class="hcl-track-code" id="hcl-r-code"></div>
+            </div>
+            <div class="hcl-status-pill" id="hcl-r-status"></div>
+        </div>
+        <div class="hcl-track-specs" style="grid-template-columns: repeat(5, 1fr);">
+            <div class="hcl-spec"><div class="lbl">Method</div><div class="val" id="hcl-r-method"></div></div>
+            <div class="hcl-spec"><div class="lbl">Origin</div><div class="val" id="hcl-r-origin"></div></div>
+            <div class="hcl-spec"><div class="lbl">Destination</div><div class="val" id="hcl-r-dest"></div></div>
+            <div class="hcl-spec"><div class="lbl">Pickup Date</div><div class="val" id="hcl-r-date"></div></div>
+            <div class="hcl-spec"><div class="lbl">Current Location</div><div class="val" id="hcl-r-loc"></div></div>
+        </div>
+        <div class="hcl-timeline">
+            <h4 style="font-size:0.95rem; font-weight:700; margin-bottom:1rem;">📍 Shipment Milestone History</h4>
+            <div class="hcl-timeline-track" id="hcl-r-timeline"></div>
+        </div>
+    </div>
+</section>
+
+<!-- BOOKING FORM -->
+<section class="hcl-section" id="hcl-ship">
+    <div class="hcl-center">
+        <span class="hcl-eyebrow">🧮 Instant Booking</span>
+        <h2 class="hcl-h2">Ship a Package</h2>
+        <p class="hcl-sub">Complete our simple multi-step form to calculate rates and confirm door pickup.</p>
+    </div>
+
+    <div class="hcl-steps">
+        <div class="hcl-step-btn active" data-step-nav="1">📍<br>Locations</div>
+        <div class="hcl-step-btn" data-step-nav="2">👤<br>Contacts</div>
+        <div class="hcl-step-btn" data-step-nav="3">📦<br>Package &amp; Option</div>
+        <div class="hcl-step-btn" data-step-nav="4">✔<br>Confirm</div>
+    </div>
+
+    <form id="hcl-booking-form" novalidate>
+        {% csrf_token %}
+        <div class="hcl-book-grid">
+            <div class="hcl-form-card">
+
+                <!-- STEP 1 -->
+                <div class="hcl-form-step active" data-step="1">
+                    <h3>📍 Step 1: Pickup &amp; Destination</h3>
+                    <div class="hcl-fieldset">
+                        <span class="tag">Pickup Location</span>
+                        <div class="hcl-field">
+                            <label>Street Address *</label>
+                            <input type="text" name="pickup_address" placeholder="e.g. East Legon, Accra" required>
+                            <div class="hcl-err" data-err="pickup_address"></div>
+                        </div>
+                        <div class="hcl-row2">
+                            <div class="hcl-field"><label>City *</label><input type="text" name="pickup_city" value="Accra" required></div>
+                            <div class="hcl-field"><label>Country *</label><input type="text" name="pickup_country" value="Ghana" required></div>
+                        </div>
+                    </div>
+                    <div class="hcl-fieldset">
+                        <span class="tag">Destination</span>
+                        <div class="hcl-field">
+                            <label>Destination Address *</label>
+                            <input type="text" name="dest_address" placeholder="e.g. Marylebone, London" required>
+                            <div class="hcl-err" data-err="dest_address"></div>
+                        </div>
+                        <div class="hcl-row2">
+                            <div class="hcl-field"><label>City *</label><input type="text" name="dest_city" value="London" required></div>
+                            <div class="hcl-field"><label>Country *</label><input type="text" name="dest_country" value="United Kingdom" required></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 2 -->
+                <div class="hcl-form-step" data-step="2">
+                    <h3>👤 Step 2: Contacts</h3>
+                    <div class="hcl-fieldset">
+                        <span class="tag">Sender Information</span>
+                        <div class="hcl-field"><label>Full Name *</label><input type="text" name="sender_name" placeholder="Adeola Johnson" required><div class="hcl-err" data-err="sender_name"></div></div>
+                        <div class="hcl-row2">
+                            <div class="hcl-field"><label>Phone Number *</label><input type="tel" name="sender_phone" placeholder="+233 24 123 4567" required><div class="hcl-err" data-err="sender_phone"></div></div>
+                            <div class="hcl-field"><label>Email Address</label><input type="email" name="sender_email" placeholder="adeola@example.com"></div>
+                        </div>
+                    </div>
+                    <div class="hcl-fieldset">
+                        <span class="tag">Recipient Information</span>
+                        <div class="hcl-field"><label>Recipient Name *</label><input type="text" name="recipient_name" placeholder="Oliver Smith" required><div class="hcl-err" data-err="recipient_name"></div></div>
+                        <div class="hcl-row2">
+                            <div class="hcl-field"><label>Recipient Phone *</label><input type="tel" name="recipient_phone" placeholder="+44 7911 123456" required><div class="hcl-err" data-err="recipient_phone"></div></div>
+                            <div class="hcl-field"><label>Recipient Email</label><input type="email" name="recipient_email" placeholder="oliver@example.co.uk"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 3 -->
+                <div class="hcl-form-step" data-step="3">
+                    <h3>📦 Step 3: Package &amp; Speed</h3>
+                    <div class="hcl-field">
+                        <label style="margin-bottom:0.6rem;">Shipping Method</label>
+                        <div id="hcl-method-opts" style="display:grid; grid-template-columns:1fr 1fr; gap:0.6rem;">
+                            {% for key, m in shipping_methods.items %}
+                            <label class="hcl-delivery-opt{% if key == 'air' %} selected{% endif %}" data-method="{{ key }}" style="margin-bottom:0;">
+                                <div style="display:flex; align-items:center; gap:0.6rem;">
+                                    <input type="radio" name="shipping_method" value="{{ key }}" {% if key == 'air' %}checked{% endif %}>
+                                    <div>
+                                        <div style="font-size:0.85rem; font-weight:700;">{% if key == 'air' %}✈️{% else %}🚢{% endif %} {{ m.name }}</div>
+                                        <div style="font-size:0.72rem; color:var(--text-muted);">{{ m.desc }}</div>
+                                    </div>
+                                </div>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="hcl-row2">
+                        <div class="hcl-field">
+                            <label>Package Type</label>
+                            <select name="package_type">
+                                <option value="document">Document / Letter</option>
+                                <option value="small_parcel" selected>Small Parcel / Box</option>
+                                <option value="heavy_box">Heavy Cargo Box</option>
+                                <option value="fragile">Fragile / Sensitive Items</option>
+                            </select>
+                        </div>
+                        <div class="hcl-field">
+                            <label>Weight (kg) *</label>
+                            <input type="number" step="0.1" min="0.1" name="weight_kg" value="2.5" required>
+                            <div class="hcl-err" data-err="weight_kg"></div>
+                        </div>
+                    </div>
+                    <div class="hcl-field">
+                        <label>Description</label>
+                        <input type="text" name="description" placeholder="e.g. Personal gifts and documents">
+                    </div>
+                    <div class="hcl-field">
+                        <label>Pickup Date *</label>
+                        <input type="date" name="pickup_date" required>
+                        <div class="hcl-err" data-err="pickup_date"></div>
+                    </div>
+                    <div class="hcl-field">
+                        <label style="margin-bottom:0.6rem;">Delivery Option</label>
+                        <div id="hcl-delivery-opts">
+                            {% for key, opt in delivery_options.items %}
+                            <label class="hcl-delivery-opt{% if key == 'express' %} selected{% endif %}" data-opt="{{ key }}" data-methods="{{ opt.methods|join:',' }}">
+                                <div style="display:flex; align-items:center; gap:0.6rem;">
+                                    <input type="radio" name="delivery_option" value="{{ key }}" {% if key == 'express' %}checked{% endif %}>
+                                    <div>
+                                        <div style="font-size:0.85rem; font-weight:700;">{{ opt.name }}{% if opt.badge %}<span class="badge">{{ opt.badge }}</span>{% endif %}</div>
+                                        <div style="font-size:0.75rem; color:var(--text-muted);">{{ opt.desc }}</div>
+                                    </div>
+                                </div>
+                                <span style="font-size:0.72rem; font-weight:700; background:var(--bg-sunken); border:1px solid var(--border); padding:0.25rem 0.5rem; border-radius:8px; white-space:nowrap;">{{ opt.days }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <label class="hcl-insure">
+                        <input type="checkbox" name="insurance_required" id="hcl-insurance">
+                        <div>
+                            <div style="font-size:0.82rem; font-weight:700;">🛡️ Add Full Package Protection (+GH₵ 125)</div>
+                            <div style="font-size:0.72rem; color:var(--text-muted);">Covers up to GH₵ 37,500 total loss or damage.</div>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- STEP 4 -->
+                <div class="hcl-form-step" data-step="4">
+                    <h3>✔ Step 4: Review &amp; Confirm</h3>
+                    <div class="hcl-fieldset" id="hcl-review-box" style="font-size:0.82rem;"></div>
+                    <div style="padding:0.9rem 1rem; background:var(--success-bg); border:1px solid var(--success-border); border-radius:12px; color:var(--success-text); font-size:0.8rem; font-weight:600;">
+                        ✦ Confirming will generate your official tracking code and notify dispatch.
+                    </div>
+                    <div id="hcl-submit-error" class="hcl-track-error" style="display:none; margin-top:1rem;"></div>
+                </div>
+
+                <div class="hcl-nav-btns">
+                    <button type="button" class="hcl-btn hcl-btn-outline" id="hcl-prev-btn" style="visibility:hidden;">← Back</button>
+                    <button type="button" class="hcl-btn hcl-btn-dark" id="hcl-next-btn">Continue →</button>
+                    <button type="submit" class="hcl-btn hcl-btn-gold" id="hcl-submit-btn" style="display:none;">Confirm Booking (<span id="hcl-submit-total">GH₵ 300</span>) ✔</button>
+                </div>
+            </div>
+
+            <!-- ESTIMATE SIDEBAR -->
+            <div class="hcl-estimate">
+                <h4><span>🧮 Estimated Cost</span> <span style="font-size:0.6rem; background:rgba(255,255,255,0.1); padding:0.2rem 0.5rem; border-radius:6px; color:var(--gold);">INSTANT</span></h4>
+                <div class="line"><span>Base Shipment Handling</span><span id="hcl-e-base">GH₵ 220.00</span></div>
+                <div class="line"><span>Weight Fee (<span id="hcl-e-weight-kg">2.5</span> kg)</span><span id="hcl-e-weight">GH₵ 162.50</span></div>
+                <div class="line"><span>Speed Factor</span><span id="hcl-e-speed" style="color:var(--gold);">1.8x multiplier</span></div>
+                <div class="line" id="hcl-e-insure-row" style="display:none;"><span>Declared Insurance</span><span id="hcl-e-insure">GH₵ 125.00</span></div>
+                <div class="total">
+                    <div>
+                        <div style="font-size:0.65rem; text-transform:uppercase; font-weight:700; color:var(--gold);">Total Estimated Cost</div>
+                        <div style="font-size:0.72rem; color:rgba(255,255,255,0.5);">Arrival: <span id="hcl-e-days">1 - 2 Business Days</span></div>
+                    </div>
+                    <span class="amt" id="hcl-e-total">GH₵ 685</span>
+                </div>
+                <div style="margin-top:1.25rem; padding:0.9rem; background:rgba(255,255,255,0.08); border-radius:12px; font-size:0.75rem; color:rgba(255,255,255,0.8);">
+                    <strong style="color:var(--gold); display:block; margin-bottom:0.2rem;">Honey Cave Shipping Guarantee:</strong>
+                    Includes door pickup, customs paperwork handling, and SMS/WhatsApp notifications.
+                </div>
+            </div>
+        </div>
+    </form>
+</section>
+
+<!-- SERVICES -->
+<section class="hcl-section">
+    <div class="hcl-center">
+        <span class="hcl-eyebrow">Our Services</span>
+        <h2 class="hcl-h2">Global Import &amp; Export Solutions</h2>
+        <p class="hcl-sub">Whether it's urgent, international, or enterprise-scale — we've got a service tier for it.</p>
+    </div>
+    <div class="hcl-cards3">
+        <div class="hcl-service-card">
+            <span class="badge">Fastest</span>
+            <div class="icon">⚡</div>
+            <h3>Express Shipping</h3>
+            <p>Guaranteed 1–2 day priority air cargo with expedited customs &amp; handling.</p>
+            <ul>
+                <li>✓ 24–48 hour delivery windows</li>
+                <li>✓ Priority airport terminal handling</li>
+                <li>✓ GH₵ 7,500 package liability coverage</li>
+            </ul>
+            <div class="price-row"><span>From</span><span class="price">GH₵ 420</span></div>
+        </div>
+        <div class="hcl-service-card">
+            <div class="icon">🌍</div>
+            <h3>International Shipping</h3>
+            <p>Global cross-border logistics with automated customs processing, wherever you're shipping to.</p>
+            <ul>
+                <li>✓ Worldwide delivery coverage</li>
+                <li>✓ Duty and customs paperwork handled</li>
+                <li>✓ Full end-to-end global tracking</li>
+            </ul>
+            <div class="price-row"><span>From</span><span class="price">GH₵ 680</span></div>
+        </div>
+        <div class="hcl-service-card">
+            <span class="badge">Enterprise</span>
+            <div class="icon">🏢</div>
+            <h3>Business Logistics</h3>
+            <p>Tailored enterprise fulfillment, automated bookings, and bulk discount rates.</p>
+            <ul>
+                <li>✓ Dedicated account manager</li>
+                <li>✓ E-commerce plugin integration</li>
+                <li>✓ Volume discounts up to 35%</li>
+            </ul>
+            <div class="price-row"><span>From</span><span class="price">Custom Plan</span></div>
+        </div>
+    </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="hcl-section">
+    <div class="hcl-center">
+        <span class="hcl-eyebrow">Simple Process</span>
+        <h2 class="hcl-h2">How It Works</h2>
+    </div>
+    <div class="hcl-steps4">
+        <div class="hcl-hiw-card"><div class="hcl-hiw-num">1</div><h4>Enter Shipment Details</h4><p>Pickup &amp; destination, package dimensions, and weight — a quick 2-minute form.</p></div>
+        <div class="hcl-hiw-card"><div class="hcl-hiw-num">2</div><h4>Receive Price Estimate</h4><p>Get an instant transparent rate breakdown with zero hidden fees.</p></div>
+        <div class="hcl-hiw-card"><div class="hcl-hiw-num">3</div><h4>Confirm the Booking</h4><p>Choose your pickup date and get your official tracking code instantly.</p></div>
+        <div class="hcl-hiw-card"><div class="hcl-hiw-num">4</div><h4>Track Delivery</h4><p>Follow your package with step-by-step milestone updates to destination.</p></div>
+    </div>
+</section>
+
+<!-- TRUST -->
+<section class="hcl-section">
+    <div class="hcl-center">
+        <span class="hcl-eyebrow">Why Honey Cave</span>
+        <h2 class="hcl-h2">Built On Trust</h2>
+    </div>
+    <div class="hcl-cards4">
+        <div class="hcl-trust-card"><div class="icon">🛡️</div><h4>Secure Handling</h4><p>Tamper-evident packaging, vetted couriers, and comprehensive insurance options.</p><span class="badgepill">Insured Options</span></div>
+        <div class="hcl-trust-card"><div class="icon">📡</div><h4>Real-Time Tracking</h4><p>Live status updates and instant WhatsApp milestone notifications.</p><span class="badgepill">Live Updates</span></div>
+        <div class="hcl-trust-card"><div class="icon">💰</div><h4>Affordable Pricing</h4><p>Transparent rates with no surprise fees. Exact estimates before booking.</p><span class="badgepill">Zero Hidden Fees</span></div>
+        <div class="hcl-trust-card"><div class="icon">🎧</div><h4>Dedicated Support</h4><p>Our logistics support team is available via WhatsApp, phone, and email.</p><span class="badgepill">Always Available</span></div>
+    </div>
+</section>
+
+<!-- FAQ -->
+<section class="hcl-section" style="border-bottom:none;">
+    <div class="hcl-center">
+        <span class="hcl-eyebrow">Questions</span>
+        <h2 class="hcl-h2">Frequently Asked</h2>
+    </div>
+    <div class="hcl-faq">
+        <div class="hcl-faq-item"><h5>How do I book a package pickup?</h5><p>Use the "Ship a Package" form above. Enter pickup and destination addresses, package weight, and a pickup date — a driver will arrive during your chosen window.</p></div>
+        <div class="hcl-faq-item"><h5>What tracking information will I receive?</h5><p>Once booked, you'll get a unique tracking code (e.g. HC-8849201). Enter it in the Track Shipment box above anytime.</p></div>
+        <div class="hcl-faq-item"><h5>Are packages insured against damage or loss?</h5><p>You can add full-value declared insurance (+GH₵ 125, up to GH₵ 37,500 coverage) during booking for extra peace of mind.</p></div>
+        <div class="hcl-faq-item"><h5>Does Honey Cave ship internationally?</h5><p>Yes — we ship worldwide, with customs processing handled as part of the booking.</p></div>
+    </div>
+    <div style="text-align:center; margin-top:2rem;">
+        <a href="{% url 'contact' %}" class="hcl-btn hcl-btn-outline">Still have questions? Contact us →</a>
+    </div>
+</section>
+
+</div>
+
+<!-- SUCCESS MODAL -->
+<div class="hcl-modal-backdrop" id="hcl-success-modal">
+    <div class="hcl-modal">
+        <button class="hcl-modal-close" id="hcl-modal-close">✕</button>
+        <div class="hcl-modal-icon">✔</div>
+        <h3>Shipment Booking Confirmed!</h3>
+        <p class="sub">Your pickup driver has been assigned and scheduled.</p>
+        <div class="hcl-modal-code">
+            <div class="lbl">Your Tracking Number</div>
+            <div class="code" id="hcl-modal-code"></div>
+        </div>
+        <div class="hcl-modal-summary" id="hcl-modal-summary"></div>
+        <div class="hcl-modal-btns">
+            <button type="button" class="hcl-btn hcl-btn-outline" id="hcl-modal-close-btn">Close Receipt</button>
+            <button type="button" class="hcl-btn hcl-btn-gold" id="hcl-modal-track-btn">🔍 Track This Package</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const CSRF = '{{ csrf_token }}';
+    const DELIVERY = {
+        {% for key, opt in delivery_options.items %}
+        '{{ key }}': { factor: {{ opt.factor }}, days: '{{ opt.days }}', methods: '{{ opt.methods|join:"," }}'.split(',') },
+        {% endfor %}
+    };
+    const PKG_FACTORS = { document: 0.8, small_parcel: 1.0, heavy_box: 1.35, fragile: 1.25 };
+    const METHOD_RATES = { air: { base: 220.0, perKg: 65.0 }, sea: { base: 380.0, perKg: 15.0 } };
+
+    const form = document.getElementById('hcl-booking-form');
+    let currentStep = 1;
+    const totalSteps = 4;
+
+    function showStep(n) {
+        document.querySelectorAll('.hcl-form-step').forEach(el => el.classList.toggle('active', +el.dataset.step === n));
+        document.querySelectorAll('.hcl-step-btn').forEach(el => {
+            const s = +el.dataset.stepNav;
+            el.classList.toggle('active', s === n);
+            el.classList.toggle('done', s < n);
+        });
+        document.getElementById('hcl-prev-btn').style.visibility = n > 1 ? 'visible' : 'hidden';
+        document.getElementById('hcl-next-btn').style.display = n < totalSteps ? 'inline-flex' : 'none';
+        document.getElementById('hcl-submit-btn').style.display = n === totalSteps ? 'inline-flex' : 'none';
+        if (n === totalSteps) renderReview();
+        currentStep = n;
+    }
+
+    function fieldVal(name) {
+        const el = form.querySelector(`[name="${name}"]`);
+        if (!el) return '';
+        if (el.type === 'checkbox') return el.checked;
+        return el.value.trim();
+    }
+
+    function clearErrors() {
+        document.querySelectorAll('.hcl-err').forEach(el => el.textContent = '');
+    }
+
+    function validateStep(n) {
+        clearErrors();
+        let ok = true;
+        const required = {
+            1: ['pickup_address', 'pickup_city', 'dest_address', 'dest_city'],
+            2: ['sender_name', 'sender_phone', 'recipient_name', 'recipient_phone'],
+            3: ['weight_kg', 'pickup_date'],
+        }[n] || [];
+        required.forEach(name => {
+            if (!fieldVal(name)) {
+                ok = false;
+                const err = form.querySelector(`[data-err="${name}"]`);
+                if (err) err.textContent = 'This field is required.';
+            }
+        });
+        if (n === 3 && fieldVal('weight_kg') && parseFloat(fieldVal('weight_kg')) <= 0) {
+            ok = false;
+            form.querySelector('[data-err="weight_kg"]').textContent = 'Enter a valid weight.';
+        }
+        return ok;
+    }
+
+    document.getElementById('hcl-next-btn').addEventListener('click', () => {
+        if (validateStep(currentStep)) showStep(Math.min(currentStep + 1, totalSteps));
+    });
+    document.getElementById('hcl-prev-btn').addEventListener('click', () => showStep(Math.max(currentStep - 1, 1)));
+    document.querySelectorAll('.hcl-step-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const s = +btn.dataset.stepNav;
+            if (s < currentStep) showStep(s);
+        });
+    });
+
+    const pickupDateInput = form.querySelector('[name="pickup_date"]');
+    const defaultDate = new Date(); defaultDate.setDate(defaultDate.getDate() + 2);
+    pickupDateInput.value = defaultDate.toISOString().split('T')[0];
+
+    // ---------- Shipping method (Air / Sea) toggle ----------
+    function currentMethod() {
+        return form.querySelector('[name="shipping_method"]:checked')?.value || 'air';
+    }
+
+    function applyMethodFilter() {
+        const method = currentMethod();
+        document.querySelectorAll('#hcl-method-opts .hcl-delivery-opt').forEach(l => l.classList.toggle('selected', l.dataset.method === method));
+
+        let anyVisible = false;
+        let selectedStillValid = false;
+        const selectedOpt = form.querySelector('[name="delivery_option"]:checked');
+
+        document.querySelectorAll('#hcl-delivery-opts .hcl-delivery-opt').forEach(label => {
+            const methods = (label.dataset.methods || '').split(',');
+            const visible = methods.includes(method);
+            label.style.display = visible ? 'flex' : 'none';
+            if (visible) {
+                anyVisible = true;
+                if (label.querySelector('input[type=radio]').value === (selectedOpt && selectedOpt.value)) {
+                    selectedStillValid = true;
+                }
+            }
+        });
+
+        // If the currently-selected delivery option isn't valid for this method, pick the first visible one.
+        if (!selectedStillValid) {
+            const firstVisible = Array.from(document.querySelectorAll('#hcl-delivery-opts .hcl-delivery-opt'))
+                .find(l => l.style.display !== 'none');
+            if (firstVisible) {
+                document.querySelectorAll('#hcl-delivery-opts .hcl-delivery-opt').forEach(l => l.classList.remove('selected'));
+                firstVisible.classList.add('selected');
+                firstVisible.querySelector('input[type=radio]').checked = true;
+            }
+        }
+        recalcEstimate();
+    }
+
+    document.querySelectorAll('#hcl-method-opts .hcl-delivery-opt').forEach(label => {
+        label.addEventListener('click', () => {
+            label.querySelector('input[type=radio]').checked = true;
+            applyMethodFilter();
+        });
+    });
+
+    document.querySelectorAll('#hcl-delivery-opts .hcl-delivery-opt').forEach(label => {
+        label.addEventListener('click', () => {
+            document.querySelectorAll('#hcl-delivery-opts .hcl-delivery-opt').forEach(l => l.classList.remove('selected'));
+            label.classList.add('selected');
+            label.querySelector('input[type=radio]').checked = true;
+            recalcEstimate();
+        });
+    });
+
+    function recalcEstimate() {
+        const weight = parseFloat(fieldVal('weight_kg')) || 1;
+        const method = currentMethod();
+        const optionId = form.querySelector('[name="delivery_option"]:checked')?.value || 'standard';
+        const pkgType = fieldVal('package_type') || 'small_parcel';
+        const insured = !!fieldVal('insurance_required');
+        const option = DELIVERY[optionId] || DELIVERY['standard'];
+        const pkgFactor = PKG_FACTORS[pkgType] ?? 1.0;
+        const rates = METHOD_RATES[method] || METHOD_RATES.air;
+
+        const basePrice = rates.base;
+        const weightFee = Math.round(weight * rates.perKg * 100) / 100;
+        const insuranceFee = insured ? 125.0 : 0;
+        let subtotal = Math.round((basePrice + weightFee) * option.factor * pkgFactor + insuranceFee);
+        subtotal = Math.max(subtotal, 300);
+
+        document.getElementById('hcl-e-base').textContent = 'GH₵ ' + basePrice.toFixed(2);
+        document.getElementById('hcl-e-weight-kg').textContent = weight;
+        document.getElementById('hcl-e-weight').textContent = 'GH₵ ' + weightFee.toFixed(2);
+        document.getElementById('hcl-e-speed').textContent = option.factor + 'x multiplier';
+        document.getElementById('hcl-e-insure-row').style.display = insured ? 'flex' : 'none';
+        document.getElementById('hcl-e-insure').textContent = 'GH₵ ' + insuranceFee.toFixed(2);
+        document.getElementById('hcl-e-days').textContent = option.days;
+        document.getElementById('hcl-e-total').textContent = 'GH₵ ' + subtotal;
+        document.getElementById('hcl-submit-total').textContent = 'GH₵ ' + subtotal;
+    }
+    form.addEventListener('input', recalcEstimate);
+    form.addEventListener('change', recalcEstimate);
+    applyMethodFilter();
+
+    function renderReview() {
+        const optionId = form.querySelector('[name="delivery_option"]:checked')?.value || 'standard';
+        const option = DELIVERY[optionId] || DELIVERY['standard'];
+        const method = currentMethod() === 'sea' ? '🚢 Sea Freight' : '✈️ Air Freight';
+        document.getElementById('hcl-review-box').innerHTML = `
+            <div style="display:flex; justify-content:space-between; padding:0.4rem 0; border-bottom:1px solid var(--border);"><span style="color:var(--text-faint); font-weight:700;">Route:</span><span style="font-weight:700;">${fieldVal('pickup_city')}, ${fieldVal('pickup_country')} → ${fieldVal('dest_city')}, ${fieldVal('dest_country')}</span></div>
+            <div style="display:flex; justify-content:space-between; padding:0.4rem 0; border-bottom:1px solid var(--border);"><span style="color:var(--text-faint); font-weight:700;">Shipping Method:</span><span style="font-weight:700;">${method}</span></div>
+            <div style="display:flex; justify-content:space-between; padding:0.4rem 0; border-bottom:1px solid var(--border);"><span style="color:var(--text-faint); font-weight:700;">Sender:</span><span style="font-weight:700;">${fieldVal('sender_name')} (${fieldVal('sender_phone')})</span></div>
+            <div style="display:flex; justify-content:space-between; padding:0.4rem 0; border-bottom:1px solid var(--border);"><span style="color:var(--text-faint); font-weight:700;">Recipient:</span><span style="font-weight:700;">${fieldVal('recipient_name')} (${fieldVal('recipient_phone')})</span></div>
+            <div style="display:flex; justify-content:space-between; padding:0.4rem 0; border-bottom:1px solid var(--border);"><span style="color:var(--text-faint); font-weight:700;">Pickup Date:</span><span style="font-weight:700;">${fieldVal('pickup_date')}</span></div>
+            <div style="display:flex; justify-content:space-between; padding:0.4rem 0;"><span style="color:var(--text-faint); font-weight:700;">Service Speed:</span><span style="font-weight:700; color:var(--gold-deep);">${option.days}</span></div>
+        `;
+    }
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!validateStep(1) || !validateStep(2) || !validateStep(3)) return;
+
+        const submitBtn = document.getElementById('hcl-submit-btn');
+        submitBtn.disabled = true;
+        const origText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<span class="hcl-loading">⏳</span> Booking...';
+
+        const fd = new FormData(form);
+        if (!fd.has('insurance_required')) fd.set('insurance_required', '');
+        else fd.set('insurance_required', 'on');
+
+        fetch('{% url "shipping_book" %}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': CSRF },
+            body: fd,
+        })
+        .then(r => r.json().then(data => ({ status: r.status, data })))
+        .then(({ status, data }) => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = origText;
+            const errBox = document.getElementById('hcl-submit-error');
+            if (!data.ok) {
+                errBox.style.display = 'block';
+                const firstErr = data.errors && (data.errors.__all__ ? data.errors.__all__[0] : Object.values(data.errors)[0]);
+                errBox.textContent = (firstErr && firstErr[0]) || firstErr || 'Something went wrong — please check your details.';
+                return;
+            }
+            errBox.style.display = 'none';
+            showSuccessModal(data);
+        })
+        .catch(() => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = origText;
+            const errBox = document.getElementById('hcl-submit-error');
+            errBox.style.display = 'block';
+            errBox.textContent = 'Network error — please try again.';
+        });
+    });
+
+    function showSuccessModal(data) {
+        document.getElementById('hcl-modal-code').textContent = data.tracking_code;
+        document.getElementById('hcl-modal-summary').innerHTML = `
+            <div class="row"><span>Pickup Origin:</span><strong>${fieldVal('pickup_address')}, ${fieldVal('pickup_city')}</strong></div>
+            <div class="row"><span>Destination:</span><strong>${fieldVal('dest_address')}, ${fieldVal('dest_city')}</strong></div>
+            <div class="row"><span>Pickup Date:</span><strong>${fieldVal('pickup_date')}</strong></div>
+            <div class="row"><span>Total Charged:</span><strong>GH₵ ${data.total_cost}</strong></div>
+        `;
+        document.getElementById('hcl-success-modal').style.display = 'flex';
+        document.getElementById('hcl-modal-track-btn').onclick = () => {
+            document.getElementById('hcl-success-modal').style.display = 'none';
+            document.getElementById('hcl-track-input').value = data.tracking_code;
+            document.getElementById('hcl-track').scrollIntoView({ behavior: 'smooth' });
+            runTrack(data.tracking_code);
+        };
+    }
+    document.getElementById('hcl-modal-close').onclick =
+    document.getElementById('hcl-modal-close-btn').onclick = () => {
+        document.getElementById('hcl-success-modal').style.display = 'none';
+        form.reset();
+        pickupDateInput.value = defaultDate.toISOString().split('T')[0];
+        showStep(1);
+        recalcEstimate();
+    };
+
+    const trackForm = document.getElementById('hcl-track-form');
+    const trackInput = document.getElementById('hcl-track-input');
+    const trackErr = document.getElementById('hcl-track-error');
+    const trackResult = document.getElementById('hcl-track-result');
+
+    function statusColor(status) {
+        return { delivered: 'var(--success)', out_for_delivery: 'var(--warning)', in_transit: 'var(--info)' }[status] || 'var(--gold-deep)';
+    }
+
+    function runTrack(code) {
+        trackErr.style.display = 'none';
+        trackResult.style.display = 'none';
+        const btn = document.getElementById('hcl-track-submit');
+        btn.disabled = true;
+        fetch('{% url "shipping_track" %}?code=' + encodeURIComponent(code))
+            .then(r => r.json().then(data => ({ status: r.status, data })))
+            .then(({ data }) => {
+                btn.disabled = false;
+                if (!data.ok) {
+                    trackErr.textContent = data.error || 'Shipment not found.';
+                    trackErr.style.display = 'block';
+                    return;
+                }
+                document.getElementById('hcl-r-code').textContent = data.tracking_code;
+                const pill = document.getElementById('hcl-r-status');
+                pill.textContent = data.status_display;
+                pill.style.color = statusColor(data.status);
+                document.getElementById('hcl-r-method').textContent = data.shipping_method;
+                document.getElementById('hcl-r-origin').textContent = data.origin;
+                document.getElementById('hcl-r-dest').textContent = data.destination;
+                document.getElementById('hcl-r-date').textContent = data.pickup_date;
+                document.getElementById('hcl-r-loc').textContent = data.current_location;
+
+                const tl = document.getElementById('hcl-r-timeline');
+                tl.innerHTML = '';
+                data.events.forEach(ev => {
+                    const div = document.createElement('div');
+                    div.className = 'hcl-tl-item';
+                    div.innerHTML = `
+                        <div class="hcl-tl-node ${ev.completed ? 'done' : 'pending'}">${ev.completed ? '✓' : ''}</div>
+                        <div class="hcl-tl-body">
+                            <span class="hcl-tl-label">${ev.label}</span>
+                            <span class="hcl-tl-loc">${ev.location}</span>
+                            <div class="hcl-tl-desc">${ev.description}</div>
+                        </div>`;
+                    tl.appendChild(div);
+                });
+                trackResult.style.display = 'block';
+            })
+            .catch(() => {
+                btn.disabled = false;
+                trackErr.textContent = 'Network error — please try again.';
+                trackErr.style.display = 'block';
+            });
+    }
+
+    trackForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const code = trackInput.value.trim();
+        if (!code) {
+            trackErr.textContent = 'Please enter a tracking number.';
+            trackErr.style.display = 'block';
+            return;
+        }
+        runTrack(code);
+    });
+
+    // Auto-run tracking if arriving via a link with ?track=CODE (e.g. from "My Shipments").
+    const urlParams = new URLSearchParams(window.location.search);
+    const prefillCode = urlParams.get('track');
+    if (prefillCode) {
+        trackInput.value = prefillCode;
+        runTrack(prefillCode);
+        document.getElementById('hcl-track').scrollIntoView({ behavior: 'smooth' });
+    }
+})();
+</script>
+{% endblock %}

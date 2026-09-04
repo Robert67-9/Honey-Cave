@@ -1,0 +1,41 @@
+{% extends 'mall/rider/base.html' %}
+{% block title %}History — Rider Portal{% endblock %}
+{% block content %}
+
+<div style="margin-bottom:1.25rem;">
+  <h1>Past deliveries</h1>
+  <p style="color:var(--muted); margin:.25rem 0 0; font-size:.92rem;">
+    Your last {{ deliveries|length }} completed deliver{{ deliveries|length|pluralize:"y,ies" }}.
+  </p>
+</div>
+
+{% for d in deliveries %}
+<div class="card">
+  <div style="display:flex; justify-content:space-between; align-items:start; gap:.5rem; flex-wrap:wrap;">
+    <div>
+      <div style="font-family:'Courier New',monospace; font-weight:700;">{{ d.order.order_number }}</div>
+      <div style="font-size:.82rem; color:var(--muted); margin-top:.2rem;">
+        Delivered {{ d.delivered_at|date:"M d, Y · H:i" }}
+        {% if d.order.branch %} · {{ d.order.branch.name }}{% endif %}
+      </div>
+    </div>
+    <span class="badge badge-done">✓ Delivered</span>
+  </div>
+  <div style="margin-top:.6rem; font-size:.88rem;">
+    {{ d.order.full_name }} · {{ d.order.phone }}
+    {% if d.order.delivery_address %} · {{ d.order.delivery_address|truncatechars:80 }}{% endif %}
+  </div>
+  {% if d.rider_note %}
+  <div style="margin-top:.5rem; padding:.45rem .65rem; background:#f5f0e8; border-radius:6px; font-size:.82rem; color:#5a5047;">
+    📝 {{ d.rider_note }}
+  </div>
+  {% endif %}
+</div>
+{% empty %}
+<div class="card empty">
+  <div style="font-size:2rem; margin-bottom:.5rem;">📭</div>
+  No past deliveries yet — your completed orders will appear here.
+</div>
+{% endfor %}
+
+{% endblock %}

@@ -1,0 +1,92 @@
+diff --git a/mall/views.py b/mall/views.py
+index f673053..c9ccf95 100644
+--- a/mall/views.py
++++ b/mall/views.py
+@@ -124,14 +124,18 @@ def send_otp(user, otp_obj, *, plaintext_code):
+     )
+ 
+     # ── Email ─────────────────────────────────────────────────────────
++    # fail_silently=False so SMTP auth/connection errors actually raise
++    # and get logged, instead of being swallowed and reported as success.
+     try:
+-        send_mail(
++        sent_count = send_mail(
+             subject, plain_msg,
+             django_settings.DEFAULT_FROM_EMAIL,
+             [user.email],
+-            fail_silently=True,
++            fail_silently=False,
+         )
+-        result['email'] = True
++        result['email'] = sent_count > 0
++        if sent_count == 0:
++            logger.warning('OTP email for user %s returned 0 sent (no exception raised)', user.pk)
+     except Exception as e:
+         logger.warning('OTP email send failed for user %s: %s', user.pk, e)
+ 
+@@ -282,9 +286,9 @@ def send_order_receipt(order):
+             to=[order.email],
+         )
+         msg.attach_alternative(html_message, 'text/html')
+-        msg.send(fail_silently=True)
+-    except Exception:
+-        pass
++        msg.send(fail_silently=False)
++    except Exception as e:
++        logger.warning('Order confirmation email failed for order %s: %s', getattr(order, 'order_number', '?'), e)
+ 
+ 
+ 
+@@ -569,9 +573,9 @@ def _send_feedback_request_email(order):
+         from django.core.mail import EmailMultiAlternatives
+         msg = EmailMultiAlternatives(subject, plain, django_settings.DEFAULT_FROM_EMAIL, [order.email])
+         msg.attach_alternative(html, 'text/html')
+-        msg.send(fail_silently=True)
+-    except Exception:
+-        pass
++        msg.send(fail_silently=False)
++    except Exception as e:
++        logger.warning('Feedback request email failed for order %s: %s', getattr(order, 'order_number', '?'), e)
+ 
+ 
+ def _check_stock_alerts(product):
+@@ -2693,10 +2697,10 @@ def contact(request):
+                     message=f'From: {name} <{email}>\n\n{msg}',
+                     from_email=django_settings.DEFAULT_FROM_EMAIL,
+                     recipient_list=[django_settings.DEFAULT_FROM_EMAIL],
+-                    fail_silently=True,
++                    fail_silently=False,
+                 )
+-            except Exception:
+-                pass
++            except Exception as e:
++                logger.warning('Contact form email failed: %s', e)
+             messages.success(request, 'Thank you! We will get back to you within 24 hours.')
+             return redirect('contact')
+     return render(request, 'mall/contact.html', {'form': form})
+@@ -3530,9 +3534,9 @@ def _notify_rider_dispatched(order, rider):
+         </div>"""
+         msg = EmailMultiAlternatives(subject, '', django_settings.DEFAULT_FROM_EMAIL, [order.email])
+         msg.attach_alternative(body_html, 'text/html')
+-        msg.send(fail_silently=True)
+-    except Exception:
+-        pass
++        msg.send(fail_silently=False)
++    except Exception as e:
++        logger.warning('Delivery status email failed for order %s: %s', getattr(order, 'order_number', '?'), e)
+ 
+     # SMS: customer
+     _send_sms(
+@@ -3614,9 +3618,9 @@ def _notify_delivery_done(order, rider):
+         </div>"""
+         msg = EmailMultiAlternatives(subject, '', django_settings.DEFAULT_FROM_EMAIL, [order.email])
+         msg.attach_alternative(body_html, 'text/html')
+-        msg.send(fail_silently=True)
+-    except Exception:
+-        pass
++        msg.send(fail_silently=False)
++    except Exception as e:
++        logger.warning('Delivery status email failed for order %s: %s', getattr(order, 'order_number', '?'), e)
+ 
+     # SMS: customer
+     _send_sms(

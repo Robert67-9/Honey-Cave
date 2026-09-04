@@ -1,0 +1,77 @@
+{% extends "mall/admin/base_admin.html" %}
+{% block title %}Wallets & Payouts — Admin{% endblock %}
+{% block page_title %}Wallets & Payouts{% endblock %}
+
+{% block content %}
+<div class="stats-grid">
+    <div class="stat-card gold">
+        <span class="label">Total Wallets</span>
+        <span class="value">{{ counts.all }}</span>
+        <span class="sub">{{ counts.sellers }} sellers, {{ counts.riders }} riders</span>
+    </div>
+    <div class="stat-card red">
+        <span class="label">Frozen</span>
+        <span class="value">{{ counts.frozen }}</span>
+        <span class="sub">Under dispute review</span>
+    </div>
+    <div class="stat-card">
+        <span class="label">Withdrawals Processing</span>
+        <span class="value">{{ counts.pending_withdrawals }}</span>
+        <span class="sub"><a href="{% url 'admin_withdrawals' %}">View queue →</a></span>
+    </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2>All Wallets</h2>
+    <form method="get" style="display:flex;gap:0.5rem;">
+      <input type="text" name="q" value="{{ q }}" placeholder="Search name/phone…" style="padding:0.5rem 0.75rem;border:1px solid var(--border);border-radius:8px;">
+      <select name="type" onchange="this.form.submit()" style="padding:0.5rem 0.75rem;border:1px solid var(--border);border-radius:8px;">
+        <option value="" {% if not owner_type %}selected{% endif %}>All types</option>
+        <option value="seller" {% if owner_type == 'seller' %}selected{% endif %}>Sellers</option>
+        <option value="rider" {% if owner_type == 'rider' %}selected{% endif %}>Riders</option>
+      </select>
+      <select name="flag" onchange="this.form.submit()" style="padding:0.5rem 0.75rem;border:1px solid var(--border);border-radius:8px;">
+        <option value="" {% if not flag %}selected{% endif %}>All statuses</option>
+        <option value="frozen" {% if flag == 'frozen' %}selected{% endif %}>Frozen</option>
+        <option value="untrusted" {% if flag == 'untrusted' %}selected{% endif %}>Untrusted</option>
+      </select>
+      <button type="submit" class="btn btn-ghost">Filter</button>
+    </form>
+  </div>
+  <div class="card-body" style="padding:0;">
+    <table>
+      <thead>
+        <tr><th>Owner</th><th>Type</th><th>Available</th><th>Pending</th><th>Reserve</th><th>Withdrawn</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for w in page_obj %}
+        <tr>
+          <td>{{ w.owner_label }}</td>
+          <td>{{ w.get_owner_type_display }}</td>
+          <td>GH₵ {{ w.available_balance|floatformat:2 }}</td>
+          <td>GH₵ {{ w.pending_balance|floatformat:2 }}</td>
+          <td>GH₵ {{ w.reserve_held|floatformat:2 }}</td>
+          <td>GH₵ {{ w.withdrawn_total|floatformat:2 }}</td>
+          <td>
+            {% if w.is_frozen %}<span class="badge badge-locked">Frozen</span>{% endif %}
+            {% if w.is_trusted %}<span class="badge badge-done">Trusted</span>{% endif %}
+          </td>
+          <td><a href="{% url 'admin_wallet_detail' w.pk %}" class="row-link">View →</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="empty">No wallets match this filter.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if page_obj.has_other_pages %}
+<div style="display:flex;gap:0.5rem;justify-content:center;margin-top:1rem;">
+  {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="btn btn-ghost">← Prev</a>{% endif %}
+  <span style="align-self:center;font-size:0.85rem;color:var(--muted);">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+  {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="btn btn-ghost">Next →</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

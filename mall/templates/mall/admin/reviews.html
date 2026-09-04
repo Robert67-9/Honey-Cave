@@ -1,0 +1,69 @@
+{% extends 'mall/admin/base_admin.html' %}
+{% block title %}Reviews — Market Admin{% endblock %}
+{% block content %}
+<div class="admin-page-header">
+  <h1>Customer Reviews</h1>
+  <p class="text-muted">{{ reviews|length }} total review{{ reviews|length|pluralize }}</p>
+</div>
+
+<div class="admin-card">
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>Product</th>
+        <th>Customer</th>
+        <th>Rating</th>
+        <th>Headline</th>
+        <th>Comment</th>
+        <th>Verified</th>
+        <th>Helpful</th>
+        <th>Approved</th>
+        <th>Date</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for review in reviews %}
+      <tr>
+        <td><a href="{% url 'product_detail' review.product.slug %}" style="color:var(--gold);">{{ review.product.name }}</a></td>
+        <td>{{ review.user.get_full_name|default:review.user.username }}</td>
+        <td style="color:var(--gold);white-space:nowrap;">
+          {% for i in "12345" %}{% if forloop.counter <= review.rating %}★{% else %}☆{% endif %}{% endfor %}
+          <span style="font-size:0.75rem;color:var(--muted);">{{ review.rating }}/5</span>
+        </td>
+        <td style="font-size:0.85rem;">{{ review.title|default:"—" }}</td>
+        <td style="max-width:250px;font-size:0.85rem;color:var(--muted);">{{ review.comment|truncatewords:15 }}</td>
+        <td>
+          {% if review.is_verified_purchase %}
+          <span style="background:#d4edda;color:#155724;border-radius:20px;font-size:0.7rem;font-weight:700;padding:0.2rem 0.6rem;">✓ Yes</span>
+          {% else %}
+          <span style="color:var(--muted);font-size:0.8rem;">No</span>
+          {% endif %}
+        </td>
+        <td style="text-align:center;">{{ review.helpful_count }}</td>
+        <td>
+          <form method="post" action="{% url 'admin_review_toggle' review.pk %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm {% if review.is_approved %}btn-outline{% else %}btn-gold{% endif %}"
+                    style="font-size:0.75rem;padding:0.25rem 0.65rem;">
+              {% if review.is_approved %}✓ Visible{% else %}✗ Hidden{% endif %}
+            </button>
+          </form>
+        </td>
+        <td style="font-size:0.8rem;white-space:nowrap;">{{ review.created|date:"d M Y" }}</td>
+        <td>
+          <form method="post" action="{% url 'admin_review_delete' review.pk %}" onsubmit="return confirm('Delete this review?')">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm" style="background:#dc3545;color:white;font-size:0.75rem;padding:0.25rem 0.65rem;">
+              Delete
+            </button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="10" style="text-align:center;color:var(--muted);padding:2rem;">No reviews yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

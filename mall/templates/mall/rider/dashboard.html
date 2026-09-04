@@ -1,0 +1,79 @@
+{% extends 'mall/rider/base.html' %}
+{% block title %}Dashboard — Rider Portal{% endblock %}
+{% block content %}
+
+<div style="margin-bottom:1.25rem;">
+  <h1>Hi, {{ rider.name|default:rider.phone }} 👋</h1>
+  <p style="color:var(--muted); margin:.25rem 0 0; font-size:.92rem;">
+    {% if active_count %}
+      You have <strong>{{ active_count }}</strong> active deliver{{ active_count|pluralize:"y,ies" }} to complete.
+    {% else %}
+      No active deliveries right now. We'll notify you when a new one is assigned.
+    {% endif %}
+  </p>
+</div>
+
+{% for d in active %}
+<div class="card" style="position:relative;">
+  <div style="display:flex; justify-content:space-between; align-items:start; gap:1rem; flex-wrap:wrap;">
+    <div style="flex:1; min-width:240px;">
+      <div style="font-family:'Courier New',monospace; font-weight:700; font-size:1rem; color:var(--dark);">
+        {{ d.order.order_number }}
+      </div>
+      <div style="font-size:.82rem; color:var(--muted); margin-top:.2rem;">
+        Dispatched {{ d.dispatched_at|date:"M d, H:i" }}
+        {% if d.order.branch %} · from {{ d.order.branch.name }}{% endif %}
+      </div>
+    </div>
+    <span class="badge {% if d.delivered_at %}badge-done{% else %}badge-pending{% endif %}">
+      {% if d.delivered_at %}Delivered{% else %}In transit{% endif %}
+    </span>
+  </div>
+
+  
+  <div style="margin-top:1rem; padding-top:1rem; border-top:1px solid var(--border); font-size:.88rem;">
+    <div style="margin-bottom:.3rem;"><strong>{{ d.order.full_name }}</strong></div>
+    <div style="color:var(--muted);">
+      📞 <a href="tel:{{ d.order.phone }}" style="color:var(--gold); text-decoration:none;">{{ d.order.phone }}</a>
+      {% if d.order.delivery_address %}<br>📍 {{ d.order.delivery_address|truncatechars:120 }}{% endif %}
+      {% if d.order.city %}<br>🏙 {{ d.order.city }}{% endif %}
+    </div>
+  </div>
+
+  
+  <div style="margin-top:.75rem; padding-top:.75rem; border-top:1px dashed var(--border); font-size:.84rem; color:var(--muted);">
+    {% for item in d.order.items.all|slice:":5" %}
+      {{ item.product.name }} × {{ item.quantity }}{% if not forloop.last %}, {% endif %}
+    {% endfor %}
+    {% with extra=d.order.items.count|add:"-5" %}
+      {% if extra > 0 %} + {{ extra }} more{% endif %}
+    {% endwith %}
+  </div>
+
+  <div style="margin-top:1rem; display:flex; gap:.6rem; flex-wrap:wrap;">
+    <a href="{% url 'rider_order' d.order.id %}" class="btn btn-gold">Open delivery →</a>
+    <a href="tel:{{ d.order.phone }}" class="btn btn-ghost">📞 Call customer</a>
+    {% if d.order.maps_directions_url %}
+    <a href="{{ d.order.maps_directions_url }}" target="_blank" rel="noopener"
+       class="btn btn-ghost" style="background:#1a73e8; color:#fff; border:none;">
+      🗺 Navigate{% if d.order.has_gps_pin %} 📍{% endif %}
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% empty %}
+<div class="card empty">
+  <div style="font-size:2rem; margin-bottom:.5rem;">📭</div>
+  No active deliveries.
+</div>
+{% endfor %}
+
+{% if rider.total_deliveries %}
+<p style="text-align:center; margin-top:1.5rem;">
+  <a href="{% url 'rider_history' %}" style="color:var(--gold); font-weight:600; text-decoration:none; font-size:.9rem;">
+    View past deliveries ({{ rider.total_deliveries }} total) →
+  </a>
+</p>
+{% endif %}
+
+{% endblock %}

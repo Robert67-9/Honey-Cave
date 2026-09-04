@@ -1,0 +1,452 @@
+﻿ .gitignore                                         |   60 -
+ .python-version                                    |    1 -
+ Dockerfile                                         |   54 -
+ GITHUB_DEPLOY.md                                   |   77 -
+ OFFICER_UPLOADS_GUIDE.md                           |  174 -
+ OPERATIONS_GUIDE.md                                |  208 -
+ PAYMENT_ADMIN_GUIDE.md                             |  215 -
+ Procfile                                           |    2 -
+ README.md                                          |   64 -
+ build.sh                                           |    7 -
+ deploy.sh                                          |  100 -
+ docker-compose.yml                                 |  124 -
+ docker-entrypoint.sh                               |   22 -
+ email-silent-failure-fix.patch                     |   92 -
+ mall/__init__.py                                   |    0
+ mall/admin.py                                      |  200 -
+ mall/admin_views.py                                | 3413 ---------------
+ mall/checkout_autocreate.diff                      |  213 -
+ mall/context_processors.py                         |   68 -
+ mall/forms.py                                      |  406 --
+ mall/fulfillment_officer_views.py                  | 1605 -------
+ mall/google_auth.py                                |  281 --
+ mall/handoff.py                                    |  462 --
+ mall/management/__init__.py                        |    0
+ mall/management/commands/__init__.py               |    0
+ .../commands/check_fulfillment_officer_coverage.py |   62 -
+ mall/management/commands/create_admin.py           |   53 -
+ mall/management/commands/match_product_images.py   |  160 -
+ mall/management/commands/normalize_rider_phones.py |   91 -
+ mall/management/commands/populate_data.py          |  218 -
+ mall/management/commands/seed_branches.py          |  159 -
+ mall/management/commands/simulate_handoff.py       |  101 -
+ mall/management/commands/test_email.py             |  133 -
+ mall/management/commands/validate_templates.py     |  122 -
+ mall/management/commands/wallet_housekeeping.py    |   55 -
+ mall/middleware.py                                 |  199 -
+ mall/migrations/0001_initial.py                    |   97 -
+ mall/migrations/0002_branch_order_branch.py        |   42 -
+ ...3_otp_userprofile_paymentsettings_paymentref.py |   55 -
+ .../0004_branch_gps_userprofile_location.py        |   44 -
+ mall/migrations/0005_branch_type_fulfillment.py    |   40 -
+ mall/migrations/0006_review_upgrade.py             |   77 -
+ mall/migrations/0007_features.py                   |   94 -
+ mall/migrations/0008_order_feedback.py             |   42 -
+ mall/migrations/0009_paymentsettings_icon.py       |   16 -
+ ...iew_options_alter_notification_link_and_more.py |   79 -
+ mall/migrations/0011_paymentsettings_paystack.py   |   55 -
+ mall/migrations/0012_rider_delivery.py             |   64 -
+ mall/migrations/0013_auditlog.py                   |   55 -
+ mall/migrations/0014_stockreservation.py           |   30 -
+ mall/migrations/0015_admintotp.py                  |   28 -
+ .../0016_order_payment_reference_blank.py          |   20 -
+ mall/migrations/0016_promotion.py                  |   42 -
+ ...duct_image_url_alter_auditlog_actor_and_more.py |   41 -
+ mall/migrations/0017_sitesettings.py               |   33 -
+ mall/migrations/0018_seed_site_settings.py         |   36 -
+ mall/migrations/0019_sitesettings_whatsapp.py      |   51 -
+ mall/migrations/0020_merge_20260422_1637.py        |   14 -
+ mall/migrations/0021_userprofile_google_oauth.py   |   21 -
+ mall/migrations/0022_handoff_codes.py              |   57 -
+ mall/migrations/0023_sitesettings_logo.py          |   27 -
+ mall/migrations/0024_branchproduct.py              |   42 -
+ mall/migrations/0025_paymentsettings_moolre.py     |   22 -
+ .../0026_storekeeper_to_fulfillment_officer.py     |  114 -
+ mall/migrations/0027_auto_field_drift_cleanup.py   |   56 -
+ .../0028_rider_roster_and_branch_assignments.py    |   76 -
+ mall/migrations/0029_seed_branch_assignments.py    |   62 -
+ mall/migrations/0030_riderotp_ridersession.py      |   50 -
+ mall/migrations/0031_order_delivery_geo.py         |   28 -
+ mall/migrations/0032_otp_hash_at_rest.py           |   45 -
+ .../migrations/0033_paymentsettings_private_key.py |   30 -
+ .../0034_sitesettings_maintenance_mode.py          |   38 -
+ ...tesettings_maintenance_bypass_token_and_more.py |   23 -
+ ...lter_paymentsettings_account_number_and_more.py |   23 -
+ .../0037_merge_paymentsettings_branches.py         |   11 -
+ ...038_userprofile_can_upload_products_and_more.py |   99 -
+ .../0039_sitesettings_tiliow_api_key_and_more.py   |   33 -
+ .../0040_userprofile_assigned_products.py          |   18 -
+ mall/migrations/0041_product_created_by.py         |   26 -
+ mall/migrations/0042_officeruploadrequest.py       |   31 -
+ mall/migrations/0043_sitesettings_nalo_fields.py   |   36 -
+ .../0044_sitesettings_maintenance_eta.py           |   18 -
+ mall/migrations/0045_storeapplication.py           |   38 -
+ .../0046_shipmentbooking_shipmenttrackingevent.py  |   71 -
+ .../0047_shipmentbooking_shipping_method.py        |   23 -
+ mall/migrations/0048_wallet_system.py              |  171 -
+ .../0049_branchproduct_related_name_fix.py         |   19 -
+ mall/migrations/0050_nalo_auth_key_and_id_fix.py   |   75 -
+ mall/migrations/__init__.py                        |    0
+ mall/models.py                                     | 2376 -----------
+ mall/notify.py                                     |  247 --
+ mall/payments/__init__.py                          |    0
+ mall/payments/base.py                              |  132 -
+ mall/payments/dispatch.py                          |   82 -
+ mall/payments/paystack.py                          |  241 --
+ mall/payments/transfers.py                         |  163 -
+ mall/rider_views.py                                |  667 ---
+ mall/security.py                                   |  236 --
+ mall/sitemaps.py                                   |   39 -
+ mall/sms.py                                        |  377 --
+ mall/static/image/logo.png                         |  Bin 44386 -> 0 bytes
+ mall/templates/mall/_wishlist_js.html              |  124 -
+ mall/templates/mall/admin/2fa_setup.html           |   63 -
+ mall/templates/mall/admin/2fa_verify.html          |   43 -
+ mall/templates/mall/admin/ai_insights.html         |  107 -
+ mall/templates/mall/admin/audit_log.html           |  153 -
+ mall/templates/mall/admin/base_admin.html          |  556 ---
+ mall/templates/mall/admin/branch_form.html         |   81 -
+ mall/templates/mall/admin/branch_requests.html     |  116 -
+ mall/templates/mall/admin/branches.html            |   52 -
+ mall/templates/mall/admin/categories.html          |   41 -
+ mall/templates/mall/admin/category_form.html       |   43 -
+ mall/templates/mall/admin/confirm_action.html      |   16 -
+ mall/templates/mall/admin/confirm_delete.html      |   21 -
+ mall/templates/mall/admin/csv_columns_hint.html    |    4 -
+ mall/templates/mall/admin/csv_import.html          |   53 -
+ mall/templates/mall/admin/csv_import_branches.html |   85 -
+ mall/templates/mall/admin/csv_import_products.html |   73 -
+ .../mall/admin/csv_import_promo_codes.html         |   87 -
+ mall/templates/mall/admin/dashboard.html           |  148 -
+ mall/templates/mall/admin/feedback.html            |  104 -
+ .../mall/admin/fulfillment_officer_form.html       |  279 --
+ .../templates/mall/admin/fulfillment_officers.html |   92 -
+ mall/templates/mall/admin/inventory.html           |   90 -
+ mall/templates/mall/admin/notifications.html       |   59 -
+ mall/templates/mall/admin/order_detail.html        |  503 ---
+ mall/templates/mall/admin/orders.html              |   77 -
+ mall/templates/mall/admin/payment_settings.html    |   57 -
+ .../mall/admin/payment_settings_form.html          |  208 -
+ mall/templates/mall/admin/payment_test.html        |   54 -
+ mall/templates/mall/admin/product_form.html        |  202 -
+ mall/templates/mall/admin/product_gallery.html     |   71 -
+ mall/templates/mall/admin/products.html            |   88 -
+ mall/templates/mall/admin/promo_code_form.html     |   73 -
+ mall/templates/mall/admin/promo_codes.html         |   41 -
+ mall/templates/mall/admin/promotion_form.html      |  154 -
+ mall/templates/mall/admin/promotions.html          |  124 -
+ mall/templates/mall/admin/reviews.html             |   69 -
+ mall/templates/mall/admin/rider_form.html          |  116 -
+ mall/templates/mall/admin/riders.html              |  161 -
+ mall/templates/mall/admin/site_settings.html       |  433 --
+ mall/templates/mall/admin/store_applications.html  |  103 -
+ mall/templates/mall/admin/upload_requests.html     |  124 -
+ mall/templates/mall/admin/user_detail.html         |  129 -
+ mall/templates/mall/admin/users.html               |   58 -
+ mall/templates/mall/admin/wallet_detail.html       |  140 -
+ mall/templates/mall/admin/wallets.html             |   77 -
+ mall/templates/mall/admin/withdrawals.html         |   57 -
+ mall/templates/mall/admin_login.html               |   47 -
+ mall/templates/mall/ai_chat.html                   |  242 --
+ mall/templates/mall/apply_job.html                 |   50 -
+ mall/templates/mall/base.html                      | 1670 --------
+ mall/templates/mall/branches.html                  |   97 -
+ mall/templates/mall/cart.html                      |  243 --
+ mall/templates/mall/checkout.html                  | 1585 -------
+ mall/templates/mall/confirm_delivery.html          |  415 --
+ mall/templates/mall/contact.html                   |  121 -
+ mall/templates/mall/forgot_password.html           |   44 -
+ mall/templates/mall/fulfillment_officer/base.html  |  221 -
+ .../templates/mall/fulfillment_officer/boosts.html |  160 -
+ .../mall/fulfillment_officer/branches.html         |  145 -
+ .../mall/fulfillment_officer/csv_upload.html       |   58 -
+ .../mall/fulfillment_officer/dashboard.html        |  120 -
+ .../mall/fulfillment_officer/earnings.html         |  104 -
+ .../mall/fulfillment_officer/history.html          |  126 -
+ mall/templates/mall/fulfillment_officer/login.html |   32 -
+ .../mall/fulfillment_officer/my_products.html      |  119 -
+ .../mall/fulfillment_officer/order_detail.html     |  280 --
+ .../mall/fulfillment_officer/product_upload.html   |  114 -
+ .../mall/fulfillment_officer/rider_form.html       |  100 -
+ .../templates/mall/fulfillment_officer/riders.html |   82 -
+ .../mall/fulfillment_officer/upload_access.html    |  104 -
+ .../mall/fulfillment_officer/withdraw.html         |   70 -
+ .../mall/fulfillment_officer/withdraw_confirm.html |   35 -
+ mall/templates/mall/home.html                      |  408 --
+ .../mall/includes/_product_card_media.html         |   44 -
+ .../mall/includes/google_signin_button.html        |   85 -
+ .../mall/includes/google_signin_button_icon.html   |   16 -
+ mall/templates/mall/includes/promotion_block.html  |  163 -
+ mall/templates/mall/login.html                     |   75 -
+ mall/templates/mall/maintenance.html               |  435 --
+ mall/templates/mall/my_orders.html                 |  602 ---
+ mall/templates/mall/my_shipments.html              |   80 -
+ mall/templates/mall/notifications.html             |   63 -
+ mall/templates/mall/order_confirmation.html        |  449 --
+ mall/templates/mall/order_feedback.html            |  142 -
+ mall/templates/mall/order_review.html              |  125 -
+ mall/templates/mall/payment_callback.html          |   64 -
+ mall/templates/mall/privacy.html                   |   77 -
+ mall/templates/mall/product_detail.html            |  542 ---
+ mall/templates/mall/product_list.html              |  245 --
+ mall/templates/mall/profile.html                   |  353 --
+ mall/templates/mall/register.html                  |   93 -
+ mall/templates/mall/reset_password.html            |   38 -
+ mall/templates/mall/rider/base.html                |  145 -
+ mall/templates/mall/rider/dashboard.html           |   79 -
+ mall/templates/mall/rider/earnings.html            |  104 -
+ mall/templates/mall/rider/history.html             |   41 -
+ mall/templates/mall/rider/login.html               |   37 -
+ mall/templates/mall/rider/order_detail.html        |  205 -
+ mall/templates/mall/rider/verify.html              |   31 -
+ mall/templates/mall/rider/withdraw.html            |   70 -
+ mall/templates/mall/rider/withdraw_confirm.html    |   35 -
+ mall/templates/mall/rider_portal.html              |  330 --
+ mall/templates/mall/robots.txt                     |   24 -
+ mall/templates/mall/select_branch.html             |  146 -
+ mall/templates/mall/shipping_import_export.html    |  821 ----
+ mall/templates/mall/store_application.html         |  121 -
+ mall/templates/mall/terms.html                     |   62 -
+ mall/templates/mall/verify_otp.html                |   51 -
+ mall/templates/mall/wishlist.html                  |  226 -
+ mall/templatetags/__init__.py                      |    0
+ mall/templatetags/form_filters.py                  |   43 -
+ mall/templatetags/promotions.py                    |   37 -
+ mall/urls.py                                       |  252 --
+ mall/views.py                                      | 4397 --------------------
+ mall/wallet.py                                     |  387 --
+ mall/whatsapp.py                                   |  462 --
+ mall_project/__init__.py                           |    0
+ mall_project/settings.py                           |  513 ---
+ mall_project/urls.py                               |   77 -
+ mall_project/wsgi.py                               |    4 -
+ manage.py                                          |   22 -
+ media/categories/Health__Wellness.jpg              |  Bin 12816 -> 0 bytes
+ media/categories/Laptop__Accessories.jpeg          |  Bin 118897 -> 0 bytes
+ media/categories/Vehicles_and_Parts.jpg            |  Bin 213112 -> 0 bytes
+ media/categories/Yevon_Oats.jpg                    |  Bin 9516 -> 0 bytes
+ media/products/32_Biscuit.jpg                      |  Bin 15236 -> 0 bytes
+ media/products/5_Star_Energy_Drink_350ml.jpg       |  Bin 10628 -> 0 bytes
+ media/products/ALPHA_KETCHUP.jpg                   |  Bin 4596 -> 0 bytes
+ media/products/ASDA_Lemon_Cleaner.jpg              |  Bin 6331 -> 0 bytes
+ media/products/Abena_Sunflower_2.9L.jpg            |  Bin 5833 -> 0 bytes
+ media/products/Aboniki_Balm_25g.jpg                |  Bin 20917 -> 0 bytes
+ media/products/Ace_Chocolate_Cake_20g.jpg          |  Bin 6946 -> 0 bytes
+ media/products/Ace_Chocolate_Pie_38g.jpg           |  Bin 9397 -> 0 bytes
+ media/products/Ace_Custard_Pie_38g.jpg             |  Bin 9528 -> 0 bytes
+ media/products/Ace_Delicious_Cake_20g.jpg          |  Bin 10111 -> 0 bytes
+ media/products/Adwoa_Milk_Candy_500g.jpg           |  Bin 6818 -> 0 bytes
+ media/products/Africa_Queen_Mackerel_Big.jpg       |  Bin 15501 -> 0 bytes
+ media/products/Alive_Medium_Toothbrush.png         |  Bin 3943 -> 0 bytes
+ media/products/Almas_Evaporated_Milk_160g.jpg      |  Bin 5009 -> 0 bytes
+ media/products/Alvaro_Malt_Drink_330ml.jpg         |  Bin 4334 -> 0 bytes
+ media/products/Angel_Cloud_Tissue.jpg              |  Bin 8922 -> 0 bytes
+ media/products/Angelina_Spaghetti_400g.jpg         |  Bin 12211 -> 0 bytes
+ media/products/Angelina_Spaghetti_400g_U1nQvL7.jpg |  Bin 12211 -> 0 bytes
+ media/products/Annapuna_Salt_450g.jpg              |  Bin 13258 -> 0 bytes
+ media/products/Annapurna_Salt_450g_Big.jpg         |  Bin 11541 -> 0 bytes
+ media/products/Annapurna_Salt_Medium.jpg           |  Bin 14274 -> 0 bytes
+ media/products/Apple_Pomade_Big.jpg                |  Bin 5689 -> 0 bytes
+ media/products/Apple_Pomade_Medium.jpg             |  Bin 5519 -> 0 bytes
+ media/products/Apple_Pomade_Small.jpg              |  Bin 9787 -> 0 bytes
+ media/products/Ariel_Original_400g.jpg             |  Bin 8588 -> 0 bytes
+ media/products/Ariel_Original_900g.jpg             |  Bin 6812 -> 0 bytes
+ media/products/Arizona_Fruit_Punch_591ml.jpg       |  Bin 6160 -> 0 bytes
+ media/products/Arizona_Green_Tea_473ml.jpg         |  Bin 6959 -> 0 bytes
+ media/products/Arizona_Watermelon_591ml.jpg        |  Bin 7150 -> 0 bytes
+ .../products/Arizona_Watermelon_591ml_9gOhjVu.jpg  |  Bin 7150 -> 0 bytes
+ media/products/Astonish_Spray_Starch.jpg           |  Bin 8472 -> 0 bytes
+ media/products/Athena_Beauty_Soap_100g.jpg         |  Bin 3333 -> 0 bytes
+ media/products/Atona_Non-Dairy_250g.jpg            |  Bin 8462 -> 0 bytes
+ media/products/Avon_Roll-on.jpg                    |  Bin 3675 -> 0 bytes
+ media/products/Awake_Medium_750ml.jpg              |  Bin 4159 -> 0 bytes
+ media/products/Awake_Small_500ml.jpg               |  Bin 4149 -> 0 bytes
+ media/products/Awo_Mackerel_425g.jpg               |  Bin 4910 -> 0 bytes
+ media/products/Chanel_Sunflower_Oil_5L.jpg         |  Bin 11451 -> 0 bytes
+ media/products/Chapter_2000_Hair_Cream.jpg         |  Bin 10545 -> 0 bytes
+ media/products/Chapter_2000_Hair_Food_100g.jpg     |  Bin 9510 -> 0 bytes
+ media/products/Checkers_Custard_400g.jpg           |  Bin 7293 -> 0 bytes
+ media/products/Cheese_112g.jpg                     |  Bin 9769 -> 0 bytes
+ media/products/Chelsea_Tea.jpg                     |  Bin 11293 -> 0 bytes
+ media/products/Cherish_Custard_Cream_Biscuit.jpg   |  Bin 11623 -> 0 bytes
+ media/products/Chic_Choc_Chocolate_Cookies.jpg     |  Bin 9195 -> 0 bytes
+ media/products/Chic_Choc_Milk_Cream.jpg            |  Bin 10352 -> 0 bytes
+ media/products/Chic_Choc_Strawberry.jpg            |  Bin 9227 -> 0 bytes
+ media/products/Choco_milo_cube.jpg                 |  Bin 21753 -> 0 bytes
+ media/products/Chocolate_Big.jpg                   |  Bin 8354 -> 0 bytes
+ media/products/Chocolate_Icecream_Stand.jpg        |  Bin 10780 -> 0 bytes
+ media/products/Chocolate_Medium.jpg                |  Bin 7515 -> 0 bytes
+ media/products/Dell_XPS_13.jpeg                    |  Bin 133376 -> 0 bytes
+ media/products/HP_EliteBook_840_G8.jpeg            |  Bin 177474 -> 0 bytes
+ media/products/Lenovo_Ideapad.jpeg                 |  Bin 130271 -> 0 bytes
+ media/products/Microsoft_surface_laptop.jpeg       |  Bin 140527 -> 0 bytes
+ media/products/Oye_Sardine.jfif                    |  Bin 7198 -> 0 bytes
+ media/products/P.K_Gum.jpg                         |  Bin 91157 -> 0 bytes
+ media/products/So_Klin_Powder_Soap_22g.png         |  Bin 135305 -> 0 bytes
+ media/products/Soda_Biscuit.jpg                    |  Bin 9395 -> 0 bytes
+ media/products/Softcare_Diaper_L11_Blue.jpg        |  Bin 9832 -> 0 bytes
+ media/products/Softcare_Diaper_L11_White.jpg       |  Bin 5498 -> 0 bytes
+ media/products/Softcare_Diaper_L40_Blue.webp       |  Bin 4512 -> 0 bytes
+ media/products/Softcare_Diaper_L40_White.jpg       |  Bin 9386 -> 0 bytes
+ media/products/Softcare_Diaper_M12_Blue.jpg        |  Bin 10080 -> 0 bytes
+ media/products/Softcare_Diaper_M42_Blue.jpg        |  Bin 9483 -> 0 bytes
+ media/products/Softcare_Diaper_M42_White.jpg       |  Bin 12345 -> 0 bytes
+ media/products/Softcare_Diaper_S15_Blue.jpg        |  Bin 7475 -> 0 bytes
+ media/products/Softcare_Diaper_S48_White.jpeg      |  Bin 134250 -> 0 bytes
+ media/products/Softcare_Diaper_S48_White.jpg       |  Bin 9298 -> 0 bytes
+ .../products/Softcare_Diaper_S48_White_LIxAbhV.jpg |  Bin 9298 -> 0 bytes
+ media/products/Softcare_Wipes_Big.jpg              |  Bin 8649 -> 0 bytes
+ media/products/Softcare_Wipes_Small.jpg            |  Bin 6009 -> 0 bytes
+ media/products/Softsheen_Sportin_Waves_99.2g.jpg   |  Bin 5275 -> 0 bytes
+ media/products/Solar_Soap.jpg                      |  Bin 4473 -> 0 bytes
+ media/products/Solar_Soap_Strawberry.jpg           |  Bin 6810 -> 0 bytes
+ media/products/Special_Tangerine_Drink_350ml.jpg   |  Bin 4800 -> 0 bytes
+ media/products/Sprite_0_Sugar_Lemon_300ml.jpg      |  Bin 13480 -> 0 bytes
+ media/products/Sprite_Zero_Sugar_Lemon_1.5L.jpg    |  Bin 2616 -> 0 bytes
+ media/products/Sprout_Dish_Washing_500ml.jpg       |  Bin 5742 -> 0 bytes
+ media/products/Sprout_Dish_Washing_5L.jpg          |  Bin 6708 -> 0 bytes
+ media/products/Sprout_Surface_Cleaner_2.5L.jpg     |  Bin 8466 -> 0 bytes
+ media/products/St._Louis_Cube_Sugar_1kg.jpg        |  Bin 6304 -> 0 bytes
+ media/products/St._Louis_Cube_Sugar_500g.jpg       |  Bin 6706 -> 0 bytes
+ media/products/Star_Fresh_Lavender_Gel.jpg         |  Bin 6094 -> 0 bytes
+ media/products/Starkist_Chunks.jpg                 |  Bin 11158 -> 0 bytes
+ media/products/Starkist_Flakes.jpg                 |  Bin 9686 -> 0 bytes
+ media/products/Stay_Powder_Big.jpg                 |  Bin 7028 -> 0 bytes
+ media/products/Stay_Powder_Small.jpg               |  Bin 7028 -> 0 bytes
+ media/products/Stay_Powder_Small_DA8xKnj.jpg       |  Bin 7028 -> 0 bytes
+ media/products/Storm_Energy_Drink.jpg              |  Bin 6651 -> 0 bytes
+ media/products/Storm_Energy_Drink_350ml.jpg        |  Bin 3429 -> 0 bytes
+ .../products/Storm_Energy_Drink_350ml_B7dWDFD.jpg  |  Bin 3429 -> 0 bytes
+ .../products/Storm_Energy_Drink_350ml_JifDTsq.jpg  |  Bin 3429 -> 0 bytes
+ media/products/Style_Up_Fresh_Roll-on_50ml.jpg     |  Bin 5793 -> 0 bytes
+ media/products/Style_Up_Roll-on_50ml.avif          |  Bin 44295 -> 0 bytes
+ media/products/Sulfer_18_Powder.jpg                |  Bin 59537 -> 0 bytes
+ media/products/Sulfur_18_Powder_300g.jpg           |  Bin 7430 -> 0 bytes
+ media/products/Sunela_Sunflower_Oil_1L.jpg         |  Bin 5242 -> 0 bytes
+ media/products/Sunlight_Dishwasher_Big.jpg         |  Bin 7184 -> 0 bytes
+ media/products/Sunlight_Soap.jpg                   |  Bin 9013 -> 0 bytes
+ media/products/Sunny_Brown_Sugar_800g.jpg          |  Bin 8750 -> 0 bytes
+ media/products/Sunny_Gold_Brown_400g_Sugar.jpg     |  Bin 8329 -> 0 bytes
+ media/products/Sunny_Sunflower_Oil_900ml.jpg       |  Bin 12882 -> 0 bytes
+ media/products/Super_Yogo_Lemon.jpg                |  Bin 8255 -> 0 bytes
+ media/products/Super_Yogo_Mango__Passion.jpg       |  Bin 11887 -> 0 bytes
+ media/products/Super_Yogo_Plain.jpg                |  Bin 6395 -> 0 bytes
+ media/products/Sure_Roll-on.jpg                    |  Bin 4696 -> 0 bytes
+ media/products/Sure_Spray.jpg                      |  Bin 12816 -> 0 bytes
+ media/products/Sweet_Corn_250g.webp                |  Bin 16668 -> 0 bytes
+ media/products/Tampico_Citrus_300ml.jpg            |  Bin 3150 -> 0 bytes
+ media/products/Tampico_Citrus_500ml.jpg            |  Bin 14926 -> 0 bytes
+ media/products/Tasteway_Sardine.jpg                |  Bin 8526 -> 0 bytes
+ media/products/Tasty_Tom_1.1kg_Sachet.webp         |  Bin 18292 -> 0 bytes
+ media/products/Tasty_Tom_2.2kg_Tin.jpg             |  Bin 54768 -> 0 bytes
+ media/products/Tasty_Tom_400g_Tin.jpg              |  Bin 10896 -> 0 bytes
+ media/products/Tasty_Tom_60g_Sachet.png            |  Bin 28531 -> 0 bytes
+ media/products/Tasty_Tom_Sachet_380g.jpg           |  Bin 7915 -> 0 bytes
+ media/products/Tesco_Cream_Crackers_300g.jpg       |  Bin 6270 -> 0 bytes
+ media/products/Tesco_Sunflower_Oil_5L.jpg          |  Bin 4506 -> 0 bytes
+ media/products/Tetley_Decaf.jpg                    |  Bin 8967 -> 0 bytes
+ media/products/Tetley_Green_Tea_100g.jpg           |  Bin 11421 -> 0 bytes
+ media/products/This_Way_Chocolate_Drink_40g.jpg    |  Bin 10244 -> 0 bytes
+ media/products/Three_Legged_Pot_Matches.jpg        |  Bin 7431 -> 0 bytes
+ media/products/Titus_Sardine.jpg                   |  Bin 8178 -> 0 bytes
+ media/products/Tokyo_Milk_Crackers.jpg             |  Bin 5091 -> 0 bytes
+ media/products/TomTom_Candy.jpg                    |  Bin 15714 -> 0 bytes
+ media/products/Top_Choco_650g.jpg                  |  Bin 5122 -> 0 bytes
+ media/products/Top_Choco_Sachet.jpg                |  Bin 8325 -> 0 bytes
+ media/products/Top_Choco_Spread_250g.jpg           |  Bin 5354 -> 0 bytes
+ media/products/Top_Country_Roll-on.jpg             |  Bin 3467 -> 0 bytes
+ media/products/Topsaho_Sardine_125g.jpg            |  Bin 7575 -> 0 bytes
+ media/products/Tower_Gate_Rich_Tea_300g.jpg        |  Bin 9896 -> 0 bytes
+ media/products/Trident_Gum.jpg                     |  Bin 9789 -> 0 bytes
+ media/products/Twist_Biscuit.jpeg                  |  Bin 24112 -> 0 bytes
+ media/products/Two_Roses_Lollipop.jpg              |  Bin 13704 -> 0 bytes
+ media/products/Ultimo_Mackerel_425g.jpg            |  Bin 18280 -> 0 bytes
+ media/products/Ultra_Strong_T-Roll.jpg             |  Bin 12745 -> 0 bytes
+ media/products/United_Cofee_Candy.jpg              |  Bin 9862 -> 0 bytes
+ media/products/Unity_Condensed_Milk_1kg.jpg        |  Bin 9950 -> 0 bytes
+ media/products/Unity_Plus_Milk_400g.jpg            |  Bin 7176 -> 0 bytes
+ media/products/Unity_Plus_Milk_400g_YV12bBy.jpg    |  Bin 7176 -> 0 bytes
+ media/products/Unoli_Oil_1L.jpg                    |  Bin 3781 -> 0 bytes
+ media/products/Unoli_Oil_2L.jpg                    |  Bin 7141 -> 0 bytes
+ media/products/Unoli_Soyabean_Oil_3L.jpg           |  Bin 4005 -> 0 bytes
+ media/products/Unoli_Soyabean_Oil_5L.jpg           |  Bin 6699 -> 0 bytes
+ media/products/Unoli_Sunflower_1L.jpg              |  Bin 4293 -> 0 bytes
+ media/products/Unoli_Sunflower_Oil_1.8L.jpg        |  Bin 6261 -> 0 bytes
+ media/products/Unoli_Sunflower_Oil_3L.jpg          |  Bin 6822 -> 0 bytes
+ media/products/Unoli_Sunflower_Oil_900ml.jpg       |  Bin 4911 -> 0 bytes
+ media/products/VIP_Brush.jpg                       |  Bin 6744 -> 0 bytes
+ media/products/VTM_T.Roll.jpg                      |  Bin 4663 -> 0 bytes
+ media/products/Valfrutta_chopped_tomatoes.jpg      |  Bin 10188 -> 0 bytes
+ media/products/Vaseline_Lotion_Even_Tone.jpg       |  Bin 5543 -> 0 bytes
+ media/products/Vaseline_Pomade_Big.jpg             |  Bin 11057 -> 0 bytes
+ media/products/Vaseline_Pomade_Small.jpg           |  Bin 9667 -> 0 bytes
+ media/products/Vaseline_Yellow_Petroleum_100g.jpg  |  Bin 4069 -> 0 bytes
+ media/products/Verna_Water_0.5L.jpg                |  Bin 7123 -> 0 bytes
+ media/products/Verna_Water_0.75L.jpg               |  Bin 8393 -> 0 bytes
+ media/products/Vicks_Blue_Lozenges_90g.jpg         |  Bin 5898 -> 0 bytes
+ media/products/Victree_Super_T-Roll.jpg            |  Bin 9393 -> 0 bytes
+ media/products/Vim_Classic_Scourer_750g.jpg        |  Bin 4692 -> 0 bytes
+ media/products/Vinda_T.Roll.jpg                    |  Bin 10403 -> 0 bytes
+ media/products/Vital_Margarine_Container_250g.jpg  |  Bin 3678 -> 0 bytes
+ media/products/Vital_Margarine_Sachet_250g.jpg     |  Bin 7182 -> 0 bytes
+ media/products/Vital_Margarine_Spread_500g.jpg     |  Bin 3792 -> 0 bytes
+ media/products/Vital_Margerene_Spread_500g.jpg     |  Bin 10581 -> 0 bytes
+ media/products/Vitamilk_Champ.jpg                  |  Bin 11467 -> 0 bytes
+ media/products/Vitamilk_Energy_300ml.jpg           |  Bin 3702 -> 0 bytes
+ media/products/Vitamilk_Medium.jpg                 |  Bin 7733 -> 0 bytes
+ media/products/Vitamilk_Soymilk_300ml.jpg          |  Bin 3471 -> 0 bytes
+ media/products/Viva_Plus_Powder_800g.jpg           |  Bin 8736 -> 0 bytes
+ media/products/Viva_Plus_Powder_80g.jpg            |  Bin 7913 -> 0 bytes
+ media/products/Voltic_Mineral_Water_500ml.jpg      |  Bin 6686 -> 0 bytes
+ media/products/Voltic_Mineral_Water_750ml.jpg      |  Bin 9010 -> 0 bytes
+ media/products/Voltic_Water_1.5L.jpg               |  Bin 3039 -> 0 bytes
+ media/products/Welchs_Grape_Juice_473ml.jpg        |  Bin 4845 -> 0 bytes
+ media/products/Wesson_Canola_Oil_4.73L.jpg         |  Bin 5215 -> 0 bytes
+ ...WhatsApp_Image_2025-11-17_at_11.04.07_AM_1.jpeg |  Bin 157211 -> 0 bytes
+ .../WhatsApp_Image_2026-04-22_at_10.15.24.jpeg     |  Bin 127421 -> 0 bytes
+ media/products/Wheat_Drink_500ml.jpg               |  Bin 5435 -> 0 bytes
+ media/products/Wheat_Drink_Small.jpg               |  Bin 3401 -> 0 bytes
+ media/products/Wipe_WC_Seat_Disin._100ml.jpg       |  Bin 5096 -> 0 bytes
+ .../products/Wipe_WC_Seat_Disin._100ml_jR5NEwj.jpg |  Bin 5096 -> 0 bytes
+ media/products/Wippy_T.Roll.jpg                    |  Bin 5873 -> 0 bytes
+ media/products/X.O_Candy.jpg                       |  Bin 13435 -> 0 bytes
+ media/products/XBlock_Hair_Styling_150ml.jpg       |  Bin 6459 -> 0 bytes
+ media/products/Yab_Green_Peas_400g.jpg             |  Bin 6892 -> 0 bytes
+ media/products/Yab_Sweet_Corn_340g.jpg             |  Bin 6838 -> 0 bytes
+ media/products/Yale_Munchkins_ChocoChip.jpg        |  Bin 7037 -> 0 bytes
+ media/products/Yazz_Pad_Mouve.jpg                  |  Bin 8248 -> 0 bytes
+ media/products/Yazz_Pad_Normal.jpg                 |  Bin 12519 -> 0 bytes
+ media/products/Yazz_Tissue_Napkins.jpg             |  Bin 10145 -> 0 bytes
+ media/products/Yevon_Oats.jpg                      |  Bin 9516 -> 0 bytes
+ media/products/Yumvita_Sachet_Maize_50g.jpg        |  Bin 10606 -> 0 bytes
+ media/products/Yumvita_Sachet_Rice_50g.jpg         |  Bin 12597 -> 0 bytes
+ media/products/Yumvita_Sachet_Wheat_50g.jpg        |  Bin 9438 -> 0 bytes
+ media/products/Yvonne_Sardines_125g.jpg            |  Bin 7856 -> 0 bytes
+ media/products/Zesta_Green_Tea.jpg                 |  Bin 10017 -> 0 bytes
+ media/products/Zesta_Tea_Apple.jpg                 |  Bin 4990 -> 0 bytes
+ media/products/Zesta_Tea_Strawberry.jpg            |  Bin 7468 -> 0 bytes
+ media/products/Zoflora_3in1_250ml.jpg              |  Bin 7050 -> 0 bytes
+ media/products/Zoflora_3in1_500ml.jpg              |  Bin 16057 -> 0 bytes
+ media/products/Zoflora_Medium_125ml.jpg            |  Bin 70065 -> 0 bytes
+ ...WhatsApp_Image_2025-11-17_at_11.04.07_AM_1.jpeg |  Bin 157211 -> 0 bytes
+ .../WhatsApp_Image_2026-04-22_at_10.15.26.jpeg     |  Bin 131105 -> 0 bytes
+ ...tsApp_Image_2026-04-22_at_10_r1Q3pN5.15.26.jpeg |  Bin 131105 -> 0 bytes
+ media/promotions/4.jpeg                            |  Bin 301044 -> 0 bytes
+ .../WhatsApp_Image_2026-04-22_at_10.16.16.jpeg     |  Bin 177474 -> 0 bytes
+ media/store_applications/ids/id.jpg                |    1 -
+ media/store_applications/ids/id_TNtJajF.jpg        |    1 -
+ nginx/conf.d/market.conf                           |   91 -
+ nginx/conf.d/proxy_params.conf                     |   19 -
+ nginx/nginx.conf                                   |   56 -
+ nginx/ssl/README.txt                               |   32 -
+ render.yaml                                        |  109 -
+ requirements.txt                                   |   50 -
+ runtime.txt                                        |    1 -
+ scripts/check_site_settings.py                     |   13 -
+ scripts/check_urls.ps1                             |   15 -
+ scripts/check_urls.py                              |   14 -
+ scripts/disable_maintenance.py                     |   16 -
+ scripts/resolve_maintenance.py                     |   23 -
+ sendgrid-setup.patch                               |   54 -
+ setup.sh                                           |   48 -
+ 451 files changed, 41556 deletions(-)

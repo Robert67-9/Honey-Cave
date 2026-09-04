@@ -1,0 +1,280 @@
+{% extends 'mall/fulfillment_officer/base.html' %}
+{% block title %}Order {{ order.order_number }} — Fulfillment Officer{% endblock %}
+{% block content %}
+
+<p style="font-size: 0.85rem;"><a href="{% url 'fulfillment_officer_dashboard' %}" style="color: var(--muted); text-decoration: none;">← Back to dashboard</a></p>
+
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <h1 style="margin-bottom: 0.2rem;">Order {{ order.order_number }}</h1>
+      <p style="color: var(--muted); margin: 0;">Placed {{ order.created|date:"M d, Y H:i" }} · {{ order.get_fulfillment_type_display }}</p>
+    </div>
+    <div style="text-align: right;">
+      <div style="font-size: 1.4rem; font-weight: 700; color: var(--gold);">GH₵ {{ order.total_price }}</div>
+      <span class="badge badge-active">{{ order.get_status_display }}</span>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Customer</h3>
+  <p style="margin: 0.3rem 0;"><strong>{{ order.full_name|default:"—" }}</strong></p>
+  <p style="margin: 0.3rem 0; font-size: 0.9rem;">{{ order.phone|default:"—" }}</p>
+  {% if order.fulfillment_type == 'delivery' and order.delivery_address %}
+  <p style="margin: 0.3rem 0; font-size: 0.85rem; color: var(--muted);">📍 {{ order.delivery_address }}</p>
+  {% if order.delivery_landmark %}
+  <p style="margin: 0.3rem 0; font-size: 0.85rem; color: var(--muted);">🧭 {{ order.delivery_landmark }}</p>
+  {% endif %}
+  {% if order.maps_directions_url %}
+  <a href="{{ order.maps_directions_url }}" target="_blank" rel="noopener"
+     style="display:inline-block;margin-top:0.4rem;font-size:0.85rem;font-weight:600;color:var(--gold,#9a7b1f);text-decoration:none;">
+    🗺️ Open customer's pinned location ↗
+  </a>
+  {% endif %}
+  {% endif %}
+</div>
+
+<div class="card">
+  <h3>Items ({{ order.items.count }})</h3>
+  <table>
+    <tbody>
+      {% for item in order.items.all %}
+      <tr>
+        <td>{{ item.product.name }}</td>
+        <td style="text-align: right; color: var(--muted);">×{{ item.quantity }}</td>
+        <td style="text-align: right; font-weight: 600;">GH₵ {{ item.line_total }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if admin_code %}
+<div class="card">
+  <h2>Step 1 — Confirm package received from admin</h2>
+  {% if admin_code.is_verified %}
+    <div class="alert alert-success">
+      ✓ Confirmed at {{ admin_code.used_at|date:"H:i" }}
+      {% if admin_code.used_by %}by {{ admin_code.used_by.username }}{% endif %}
+    </div>
+  {% elif admin_code.locked %}
+    <div class="alert alert-error">
+      🔒 Locked after 3 wrong attempts. Admin has been notified and must unlock or regenerate.
+    </div>
+  {% elif admin_code.is_expired %}
+    <div class="alert alert-error">
+      ⏰ Code has expired. Ask admin to issue a new one.
+    </div>
+  {% else %}
+    <p style="font-size: 0.9rem; color: var(--muted);">
+      The admin has sent you a 6-digit code via in-app, WhatsApp, or SMS. Enter it below:
+    </p>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="verify_admin_code">
+      <input type="text" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6"
+             class="code-input" placeholder="• • • • • •" autocomplete="off" required autofocus>
+      <button type="submit" class="btn btn-gold" style="width:100%; padding: 0.85rem;">Confirm Receipt</button>
+      <p class="timer" style="text-align: center; margin-top: 0.6rem;">
+        {{ admin_code.remaining_attempts }} attempt(s) left · expires in
+        <span data-countdown="{{ admin_code.seconds_until_expiry }}">{{ admin_code.seconds_until_expiry }}s</span>
+      </p>
+    </form>
+  {% endif %}
+</div>
+{% else %}
+<div class="card">
+  <div class="alert alert-info">
+    Waiting for admin to issue a code for this order. Refresh in a moment.
+  </div>
+</div>
+{% endif %}
+
+{% if order.fulfillment_type == 'delivery' and admin_code and admin_code.is_verified and not rider_code.is_verified %}
+<div class="card">
+  <h2>{% if rider_delivery %}Update Rider{% else %}Step 1.5 — Assign a Rider{% endif %}</h2>
+
+  {% if rider_delivery %}
+    <div style="background: var(--success-bg); border: 1px solid var(--success-border); border-radius: 8px; padding: .7rem 1rem; margin-bottom: 1rem; font-size: .9rem; color: var(--success-text);">
+      ✓ Current rider: <strong>{{ rider_delivery.rider_name }}</strong> · {{ rider_delivery.rider_phone }}
+      {% if rider_delivery.is_adhoc %}<span style="margin-left:.5rem; padding: .1rem .5rem; background: var(--warning-bg); color: var(--warning-text); border-radius: 4px; font-size: .72rem; font-weight: 600;">AD-HOC</span>{% endif %}
+    </div>
+    <p style="font-size: .86rem; color: var(--text-muted);">
+      Need to change rider? Pick from the roster below or use ad-hoc.
+    </p>
+  {% else %}
+    <p style="font-size: .9rem; color: var(--text-muted);">
+      Pick a rider from the roster, or dispatch ad-hoc if your usual rider is unavailable. Once assigned, the system issues Step 2's pickup code automatically.
+    </p>
+  {% endif %}
+
+  
+  <div role="tablist" style="display:flex; gap:.4rem; margin: 1rem 0 .9rem; border-bottom: 1px solid var(--border);">
+    <button type="button" id="mode-roster-tab" class="rider-tab is-active"
+            onclick="switchRiderMode('roster')"
+            style="background: none; border: none; padding: .55rem .9rem; cursor: pointer; font-size: .88rem; font-weight: 600; color: var(--text); border-bottom: 2px solid transparent;">
+      📇 From Roster
+    </button>
+    <button type="button" id="mode-adhoc-tab" class="rider-tab"
+            onclick="switchRiderMode('adhoc')"
+            style="background: none; border: none; padding: .55rem .9rem; cursor: pointer; font-size: .88rem; font-weight: 600; color: var(--text-muted); border-bottom: 2px solid transparent;">
+      ⚡ Ad-hoc (one-off)
+    </button>
+  </div>
+
+  
+  <form method="post" id="rider-form-roster" class="rider-form" style="margin-top: .2rem;">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="assign_rider">
+    <input type="hidden" name="rider_mode" value="roster">
+
+    {% if rider_roster %}
+    <label style="display: block; font-size: .78rem; font-weight: 600; color: var(--text-muted); margin-bottom: .35rem;">PICK A RIDER</label>
+    <select name="rider_id" required
+            style="width: 100%; padding: .65rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-input); color: var(--text); font-family: inherit; font-size: .94rem; margin-bottom: .85rem;">
+      <option value="">— Choose a rider for this delivery —</option>
+      {% for r in rider_roster %}
+      <option value="{{ r.id }}"
+              {% if rider_delivery and rider_delivery.rider_id == r.id %}selected{% endif %}>
+        {% if r.is_verified %}✓{% else %}⚠{% endif %}
+        {{ r.name }} · {{ r.phone }}
+        {% if r.vehicle_type %}· {{ r.get_vehicle_type_display }}{% endif %}
+        {% if not r.is_verified %} (unverified){% endif %}
+      </option>
+      {% endfor %}
+    </select>
+    <p style="font-size: .76rem; color: var(--text-muted); margin: -.5rem 0 .85rem;">
+      <span title="Verified by admin">✓</span> = admin-verified ·
+      <span title="Auto-drafted from a prior ad-hoc dispatch — admin hasn't reviewed yet">⚠</span> = unverified
+    </p>
+    <button type="submit" class="btn btn-gold" style="padding: .6rem 1.4rem;">
+      {% if rider_delivery %}Update Rider{% else %}Assign Rider →{% endif %}
+    </button>
+
+    {% else %}
+    <div style="background: var(--warning-bg); border: 1px solid var(--warning-border); border-radius: 8px; padding: .9rem; color: var(--warning-text); font-size: .88rem;">
+      <strong>No riders in the roster for this branch yet.</strong><br>
+      Use the <strong>Ad-hoc</strong> tab to dispatch a one-off rider — they'll be added to the roster automatically and admin will review.
+    </div>
+    {% endif %}
+  </form>
+
+  
+  <form method="post" id="rider-form-adhoc" class="rider-form" style="margin-top: .2rem; display: none;">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="assign_rider">
+    <input type="hidden" name="rider_mode" value="adhoc">
+
+    <div style="background: var(--info-bg); border: 1px solid var(--info-border); border-radius: 8px; padding: .75rem 1rem; margin-bottom: .9rem; font-size: .82rem; color: var(--info-text);">
+      ℹ️ Use this when your regular rider isn't available. The new rider will be added to the roster as <strong>unverified</strong> — admin will review and can mark them permanent.
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; margin-bottom: .8rem;">
+      <div>
+        <label style="display: block; font-size: .78rem; font-weight: 600; color: var(--text-muted); margin-bottom: .25rem;">RIDER NAME</label>
+        <input type="text" name="rider_name" maxlength="100" required
+               placeholder="e.g. Kofi Mensah"
+               style="width: 100%; padding: .6rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-input); color: var(--text); font-family: inherit;">
+      </div>
+      <div>
+        <label style="display: block; font-size: .78rem; font-weight: 600; color: var(--text-muted); margin-bottom: .25rem;">RIDER PHONE</label>
+        <input type="tel" name="rider_phone" maxlength="30" required
+               placeholder="+233 24 123 4567"
+               style="width: 100%; padding: .6rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-input); color: var(--text); font-family: inherit;">
+      </div>
+    </div>
+    <button type="submit" class="btn btn-gold" style="padding: .6rem 1.4rem;">
+      Dispatch Ad-hoc →
+    </button>
+  </form>
+
+  <script>
+  function switchRiderMode(mode) {
+    var roster = document.getElementById('rider-form-roster');
+    var adhoc  = document.getElementById('rider-form-adhoc');
+    var rTab   = document.getElementById('mode-roster-tab');
+    var aTab   = document.getElementById('mode-adhoc-tab');
+    if (mode === 'adhoc') {
+      roster.style.display = 'none';
+      adhoc.style.display  = 'block';
+      rTab.classList.remove('is-active');
+      aTab.classList.add('is-active');
+      rTab.style.borderBottomColor = 'transparent';
+      aTab.style.borderBottomColor = 'var(--accent)';
+      rTab.style.color = 'var(--text-muted)';
+      aTab.style.color = 'var(--text)';
+    } else {
+      roster.style.display = 'block';
+      adhoc.style.display  = 'none';
+      aTab.classList.remove('is-active');
+      rTab.classList.add('is-active');
+      aTab.style.borderBottomColor = 'transparent';
+      rTab.style.borderBottomColor = 'var(--accent)';
+      aTab.style.color = 'var(--text-muted)';
+      rTab.style.color = 'var(--text)';
+    }
+  }
+  // Default tab indicator on load
+  document.addEventListener('DOMContentLoaded', function() {
+    {% if rider_roster %}switchRiderMode('roster');{% else %}switchRiderMode('adhoc');{% endif %}
+  });
+  </script>
+</div>
+{% endif %}
+
+{% if show_qr_for %}
+<div class="card">
+  {% if show_qr_for.stage == 'officer_to_rider' %}
+    <h2>Step 2 — Show this code to the rider</h2>
+    <p style="font-size: 0.9rem; color: var(--muted);">
+      Rider <strong>{{ rider_delivery.rider_name }}</strong> ({{ rider_delivery.rider_phone }})
+      will enter this code in their portal to confirm pickup.
+    </p>
+  {% else %}
+    <h2>Step 2 — Show this code to the customer</h2>
+    <p style="font-size: 0.9rem; color: var(--muted);">
+      The customer enters this code on their order tracking page to confirm collection.
+    </p>
+  {% endif %}
+
+  <div class="code-display">{{ show_qr_for.code }}</div>
+  <div class="qr-wrap">{{ show_qr_for.qr_svg|safe }}</div>
+  <p class="timer" style="text-align: center;">
+    Expires in <span data-countdown="{{ show_qr_for.seconds_until_expiry }}">{{ show_qr_for.seconds_until_expiry }}s</span>
+    {% if show_qr_for.attempts %} · {{ show_qr_for.attempts }} wrong attempt(s) so far{% endif %}
+  </p>
+</div>
+{% elif rider_code and rider_code.is_verified %}
+<div class="card">
+  <div class="alert alert-success">
+    ✓ Rider confirmed pickup at {{ rider_code.used_at|date:"H:i" }}. Package is now in transit.
+  </div>
+</div>
+{% elif pickup_code and pickup_code.is_verified %}
+<div class="card">
+  <div class="alert alert-success">
+    ✓ Customer collected at {{ pickup_code.used_at|date:"H:i" }}. Order complete.
+  </div>
+</div>
+{% endif %}
+
+<script>
+// Live countdown for code expiry timers — refreshes every second.
+document.querySelectorAll('[data-countdown]').forEach(function(el) {
+  var remaining = parseInt(el.dataset.countdown, 10);
+  if (!remaining || remaining <= 0) return;
+  var iv = setInterval(function() {
+    remaining -= 1;
+    if (remaining <= 0) {
+      el.textContent = 'expired — refresh page';
+      clearInterval(iv);
+      return;
+    }
+    var m = Math.floor(remaining / 60);
+    var s = remaining % 60;
+    el.textContent = (m > 0 ? m + 'm ' : '') + s + 's';
+  }, 1000);
+});
+</script>
+{% endblock %}

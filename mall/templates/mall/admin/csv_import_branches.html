@@ -1,0 +1,85 @@
+{% extends "mall/admin/base_admin.html" %}
+{% block title %}Import Branches — Market Admin{% endblock %}
+{% block page_title %}Import Branches via CSV{% endblock %}
+
+{% block content %}
+<div style="max-width:700px;">
+
+  <p style="color:var(--muted);margin-bottom:0.5rem;">
+    Upload a CSV file to bulk-create branches.
+    <a href="{% url 'admin_csv_template_download' 'branches' %}" style="color:var(--gold);">Download sample template</a>
+  </p>
+
+  {% include "mall/admin/csv_columns_hint.html" with columns="name*, address*, city*, region*, branch_type, phone, email, opening_hours, landmark, latitude, longitude, is_active" %}
+
+  <div class="card" style="margin-bottom:0.75rem;">
+    <div class="card-body" style="padding-bottom:0.75rem;">
+      <p style="font-size:0.82rem;color:var(--muted);margin:0 0 0.5rem;">
+        <strong style="color:var(--text);">Valid region keys:</strong>
+        greater_accra, ashanti, western, western_north, central, eastern, volta, oti, bono, bono_east, ahafo, northern, savannah, north_east, upper_east, upper_west
+      </p>
+      <p style="font-size:0.82rem;color:var(--muted);margin:0;">
+        <strong style="color:var(--text);">Valid branch_type values:</strong> main, express, agent
+      </p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:1.5rem;">
+    <div class="card-body">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+          <input type="file" name="csv_file" accept=".csv,text/csv" required
+                 style="flex:1;min-width:220px;padding:0.5rem;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);">
+          <button type="submit" class="btn btn-gold">Upload &amp; Import</button>
+          <a href="{% url 'admin_csv_import' %}" class="btn btn-ghost">← Back</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if results %}
+  <div class="card">
+    <div class="card-header"><h2>Import Results</h2></div>
+    <div class="card-body">
+      <div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:1.25rem;">
+        <div style="text-align:center;">
+          <div style="font-size:1.75rem;font-weight:600;color:var(--green);">{{ results.created }}</div>
+          <div style="font-size:0.8rem;color:var(--muted);">Created</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:1.75rem;font-weight:600;color:#b45309;">{{ results.skipped }}</div>
+          <div style="font-size:0.8rem;color:var(--muted);">Skipped</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:1.75rem;font-weight:600;color:var(--red);">{{ results.errors }}</div>
+          <div style="font-size:0.8rem;color:var(--muted);">Errors</div>
+        </div>
+      </div>
+
+      {% if results.error_rows %}
+      <table style="width:100%;font-size:0.85rem;">
+        <thead>
+          <tr>
+            <th style="width:60px;">Row</th>
+            <th>Name</th>
+            <th>Reason</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for er in results.error_rows %}
+          <tr>
+            <td style="color:var(--muted);">{{ er.row }}</td>
+            <td>{{ er.name }}</td>
+            <td style="color:var(--red);">{{ er.reason }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

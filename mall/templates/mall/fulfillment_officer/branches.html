@@ -1,0 +1,145 @@
+{% extends 'mall/fulfillment_officer/base.html' %}
+{% block title %}My Branches{% endblock %}
+
+{% block content %}
+
+<div style="margin-bottom: 1.5rem;">
+  <h1 style="font-family: 'Playfair Display', serif; font-size: 1.6rem; margin: 0 0 .35rem;">My Branches</h1>
+  <p style="color: var(--text-muted); font-size: .95rem; margin: 0;">
+    Branches you can act on, plus pending requests and the history of past decisions.
+  </p>
+</div>
+
+{% if messages %}
+{% for m in messages %}
+<div class="alert alert-{{ m.tags|default:'info' }}" style="margin-bottom: 1rem;">{{ m }}</div>
+{% endfor %}
+{% endif %}
+
+<section class="card" style="margin-bottom: 1.25rem;">
+  <h2 style="margin: 0 0 .85rem; font-size: 1.05rem;">
+    ✅ Active branches
+    <span style="font-size: .78rem; color: var(--text-muted); font-weight: 400;">
+      ({{ approved|length }})
+    </span>
+  </h2>
+  {% if approved %}
+  <div style="display: grid; gap: .65rem;">
+    {% for a in approved %}
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: .85rem 1rem; background: var(--bg-sunken); border-radius: 8px; gap: 1rem; flex-wrap: wrap;">
+      <div>
+        <div style="font-weight: 600; color: var(--text);">
+          {{ a.branch.name }}
+          {% if a.role == 'primary' %}
+          <span style="display: inline-block; margin-left: .35rem; padding: .12rem .55rem; background: var(--accent-soft); color: var(--accent); font-size: .68rem; font-weight: 700; border-radius: 4px; letter-spacing: .05em;">PRIMARY</span>
+          {% else %}
+          <span style="display: inline-block; margin-left: .35rem; padding: .12rem .55rem; background: var(--bg); color: var(--text-muted); font-size: .68rem; font-weight: 700; border-radius: 4px; letter-spacing: .05em;">SECONDARY</span>
+          {% endif %}
+        </div>
+        <div style="font-size: .82rem; color: var(--text-muted); margin-top: .15rem;">
+          {{ a.branch.get_region_display }}
+          {% if a.branch.address %} · {{ a.branch.address|truncatechars:60 }}{% endif %}
+        </div>
+      </div>
+      <a href="{% url 'fulfillment_officer_dashboard' %}?branch={{ a.branch_id }}" class="btn btn-sm" style="background: var(--bg-elevated); color: var(--text); border: 1px solid var(--border); padding: .35rem .85rem; font-size: .8rem; border-radius: 6px; text-decoration: none;">
+        Open dashboard →
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p style="color: var(--text-muted); font-style: italic; font-size: .9rem;">
+    You haven't been assigned to any branch yet. Ask admin to set your primary branch, or request one below.
+  </p>
+  {% endif %}
+</section>
+
+{% if pending %}
+<section class="card" style="margin-bottom: 1.25rem;">
+  <h2 style="margin: 0 0 .85rem; font-size: 1.05rem;">
+    ⏳ Pending requests
+    <span style="font-size: .78rem; color: var(--text-muted); font-weight: 400;">
+      ({{ pending|length }})
+    </span>
+  </h2>
+  <div style="display: grid; gap: .65rem;">
+    {% for a in pending %}
+    <div style="padding: .85rem 1rem; background: var(--warning-bg); border: 1px solid var(--warning-border); border-radius: 8px; color: var(--warning-text);">
+      <div style="font-weight: 600;">{{ a.branch.name }}</div>
+      <div style="font-size: .82rem; margin-top: .15rem;">
+        {{ a.branch.get_region_display }} · Requested {{ a.requested_at|date:"M j, Y" }}
+      </div>
+      {% if a.decision_note %}
+      <div style="margin-top: .5rem; font-size: .82rem; padding: .45rem .65rem; background: rgba(255,255,255,0.4); border-radius: 4px;">
+        <em>Note:</em> {{ a.decision_note|linebreaksbr }}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if requestable %}
+<section class="card" style="margin-bottom: 1.25rem;">
+  <h2 style="margin: 0 0 .85rem; font-size: 1.05rem;">➕ Request another branch</h2>
+  <p style="color: var(--text-muted); font-size: .88rem; margin-bottom: 1rem;">
+    Need to manage another branch? Pick one below and submit a request — admin will review.
+  </p>
+  <form method="post" action="{% url 'fulfillment_officer_request_branch' %}">
+    {% csrf_token %}
+    <div style="display: grid; grid-template-columns: 1fr; gap: .75rem; margin-bottom: 1rem;">
+      <div>
+        <label style="display: block; font-size: .78rem; font-weight: 600; color: var(--text-muted); margin-bottom: .25rem;">BRANCH</label>
+        <select name="branch_id" required
+                style="width: 100%; padding: .65rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-input); color: var(--text); font-family: inherit;">
+          <option value="">— Choose a branch —</option>
+          {% regroup requestable by region as by_region %}
+          {% for region_group in by_region %}
+          <optgroup label="{{ region_group.list.0.get_region_display }}">
+            {% for b in region_group.list %}
+            <option value="{{ b.id }}">{{ b.name }}{% if b.address %} — {{ b.address|truncatechars:50 }}{% endif %}</option>
+            {% endfor %}
+          </optgroup>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label style="display: block; font-size: .78rem; font-weight: 600; color: var(--text-muted); margin-bottom: .25rem;">REASON (optional)</label>
+        <textarea name="note" rows="2" maxlength="500"
+                  placeholder="e.g. Helping cover for next 2 weeks while colleague is on leave."
+                  style="width: 100%; padding: .65rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-input); color: var(--text); font-family: inherit; resize: vertical;"></textarea>
+      </div>
+    </div>
+    <button type="submit" class="btn btn-gold" style="padding: .55rem 1.4rem;">
+      Submit Request
+    </button>
+  </form>
+</section>
+{% endif %}
+
+{% if history %}
+<section class="card" style="margin-bottom: 1.25rem;">
+  <h2 style="margin: 0 0 .85rem; font-size: 1.05rem;">📜 Past decisions</h2>
+  <div style="display: grid; gap: .65rem;">
+    {% for a in history %}
+    <div style="padding: .75rem 1rem; background: var(--bg-sunken); border-radius: 8px; opacity: .85;">
+      <div style="font-weight: 500;">
+        {{ a.branch.name }}
+        <span style="margin-left: .4rem; font-size: .68rem; padding: .12rem .5rem; background: var(--danger-bg); color: var(--danger-text); font-weight: 700; border-radius: 4px; letter-spacing: .05em;">{{ a.get_status_display|upper }}</span>
+      </div>
+      <div style="font-size: .8rem; color: var(--text-muted); margin-top: .15rem;">
+        {% if a.decided_at %}Decided {{ a.decided_at|date:"M j, Y" }}{% if a.decided_by %} by {{ a.decided_by.username }}{% endif %}{% endif %}
+      </div>
+      {% if a.decision_note %}
+      <div style="margin-top: .4rem; font-size: .82rem; color: var(--text-muted);">
+        <em>Reason:</em> {{ a.decision_note|linebreaksbr }}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% endblock %}

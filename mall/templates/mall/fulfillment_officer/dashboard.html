@@ -1,0 +1,120 @@
+{% extends 'mall/fulfillment_officer/base.html' %}
+{% block title %}Dashboard — Fulfillment Officer Portal{% endblock %}
+{% block content %}
+
+<h1>Welcome, {{ user.first_name|default:user.username }}</h1>
+<p style="color: var(--muted); margin-bottom: 1.5rem;">
+  {% if branches.count == 1 %}
+    Managing branch: <strong>{{ branches.0.name }}</strong> ({{ branches.0.get_region_display }})
+  {% else %}
+    Managing {{ branches.count }} branches
+  {% endif %}
+</p>
+
+<h2 style="margin-top: 1.5rem;">⏳ Awaiting Your Confirmation</h2>
+<p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 0.6rem;">
+  New paid orders for your branch. A code is sent to you automatically — open the order to enter it and confirm receipt.
+</p>
+<div class="card" style="padding: 0;">
+  {% if awaiting_keeper %}
+  <table>
+    <thead>
+      <tr>
+        <th>Order</th>
+        <th>Customer</th>
+        <th>Items</th>
+        <th>Type</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for order, code in awaiting_keeper %}
+      <tr>
+        <td><a href="{% url 'fulfillment_officer_order' order.pk %}" class="row-link">{{ order.order_number }}</a></td>
+        <td>{{ order.full_name|default:"—" }}</td>
+        <td>{{ order.items.count }}</td>
+        <td>{{ order.get_fulfillment_type_display }}</td>
+        <td>
+          {% if code.locked %}
+            <span class="badge badge-locked">🔒 Locked</span>
+          {% elif code.is_expired %}
+            <span class="badge badge-locked">⏰ Expired</span>
+          {% else %}
+            <span class="badge badge-pending">Code issued</span>
+          {% endif %}
+        </td>
+        <td><a href="{% url 'fulfillment_officer_order' order.pk %}" class="btn btn-gold" style="padding: 0.4rem 0.9rem; font-size: 0.78rem;">Open →</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">No orders awaiting your confirmation right now.</div>
+  {% endif %}
+</div>
+
+{% if with_pickup_cust %}
+<h2 style="margin-top: 1.5rem;">🛍 Awaiting Customer Collection</h2>
+<p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 0.6rem;">
+  Customer is on the way to collect. Show them the code on the order page.
+</p>
+<div class="card" style="padding: 0;">
+  <table>
+    <thead><tr><th>Order</th><th>Customer</th><th>Phone</th><th></th></tr></thead>
+    <tbody>
+      {% for order, code in with_pickup_cust %}
+      <tr>
+        <td><a href="{% url 'fulfillment_officer_order' order.pk %}" class="row-link">{{ order.order_number }}</a></td>
+        <td>{{ order.full_name|default:"—" }}</td>
+        <td>{{ order.phone|default:"—" }}</td>
+        <td><a href="{% url 'fulfillment_officer_order' order.pk %}" class="btn btn-gold" style="padding: 0.4rem 0.9rem; font-size: 0.78rem;">Show code →</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% if with_rider %}
+<h2 style="margin-top: 1.5rem;">🛵 With Rider (in transit)</h2>
+<div class="card" style="padding: 0;">
+  <table>
+    <thead><tr><th>Order</th><th>Customer</th><th>Rider</th><th>Stage</th></tr></thead>
+    <tbody>
+      {% for order, code in with_rider %}
+      <tr>
+        <td><a href="{% url 'fulfillment_officer_order' order.pk %}" class="row-link">{{ order.order_number }}</a></td>
+        <td>{{ order.full_name|default:"—" }}</td>
+        <td>{{ order.rider_delivery.rider_name|default:"—" }}</td>
+        <td>{{ code.get_stage_display }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% if other %}
+<details style="margin-top: 2rem;">
+  <summary style="cursor: pointer; color: var(--muted); font-size: 0.85rem;">
+    Other open orders ({{ other|length }})
+  </summary>
+  <div class="card" style="padding: 0; margin-top: 0.5rem;">
+    <table>
+      <thead><tr><th>Order</th><th>Status</th><th>Created</th></tr></thead>
+      <tbody>
+        {% for order in other %}
+        <tr>
+          <td><a href="{% url 'fulfillment_officer_order' order.pk %}" class="row-link">{{ order.order_number }}</a></td>
+          <td>{{ order.get_status_display }}</td>
+          <td>{{ order.created|date:"M d, H:i" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</details>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends "mall/admin/base_admin.html" %}
+{% block title %}Gallery — {{ product.name }} — Market Admin{% endblock %}
+{% block page_title %}Gallery: {{ product.name }}{% endblock %}
+
+{% block content %}
+<div style="display:grid;grid-template-columns:1fr 320px;gap:1.5rem;align-items:start;">
+
+  <!-- Gallery Grid -->
+  <div class="card">
+    <div class="card-header"><h2>Images ({{ images.count }})</h2></div>
+    {% if images %}
+    <form method="post" style="padding:1.25rem;">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="reorder">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;">
+        {% for img in images %}
+        <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--white);">
+          <img src="{{ img.image.url }}" style="width:100%;height:140px;object-fit:cover;">
+          <div style="padding:0.5rem;">
+            <label style="font-size:0.75rem;color:var(--muted);">Sort order</label>
+            <input type="number" name="order_{{ img.id }}" value="{{ img.sort_order }}"
+              style="width:100%;padding:2px 6px;border:1px solid var(--border);border-radius:4px;font-size:0.85rem;">
+            <p style="font-size:0.72rem;color:var(--muted);margin:4px 0 6px;">{{ img.alt_text|default:"No alt text" }}</p>
+            <form method="post" style="display:inline;">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="delete">
+              <input type="hidden" name="image_id" value="{{ img.id }}">
+              <button type="submit" class="btn btn-danger btn-sm w-100"
+                onclick="return confirm('Remove this image?')">Remove</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <button type="submit" class="btn btn-ghost btn-sm" style="margin-top:1rem;">💾 Save Order</button>
+    </form>
+    {% else %}
+    <div style="padding:2rem;text-align:center;color:var(--muted);">No gallery images yet.</div>
+    {% endif %}
+  </div>
+
+  <!-- Upload -->
+  <div class="card">
+    <div class="card-header"><h2>Add Image</h2></div>
+    <div style="padding:1.25rem;">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="add">
+        <div style="margin-bottom:1rem;">
+          <label class="form-label">Image File <span style="color:red;">*</span></label>
+          <input type="file" name="image" class="form-control" accept="image/*" required>
+          <small style="color:var(--muted);">JPG, PNG or WebP. Max 5 MB.</small>
+        </div>
+        <div style="margin-bottom:1rem;">
+          <label class="form-label">Sort Order</label>
+          <input type="number" name="sort_order" class="form-control" value="0" min="0">
+        </div>
+        <div style="margin-bottom:1.25rem;">
+          <label class="form-label">Alt Text</label>
+          <input type="text" name="alt_text" class="form-control" maxlength="200"
+            placeholder="Describe the image (optional)">
+        </div>
+        <button type="submit" class="btn btn-gold w-100">Upload Image</button>
+      </form>
+      <div style="margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1rem;">
+        <a href="{% url 'admin_product_edit' product.pk %}" class="btn btn-ghost w-100">← Back to Product</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

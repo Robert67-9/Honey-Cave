@@ -1,0 +1,104 @@
+{% extends "mall/rider/base.html" %}
+{% block title %}My Earnings — Rider{% endblock %}
+
+{% block content %}
+<h1>💰 My Earnings</h1>
+<p style="color:var(--muted);margin-top:-0.4rem;">Revenue from your completed deliveries, minus the platform's {{ site.rider_commission_percent }}% commission.</p>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin:1.25rem 0;">
+  <div class="card" style="border-top:3px solid var(--gold);margin-bottom:0;">
+    <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);">Today</div>
+    <div style="font-size:1.5rem;font-weight:700;">GH₵ {{ totals.today|floatformat:2 }}</div>
+  </div>
+  <div class="card" style="border-top:3px solid var(--gold);margin-bottom:0;">
+    <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);">This Week</div>
+    <div style="font-size:1.5rem;font-weight:700;">GH₵ {{ totals.week|floatformat:2 }}</div>
+  </div>
+  <div class="card" style="border-top:3px solid var(--gold);margin-bottom:0;">
+    <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);">This Month</div>
+    <div style="font-size:1.5rem;font-weight:700;">GH₵ {{ totals.month|floatformat:2 }}</div>
+  </div>
+  <div class="card" style="border-top:3px solid var(--gold);margin-bottom:0;">
+    <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);">This Year</div>
+    <div style="font-size:1.5rem;font-weight:700;">GH₵ {{ totals.year|floatformat:2 }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Wallet Balance</h2>
+  {% if wallet.is_frozen %}
+    <div class="alert alert-error">⚠️ Your wallet is frozen pending an admin review. Withdrawals are paused, but earnings keep accruing.</div>
+  {% endif %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin:0.75rem 0 1.25rem;">
+    <div>
+      <div style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;">Available</div>
+      <div style="font-size:1.6rem;font-weight:700;color:var(--success);">GH₵ {{ wallet.available_balance|floatformat:2 }}</div>
+    </div>
+    <div>
+      <div style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;">Pending (in hold)</div>
+      <div style="font-size:1.6rem;font-weight:700;">GH₵ {{ wallet.pending_balance|floatformat:2 }}</div>
+    </div>
+    <div>
+      <div style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;">Withdrawn</div>
+      <div style="font-size:1.6rem;font-weight:700;">GH₵ {{ wallet.withdrawn_total|floatformat:2 }}</div>
+    </div>
+    <div>
+      <div style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;">Reserve Held</div>
+      <div style="font-size:1.6rem;font-weight:700;color:var(--muted);">GH₵ {{ wallet.reserve_held|floatformat:2 }}</div>
+    </div>
+  </div>
+  <p style="font-size:0.85rem;color:var(--muted);">
+    New earnings clear {{ wallet.hold_hours }} hours after delivery is confirmed.
+    {% if not wallet.is_trusted %}Once you're an established rider, admin can mark your account trusted for a shorter hold.{% endif %}
+    Minimum withdrawal is GH₵{{ site.withdrawal_min_amount }}; a GH₵{{ site.withdrawal_fee }} fee applies per withdrawal{% if wallet.fee_waived %} (waived for your account){% endif %}.
+  </p>
+  <a href="{% url 'rider_withdraw' %}" class="btn btn-gold" {% if wallet.available_balance < site.withdrawal_min_amount or wallet.is_frozen %}style="pointer-events:none;opacity:0.5;"{% endif %}>Cash Out →</a>
+</div>
+
+<div class="card">
+  <h2>Recent Withdrawals</h2>
+  {% if recent_withdrawals %}
+  <table>
+    <thead><tr><th>Reference</th><th>Amount</th><th>Method</th><th>Status</th><th>Requested</th><th></th></tr></thead>
+    <tbody>
+      {% for w in recent_withdrawals %}
+      <tr>
+        <td>{{ w.unique_reference }}</td>
+        <td>GH₵ {{ w.net_amount|floatformat:2 }}</td>
+        <td>{{ w.get_method_display }}</td>
+        <td><span class="badge {% if w.status == 'completed' %}badge-done{% elif w.status == 'failed' or w.status == 'reversed' %}badge-locked{% else %}badge-pending{% endif %}">{{ w.get_status_display }}</span></td>
+        <td>{{ w.requested_at|date:"d M, H:i" }}</td>
+        <td>{% if w.status == 'pending_otp' %}<a href="{% url 'rider_withdraw_resume' w.pk %}" class="btn btn-ghost" style="padding:0.3rem 0.7rem;font-size:0.82rem;">Enter code →</a>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">No withdrawals yet.</div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Recent Activity</h2>
+  {% if recent_tx %}
+  <table>
+    <thead><tr><th>Date</th><th>Type</th><th>Order</th><th>Amount</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for tx in recent_tx %}
+      <tr>
+        <td>{{ tx.created_at|date:"d M, H:i" }}</td>
+        <td>{{ tx.get_type_display }}</td>
+        <td>{% if tx.order %}{{ tx.order.order_number }}{% else %}—{% endif %}</td>
+        <td style="color:{% if tx.amount < 0 %}var(--danger){% else %}var(--success){% endif %};font-weight:600;">
+          {{ tx.amount|floatformat:2 }}
+        </td>
+        <td><span class="badge {% if tx.status == 'available' or tx.status == 'withdrawn' %}badge-done{% elif tx.status == 'reversed' %}badge-locked{% else %}badge-pending{% endif %}">{{ tx.get_status_display }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">No activity yet — earnings appear here once a customer confirms delivery.</div>
+  {% endif %}
+</div>
+{% endblock %}

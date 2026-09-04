@@ -1,0 +1,449 @@
+{% extends 'mall/base.html' %}
+{% block title %}Order Confirmed — Market{% endblock %}
+
+{% block extra_css %}
+<style>
+.confirmation-wrapper { max-width: 700px; margin: 0 auto; text-align: center; }
+.success-icon {
+    width: 80px; height: 80px; background: #d4edda; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.5rem; margin: 0 auto 1.5rem;
+}
+.order-detail-card {
+    background: var(--bg-elevated); border: 1px solid var(--border);
+    border-radius: 14px; padding: 1.75rem; text-align: left; margin-top: 2rem;
+}
+.order-detail-row {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding: 0.65rem 0; font-size: 0.9rem; border-bottom: 1px solid var(--border);
+}
+.order-detail-row:last-child { border-bottom: none; }
+.order-detail-row .label { color: var(--muted); flex-shrink: 0; margin-right: 1rem; }
+.order-detail-row .value { font-weight: 600; text-align: right; }
+.item-row {
+    display: flex; justify-content: space-between;
+    padding: 0.5rem 0; font-size: 0.875rem; border-bottom: 1px dotted var(--border);
+}
+.subtotal-row { display: flex; justify-content: space-between; padding: 0.4rem 0; font-size: 0.88rem; color: var(--muted); }
+.shipping-row { display: flex; justify-content: space-between; padding: 0.4rem 0; font-size: 0.88rem; color: var(--dark); }
+.total-big {
+    font-size: 1.1rem; font-weight: 700; display: flex; justify-content: space-between;
+    padding-top: 0.75rem; margin-top: 0.5rem; border-top: 2px solid var(--dark);
+}
+.total-big .amount { color: var(--gold); }
+
+/* Branch card in confirmation */
+.branch-confirm-card {
+    background: linear-gradient(135deg, #1A1410 0%, #2e1f0e 100%);
+    border-radius: 12px; padding: 1.25rem 1.5rem;
+    display: flex; align-items: flex-start; gap: 1rem;
+    margin-bottom: 1.5rem; text-align: left;
+}
+.bcc-icon { font-size: 2rem; flex-shrink: 0; }
+.bcc-content { flex: 1; }
+.bcc-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--gold); margin-bottom: 0.3rem; }
+.bcc-name  { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 700; color: white; margin-bottom: 0.3rem; }
+.bcc-addr  { font-size: 0.82rem; color: rgba(255,255,255,0.6); line-height: 1.5; }
+.bcc-meta  { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.6rem; }
+.bcc-pill  { font-size: 0.72rem; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.75); padding: 3px 10px; border-radius: 20px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="confirmation-wrapper">
+    <div class="success-icon">✅</div>
+    <div class="page-header">
+        <p class="eyebrow">✦ Thank You! ✦</p>
+        <h1>Order Confirmed</h1>
+        <p style="color:var(--green);font-weight:600;">💳 Payment received &amp; confirmed</p>
+        <p>Your order {{ order.order_number }} has been placed and is now being prepared.</p>
+    </div>
+
+    
+    {% if timeline %}
+    <div class="track-wrap">
+      <h3 class="track-title">📍 Live Order Tracking</h3>
+      <ol class="track-steps">
+        {% for step in timeline %}
+        <li class="track-step {% if step.done %}is-done{% elif step.current %}is-current{% else %}is-future{% endif %}">
+          <div class="track-icon-wrap">
+            <div class="track-icon">
+              {% if step.done %}✓{% elif step.current %}{{ step.icon }}{% else %}{{ step.icon }}{% endif %}
+            </div>
+            {% if not forloop.last %}<div class="track-line"></div>{% endif %}
+          </div>
+          <div class="track-body">
+            <p class="track-label">{{ step.label }}</p>
+            {% if step.detail %}<p class="track-detail">{{ step.detail }}</p>{% endif %}
+            {% if step.at %}
+              <p class="track-time">{{ step.at|date:"M j, H:i" }}</p>
+            {% elif step.current %}
+              <p class="track-time" style="color:var(--gold);">In progress…</p>
+            {% else %}
+              <p class="track-time" style="color:var(--muted);opacity:.6;">Waiting…</p>
+            {% endif %}
+          </div>
+        </li>
+        {% endfor %}
+      </ol>
+      <p style="font-size:.75rem;color:var(--muted);text-align:center;margin:.6rem 0 0;">
+        🔄 This page refreshes automatically — no need to reload.
+      </p>
+    </div>
+    <style>
+      .track-wrap {
+        background: var(--surface, #fff);
+        border: 1px solid var(--border, #e7e2d8);
+        border-radius: 14px;
+        padding: 1.4rem 1.5rem;
+        margin: 1.5rem 0;
+      }
+      .track-title {
+        font-family: 'Playfair Display', serif;
+        font-size: 1.05rem;
+        margin: 0 0 1.1rem;
+        color: var(--dark, #1A1410);
+      }
+      .track-steps {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .track-step {
+        display: flex;
+        gap: 1rem;
+        position: relative;
+      }
+      .track-icon-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex-shrink: 0;
+      }
+      .track-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        flex-shrink: 0;
+        transition: all .25s ease;
+      }
+      .track-line {
+        flex: 1;
+        width: 2px;
+        background: var(--border, #e7e2d8);
+        margin: 4px 0;
+        min-height: 32px;
+      }
+      .track-step.is-done .track-icon {
+        background: #2e7d32;
+        color: #fff;
+        font-weight: 700;
+      }
+      .track-step.is-done .track-line {
+        background: #2e7d32;
+      }
+      .track-step.is-current .track-icon {
+        background: #C9A84C;
+        color: #1A1410;
+        animation: track-pulse 1.6s ease-in-out infinite;
+      }
+      @keyframes track-pulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0.5); }
+        50%      { box-shadow: 0 0 0 10px rgba(201, 168, 76, 0); }
+      }
+      .track-step.is-future .track-icon {
+        background: #f5f1e8;
+        color: #b8aa90;
+        opacity: .55;
+      }
+      .track-body {
+        flex: 1;
+        padding-bottom: 1rem;
+      }
+      .track-step:last-child .track-body { padding-bottom: 0; }
+      .track-label {
+        margin: 0 0 .15rem;
+        font-weight: 600;
+        font-size: .92rem;
+        color: var(--dark, #1A1410);
+      }
+      .track-step.is-future .track-label {
+        color: var(--muted, #6b6055);
+        opacity: .6;
+        font-weight: 500;
+      }
+      .track-detail {
+        margin: 0 0 .15rem;
+        font-size: .8rem;
+        color: var(--muted, #6b6055);
+      }
+      .track-time {
+        margin: 0;
+        font-size: .76rem;
+        color: var(--muted, #6b6055);
+      }
+    </style>
+    {% endif %}
+
+    
+    {% if pickup_code and not pickup_code.is_verified and not pickup_code.locked and not pickup_code.is_expired %}
+    <div style="background:#1A1410;color:#fff;border-radius:12px;padding:1.5rem;margin:1.5rem 0;text-align:center;">
+        <p style="margin:0 0 .5rem;font-size:.78rem;font-weight:700;letter-spacing:1.5px;color:#C9A84C;">YOUR PICKUP CODE</p>
+        <p style="margin:0 0 1rem;font-size:.88rem;color:#d6cebf;">Show this code to the fulfillment officer when collecting at the branch.</p>
+        <div style="font-family:monospace;font-weight:700;font-size:2.5rem;letter-spacing:.3em;color:#C9A84C;padding:.5rem 0 1rem;">
+            {{ pickup_code.code }}
+        </div>
+        <div style="background:#fff;border-radius:8px;padding:.8rem;display:inline-block;">
+            {{ pickup_code.qr_svg|safe }}
+        </div>
+        <p style="margin:1rem 0 0;font-size:.78rem;color:#9c9080;">
+            Expires in <span data-countdown="{{ pickup_code.seconds_until_expiry }}">{{ pickup_code.seconds_until_expiry }}s</span>
+        </p>
+    </div>
+    {% elif pickup_code and pickup_code.is_verified %}
+    <div style="background:#d4edda;color:#155724;border:1px solid #c3e6cb;border-radius:10px;padding:1rem 1.25rem;margin:1.5rem 0;">
+        ✅ <strong>Collected at {{ pickup_code.used_at|date:"M d, H:i" }}</strong> — thank you for shopping with us!
+    </div>
+    {% endif %}
+
+    
+    {% if rider_code and not rider_code.is_verified and not rider_code.locked and not rider_code.is_expired %}
+    <div style="background:#1A1410;color:#fff;border-radius:12px;padding:1.5rem;margin:1.5rem 0;text-align:center;">
+        <p style="margin:0 0 .5rem;font-size:.78rem;font-weight:700;letter-spacing:1.5px;color:#C9A84C;">YOUR DELIVERY CODE</p>
+        <p style="margin:0 0 1rem;font-size:.88rem;color:#d6cebf;">
+            🛵 Rider is on the way. When they arrive, read these digits to them
+            (or hold up the QR) so they can close the delivery on their phone.
+        </p>
+        <div style="font-family:monospace;font-weight:700;font-size:2.5rem;letter-spacing:.3em;color:#C9A84C;padding:.5rem 0 1rem;">
+            {{ rider_code.code }}
+        </div>
+        <div style="background:#fff;border-radius:8px;padding:.8rem;display:inline-block;">
+            {{ rider_code.qr_svg|safe }}
+        </div>
+        <p style="margin:1rem 0 0;font-size:.78rem;color:#9c9080;">
+            Expires in <span data-countdown="{{ rider_code.seconds_until_expiry }}">{{ rider_code.seconds_until_expiry }}s</span>
+        </p>
+        <a href="{% url 'confirm_delivery' order.id %}"
+           style="display:inline-block;margin-top:1rem;padding:.55rem 1.25rem;background:#C9A84C;color:#1A1410;border-radius:8px;font-weight:700;font-size:.85rem;text-decoration:none;">
+           Open full-screen view
+        </a>
+    </div>
+    {% elif rider_code and rider_code.is_verified %}
+    <div style="background:#d4edda;color:#155724;border:1px solid #c3e6cb;border-radius:10px;padding:1rem 1.25rem;margin:1.5rem 0;">
+        ✅ <strong>Delivery confirmed at {{ rider_code.used_at|date:"M d, H:i" }}</strong> — thank you for shopping with us!
+    </div>
+    {% elif rider_code and rider_code.locked %}
+    <div style="background:#f8d7da;color:#721c24;border:1px solid #f5c6cb;border-radius:10px;padding:1rem 1.25rem;margin:1.5rem 0;">
+        🔒 The delivery code has been locked after 3 wrong attempts. Our team has been notified and will contact you on {{ order.phone }}.
+    </div>
+    {% endif %}
+
+    
+    {% if pickup_code or rider_code %}
+    <script>
+    document.querySelectorAll('[data-countdown]').forEach(function(el) {
+        var remaining = parseInt(el.dataset.countdown, 10);
+        if (!remaining || remaining <= 0) return;
+        var iv = setInterval(function() {
+            remaining -= 1;
+            if (remaining <= 0) { el.textContent = 'expired'; clearInterval(iv); return; }
+            var m = Math.floor(remaining / 60); var s = remaining % 60;
+            el.textContent = (m > 0 ? m + 'm ' : '') + s + 's';
+        }, 1000);
+    });
+    </script>
+    {% endif %}
+
+    <!-- Fulfillment confirmation card -->
+    {% if order.fulfillment_type == 'delivery' %}
+    <div class="branch-confirm-card" style="background:linear-gradient(135deg,#0d3b66,#1a6fad);">
+        <div class="bcc-icon">🛵</div>
+        <div class="bcc-content">
+            <div class="bcc-label" style="color:rgba(255,255,255,.65);">Home Delivery — We Come To You</div>
+            <div class="bcc-name">Delivering from {{ order.branch.name|default:"your nearest branch" }}</div>
+            {% if order.delivery_address %}
+            <div class="bcc-addr">📍 {{ order.delivery_address }}</div>
+            {% endif %}
+            <div class="bcc-meta" style="margin-top:0.6rem;">
+                <span class="bcc-pill">🕐 Estimated within 24 hours</span>
+                <span class="bcc-pill">📞 We'll call before arrival</span>
+            </div>
+        </div>
+    </div>
+    {% elif order.branch %}
+    <div class="branch-confirm-card">
+        <div class="bcc-icon">
+            {% if order.branch.branch_type == 'express' %}⚡{% elif order.branch.branch_type == 'agent' %}📍{% else %}🏢{% endif %}
+        </div>
+        <div class="bcc-content">
+            <div class="bcc-label">
+                Branch Pickup —
+                {% if order.branch.branch_type == 'express' %}Express Kiosk
+                {% elif order.branch.branch_type == 'agent' %}Mobile Agent Point
+                {% else %}Main Branch{% endif %}
+            </div>
+            <div class="bcc-name">{{ order.branch.name }}</div>
+            <div class="bcc-addr">{{ order.branch.address }}, {{ order.branch.city }}</div>
+            <div class="bcc-meta">
+                <span class="bcc-pill">⏱ Ready within 24 hours</span>
+                {% if order.branch.phone %}<span class="bcc-pill">📞 {{ order.branch.phone }}</span>{% endif %}
+                {% if order.branch.opening_hours %}<span class="bcc-pill">🕐 {{ order.branch.opening_hours }}</span>{% endif %}
+                {% if order.branch.landmark %}<span class="bcc-pill">📌 Near {{ order.branch.landmark }}</span>{% endif %}
+                {% if order.branch.latitude and order.branch.longitude %}
+                <a href="https://www.google.com/maps/search/?api=1&query={{ order.branch.latitude }},{{ order.branch.longitude }}"
+                   target="_blank" class="bcc-pill" style="color:var(--gold);text-decoration:none;">🗺️ Open in Maps</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="order-detail-card">
+        <h3 style="font-family:'Playfair Display',serif;margin-bottom:1rem;">Order Details</h3>
+
+        <div class="order-detail-row">
+            <span class="label">Order Number</span>
+            <span class="value">{{ order.order_number }}</span>
+        </div>
+        <div class="order-detail-row">
+            <span class="label">Status</span>
+            <span class="value" id="oc-status" style="color:var(--green);">{{ order.get_status_display }}</span>
+        </div>
+        <div class="order-detail-row">
+            <span class="label">Customer</span>
+            <span class="value">{{ order.full_name }}</span>
+        </div>
+        <div class="order-detail-row">
+            <span class="label">Email</span>
+            <span class="value">{{ order.email }}</span>
+        </div>
+        <div class="order-detail-row">
+            <span class="label">Phone</span>
+            <span class="value">{{ order.phone }}</span>
+        </div>
+        {% if order.address %}
+        <div class="order-detail-row">
+            <span class="label">Address</span>
+            <span class="value">{{ order.address }}{% if order.city %}, {{ order.city }}{% endif %}</span>
+        </div>
+        {% endif %}
+        <div class="order-detail-row">
+            <span class="label">Region</span>
+            <span class="value">{{ order.get_region_display_name }}</span>
+        </div>
+
+        <h4 style="margin-top:1.5rem;margin-bottom:0.5rem;font-size:0.8rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Items Ordered</h4>
+        {% for item in order.items.all %}
+        <div class="item-row">
+            <span>{{ item.product.name }} × {{ item.quantity }}</span>
+            <span>GH₵ {{ item.get_total_price }}</span>
+        </div>
+        {% endfor %}
+
+        <div class="subtotal-row" style="margin-top:0.5rem;">
+            <span>Subtotal</span>
+            <span>GH₵ {{ order.subtotal }}</span>
+        </div>
+        <div class="shipping-row">
+            <span>Shipping{% if order.branch %} — {{ order.branch.name }}{% endif %}</span>
+            <span>GH₵ {{ order.shipping_fee }}</span>
+        </div>
+        <div class="total-big">
+            <span>Total Paid</span>
+            <span class="amount">GH₵ {{ order.total_price }}</span>
+        </div>
+    </div>
+
+    <div class="flex gap-2 items-center mt-3" style="justify-content:center;">
+        <a href="{% url 'my_orders' %}" class="btn btn-outline">View All Orders</a>
+        <a href="{% url 'product_list' %}" class="btn btn-gold">Continue Shopping</a>
+    </div>
+</div>
+
+<script>
+{% comment %}
+Live auto-refresh — silently polls the order status every 15 seconds.
+Updates the visible status badge if it changed, and reloads the page in
+full when handoff codes appear or change (since those need template
+rendering for QR codes etc that are too complex for partial DOM updates).
+{% endcomment %}
+(function() {
+    var orderId = {{ order.id|default:0 }};
+    if (!orderId) return;
+
+    var lastStatus = '{{ order.status|escapejs }}';
+    var lastPickupCode = {% if pickup_code %}'{{ pickup_code.code|escapejs }}'{% else %}null{% endif %};
+    var lastRiderCode  = {% if rider_code %}'{{ rider_code.code|escapejs }}'{% else %}null{% endif %};
+    var lastPickupVerified = {% if pickup_code and pickup_code.is_verified %}true{% else %}false{% endif %};
+    var lastRiderVerified  = {% if rider_code and rider_code.is_verified %}true{% else %}false{% endif %};
+    var pollUrl = '/api/order/' + orderId + '/status/';
+
+    function applyUpdate(data) {
+        // Update visible status badge in place — no flicker
+        var statusEl = document.getElementById('oc-status');
+        if (statusEl && data.status_display && statusEl.textContent.trim() !== data.status_display) {
+            statusEl.textContent = data.status_display;
+            // Brief gold flash so the customer notices the change
+            statusEl.style.transition = 'background 0.6s ease';
+            statusEl.style.background = 'rgba(201, 168, 76, 0.25)';
+            setTimeout(function() { statusEl.style.background = ''; }, 1200);
+        }
+
+        // Detect important transitions that require full re-render (the page
+        // needs to show/hide the code-entry box, the QR code, etc.)
+        var pickupNow  = data.pickup_code ? data.pickup_code.code : null;
+        var riderNow   = data.rider_code  ? data.rider_code.code  : null;
+        var pickupVer  = data.pickup_code ? data.pickup_code.is_verified : false;
+        var riderVer   = data.rider_code  ? data.rider_code.is_verified  : false;
+
+        var needsReload = (
+            pickupNow !== lastPickupCode ||
+            riderNow  !== lastRiderCode  ||
+            pickupVer !== lastPickupVerified ||
+            riderVer  !== lastRiderVerified ||
+            data.status !== lastStatus
+        );
+
+        if (needsReload) {
+            // Don't reload if user is currently typing in the code input
+            // (we'd lose what they were typing)
+            var codeInput = document.querySelector('input[name="code"]');
+            if (codeInput && document.activeElement === codeInput && codeInput.value) {
+                // Defer reload until next poll
+                return;
+            }
+            // Reload with a small delay so the status flash is visible
+            setTimeout(function() { window.location.reload(); }, 1400);
+        }
+
+        lastStatus = data.status;
+        lastPickupCode = pickupNow;
+        lastRiderCode  = riderNow;
+        lastPickupVerified = pickupVer;
+        lastRiderVerified  = riderVer;
+    }
+
+    function poll() {
+        fetch(pollUrl, { credentials: 'same-origin' })
+            .then(function(r) { return r.ok ? r.json() : null; })
+            .then(function(data) { if (data) applyUpdate(data); })
+            .catch(function() { /* silent — try again next tick */ });
+    }
+
+    // Poll every 15s. Stop when the page is hidden to save bandwidth
+    // (resumes when the customer returns to the tab).
+    var iv = setInterval(function() {
+        if (!document.hidden) poll();
+    }, 15000);
+
+    // Run one immediate poll after 3s so any change between page load
+    // and first interval is caught quickly.
+    setTimeout(poll, 3000);
+})();
+</script>
+
+{% endblock %}

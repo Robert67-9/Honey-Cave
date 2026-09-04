@@ -1,0 +1,415 @@
+{% extends 'mall/base.html' %}
+{% block title %}Your Delivery Code — Order {{ order.order_number }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.cd-wrap {
+  max-width: 520px;
+  margin: 2rem auto 4rem;
+  padding: 0 1rem;
+}
+.cd-card {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e8e0d4);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+}
+.cd-card-header {
+  background: var(--dark, #1A1410);
+  color: #fff;
+  padding: 1.6rem 1.5rem;
+  text-align: center;
+}
+.cd-card-header .cd-icon {
+  font-size: 2.6rem;
+  line-height: 1;
+  margin-bottom: .35rem;
+}
+.cd-card-header h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.35rem;
+  margin: 0;
+  color: #fff;
+}
+.cd-card-header .cd-order-num {
+  color: #C9A84C;
+  font-size: .82rem;
+  margin-top: .35rem;
+  letter-spacing: .5px;
+}
+
+.cd-card-body { padding: 1.5rem; }
+
+/* The big code panel — the centerpiece of the page */
+.cd-code-panel {
+  background: var(--dark, #1A1410);
+  color: #fff;
+  border-radius: 14px;
+  padding: 1.6rem 1.25rem;
+  text-align: center;
+  margin-bottom: 1.25rem;
+}
+.cd-code-eyebrow {
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: 2.5px;
+  color: #C9A84C;
+  margin: 0 0 .35rem;
+}
+.cd-code-help {
+  font-size: .85rem;
+  color: rgba(255,255,255,0.7);
+  margin: 0 0 1.1rem;
+  line-height: 1.45;
+}
+.cd-code-digits {
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  font-size: 2.6rem;
+  letter-spacing: .35em;
+  color: #C9A84C;
+  padding: .4rem 0 .9rem;
+}
+.cd-qr-box {
+  background: #fff;
+  border-radius: 10px;
+  padding: .9rem;
+  display: inline-block;
+}
+.cd-qr-box svg { display: block; width: 160px; height: 160px; }
+.cd-expiry {
+  margin: 1rem 0 0;
+  font-size: .78rem;
+  color: rgba(255,255,255,0.55);
+}
+
+/* Info / how-it-works strip */
+.cd-info {
+  background: #fff8e1;
+  border: 1px solid #ffe082;
+  border-radius: 10px;
+  padding: .9rem 1.1rem;
+  font-size: .85rem;
+  color: #5d4037;
+  line-height: 1.55;
+  margin-bottom: 1rem;
+}
+.cd-rider-card {
+  background: var(--cream, #f5f0e8);
+  border-radius: 10px;
+  padding: .9rem 1.1rem;
+  margin-bottom: 1rem;
+  font-size: .87rem;
+  color: var(--text, #1A1410);
+  line-height: 1.7;
+}
+.cd-rider-card a { color: var(--gold, #C9A84C); font-weight: 600; text-decoration: none; }
+
+/* Status banners */
+.cd-banner {
+  border-radius: 12px;
+  padding: 1.4rem 1.5rem;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+.cd-banner-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+.cd-banner-error   { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+.cd-banner-warn    { background: #fff3cd; color: #856404; border: 1px solid #ffe082; }
+.cd-banner .cd-banner-icon { font-size: 2.2rem; margin-bottom: .4rem; line-height: 1; }
+.cd-banner h2 { font-size: 1.05rem; margin: 0 0 .35rem; }
+.cd-banner p  { margin: 0; font-size: .9rem; }
+
+/* Problem-report toggle */
+.cd-trouble-row {
+  margin-top: 1.2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border, #e8e0d4);
+  text-align: center;
+}
+.cd-trouble-toggle {
+  background: none;
+  border: none;
+  color: var(--muted, #7a6e64);
+  font-size: .85rem;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: .3rem .5rem;
+}
+.cd-trouble-toggle:hover { color: #c62828; }
+.cd-trouble-form {
+  display: none;
+  margin-top: .9rem;
+  background: #fff5f5;
+  border: 1px solid #ffd6d6;
+  border-radius: 10px;
+  padding: 1rem;
+  text-align: left;
+}
+.cd-trouble-form.open { display: block; }
+.cd-trouble-form p {
+  font-size: .85rem;
+  color: #5a5047;
+  margin: 0 0 .7rem;
+  line-height: 1.5;
+}
+.cd-btn-problem {
+  width: 100%;
+  padding: .8rem;
+  background: #fff;
+  color: #c62828;
+  border: 2px solid #c62828;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: .92rem;
+  cursor: pointer;
+  transition: background .15s;
+}
+.cd-btn-problem:hover { background: #ffeded; }
+
+.cd-back-link {
+  display: inline-block;
+  margin-top: 1.25rem;
+  color: var(--gold, #C9A84C);
+  font-weight: 600;
+  text-decoration: none;
+  font-size: .9rem;
+}
+.cd-back-link:hover { text-decoration: underline; }
+
+@media (max-width: 480px) {
+  .cd-code-digits { font-size: 2.05rem; letter-spacing: .25em; }
+  .cd-qr-box svg  { width: 140px; height: 140px; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cd-wrap">
+
+  
+  {% if is_complete %}
+  <div class="cd-card">
+    <div class="cd-card-header" style="background:#1b5e20;">
+      <div class="cd-icon">🎉</div>
+      <h1>{% if order.fulfillment_type == 'pickup' %}Collection Complete{% else %}Delivery Complete{% endif %}</h1>
+      <p class="cd-order-num">Order {{ order.order_number }}</p>
+    </div>
+    <div class="cd-card-body" style="text-align:center;">
+      <p style="color:var(--muted, #7a6e64); margin-bottom:1rem;">
+        Your order has been confirmed as
+        {% if order.fulfillment_type == 'pickup' %}collected{% else %}delivered{% endif %}.
+        Thank you for shopping with us!
+      </p>
+      {% if rider and rider.delivered_at %}
+      <p style="font-size:.85rem; color:var(--muted, #7a6e64); margin-bottom:1.2rem;">
+        Delivered by <strong>{{ rider.rider_name }}</strong>
+        on {{ rider.delivered_at|date:"M d, Y \a\t H:i" }}.
+      </p>
+      {% endif %}
+      <div style="display:flex; gap:.6rem; justify-content:center; flex-wrap:wrap;">
+        <a href="{% url 'my_orders' %}" class="btn btn-gold" style="padding:.75rem 1.4rem; text-decoration:none;">My Orders</a>
+        <a href="{% url 'order_review' order.id %}" class="btn" style="padding:.75rem 1.4rem; text-decoration:none; background:var(--dark, #1A1410); color:#fff;">⭐ Leave a Review</a>
+      </div>
+    </div>
+  </div>
+
+  
+  {% elif problem_reported %}
+  <div class="cd-card">
+    <div class="cd-card-header" style="background:#c62828;">
+      <div class="cd-icon">⚠️</div>
+      <h1>Problem Reported</h1>
+      <p class="cd-order-num">Order {{ order.order_number }}</p>
+    </div>
+    <div class="cd-card-body" style="text-align:center;">
+      <p style="color:var(--text, #1A1410); margin-bottom:.6rem;">
+        We've notified the team about the issue with your order.
+      </p>
+      <p style="color:var(--muted, #7a6e64); font-size:.88rem; margin-bottom:1.2rem;">
+        A staff member will contact you at <strong>{{ order.phone }}</strong> shortly to resolve this.
+      </p>
+      <a href="{% url 'my_orders' %}" class="btn btn-gold" style="padding:.75rem 1.4rem; text-decoration:none;">Back to My Orders</a>
+    </div>
+  </div>
+
+  
+  {% elif customer_code and customer_code.locked %}
+  <div class="cd-card">
+    <div class="cd-card-header" style="background:#c62828;">
+      <div class="cd-icon">🔒</div>
+      <h1>Delivery Code Locked</h1>
+      <p class="cd-order-num">Order {{ order.order_number }}</p>
+    </div>
+    <div class="cd-card-body">
+      <div class="cd-banner cd-banner-error">
+        <p>The delivery code for this order has been locked after 3 wrong attempts. Our team has been notified and will contact you on <strong>{{ order.phone }}</strong> to resolve this.</p>
+      </div>
+      <a href="{% url 'my_orders' %}" class="cd-back-link">← Back to My Orders</a>
+    </div>
+  </div>
+
+  
+  {% elif customer_code and customer_code.is_expired %}
+  <div class="cd-card">
+    <div class="cd-card-header">
+      <div class="cd-icon">⏰</div>
+      <h1>Code Expired</h1>
+      <p class="cd-order-num">Order {{ order.order_number }}</p>
+    </div>
+    <div class="cd-card-body">
+      <div class="cd-banner cd-banner-warn">
+        <p>Your delivery code has expired. Ask the {% if order.fulfillment_type == 'pickup' %}fulfillment officer{% else %}rider{% endif %} to request a fresh code from admin, then refresh this page.</p>
+      </div>
+      <div style="text-align:center;">
+        <a href="{% url 'confirm_delivery' order.id %}" class="btn btn-gold" style="padding:.7rem 1.4rem; text-decoration:none;">🔄 Refresh</a>
+      </div>
+    </div>
+  </div>
+
+  
+  {% elif not customer_code %}
+  <div class="cd-card">
+    <div class="cd-card-header">
+      <div class="cd-icon">📦</div>
+      <h1>Your delivery code isn't ready yet</h1>
+      <p class="cd-order-num">Order {{ order.order_number }}</p>
+    </div>
+    <div class="cd-card-body">
+      <p style="color:var(--muted, #7a6e64); font-size:.92rem; line-height:1.6;">
+        We'll generate your 6-digit code as soon as
+        {% if order.fulfillment_type == 'pickup' %}
+          your order is ready at <strong>{{ order.branch.name|default:"the branch" }}</strong>.
+        {% else %}
+          a rider has picked it up from the branch.
+        {% endif %}
+        You'll get a notification — come back to this page then.
+      </p>
+      <div style="text-align:center; margin-top:1rem;">
+        <a href="{% url 'order_confirmation' order.id %}" class="btn btn-gold" style="padding:.7rem 1.4rem; text-decoration:none;">📍 View order tracking</a>
+      </div>
+
+      <div class="cd-trouble-row">
+        <p style="font-size:.82rem; color:var(--muted, #7a6e64); margin-bottom:.4rem;">
+          Something wrong with your order?
+        </p>
+        <button type="button" class="cd-trouble-toggle" onclick="document.getElementById('cd-trouble').classList.toggle('open')">
+          I have a problem with this order
+        </button>
+        <div class="cd-trouble-form" id="cd-trouble">
+          <p>Use this only if you've waited unusually long, the rider isn't responding, or there's another issue. Our team will follow up with you.</p>
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="problem">
+            <button type="submit" class="cd-btn-problem">⚠️ Report a problem</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+  {% else %}
+  <div class="cd-card">
+    <div class="cd-card-header">
+      <div class="cd-icon">{% if order.fulfillment_type == 'pickup' %}🏪{% else %}🛵{% endif %}</div>
+      <h1>
+        {% if order.fulfillment_type == 'pickup' %}
+          Show this at the branch
+        {% else %}
+          Show this code to the rider
+        {% endif %}
+      </h1>
+      <p class="cd-order-num">Order {{ order.order_number }}</p>
+    </div>
+
+    <div class="cd-card-body">
+
+      {% if order.fulfillment_type == 'delivery' and rider %}
+      <div class="cd-rider-card">
+        🚴 <strong>Rider:</strong> {{ rider.rider_name }}<br>
+        📞 <strong>Phone:</strong> <a href="tel:{{ rider.rider_phone }}">{{ rider.rider_phone }}</a>
+        {% if rider.dispatched_at %}<br>🕐 <strong>Dispatched:</strong> {{ rider.dispatched_at|date:"M d, H:i" }}{% endif %}
+      </div>
+      {% endif %}
+
+      
+      <div class="cd-code-panel">
+        <p class="cd-code-eyebrow">YOUR {% if order.fulfillment_type == 'pickup' %}PICKUP{% else %}DELIVERY{% endif %} CODE</p>
+        <p class="cd-code-help">
+          {% if order.fulfillment_type == 'pickup' %}
+            Show this to the fulfillment officer when collecting your order.
+          {% else %}
+            Read these digits to the rider, or hold up the QR for them to scan.
+            They'll enter it on their phone to close the delivery.
+          {% endif %}
+        </p>
+        <div class="cd-code-digits">{{ customer_code.code }}</div>
+        <div class="cd-qr-box">
+          {{ customer_code.qr_svg|safe }}
+        </div>
+        <p class="cd-expiry">
+          Expires in <span data-countdown="{{ customer_code.seconds_until_expiry }}">{{ customer_code.seconds_until_expiry }}s</span>
+        </p>
+      </div>
+
+      <div class="cd-info">
+        ℹ️ <strong>Don't share this code over the phone.</strong>
+        Only show it in person to the
+        {% if order.fulfillment_type == 'pickup' %}fulfillment officer at the branch.{% else %}rider at your door.{% endif %}
+        This protects you if anything goes wrong.
+      </div>
+
+      
+      <div class="cd-trouble-row">
+        <button type="button" class="cd-trouble-toggle" onclick="document.getElementById('cd-trouble').classList.toggle('open')">
+          The {% if order.fulfillment_type == 'pickup' %}fulfillment officer{% else %}rider{% endif %} can't enter the code, or I have another problem
+        </button>
+        <div class="cd-trouble-form" id="cd-trouble">
+          <p>
+            Use this if the {% if order.fulfillment_type == 'pickup' %}fulfillment officer{% else %}rider{% endif %}
+            can't enter your code (their device isn't working, etc.), or if there's a problem with the order.
+            Our team will follow up with you on <strong>{{ order.phone }}</strong>.
+          </p>
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="problem">
+            <button type="submit" class="cd-btn-problem">⚠️ Report a problem</button>
+          </form>
+        </div>
+      </div>
+
+      <div style="text-align:center;">
+        <a href="{% url 'my_orders' %}" class="cd-back-link">← Back to My Orders</a>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+document.querySelectorAll('[data-countdown]').forEach(function(el) {
+  var remaining = parseInt(el.dataset.countdown, 10);
+  if (!remaining || remaining <= 0) return;
+  var iv = setInterval(function() {
+    remaining -= 1;
+    if (remaining <= 0) {
+      el.textContent = 'expired — refreshing…';
+      clearInterval(iv);
+      setTimeout(function(){ window.location.reload(); }, 800);
+      return;
+    }
+    var m = Math.floor(remaining / 60);
+    var s = remaining % 60;
+    el.textContent = (m > 0 ? m + 'm ' : '') + s + 's';
+  }, 1000);
+});
+
+// Auto-refresh page every 30s while showing an active code so the customer
+// sees "verified" state immediately after the rider enters the code.
+{% if customer_code and not customer_code.locked and not customer_code.is_expired and not is_complete and not problem_reported %}
+setTimeout(function(){ window.location.reload(); }, 30000);
+{% endif %}
+</script>
+{% endblock %}

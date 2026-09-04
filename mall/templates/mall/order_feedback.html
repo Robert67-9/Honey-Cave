@@ -1,0 +1,142 @@
+{% extends 'mall/base.html' %}
+{% load form_filters %}
+{% block title %}Leave Feedback — Order {{ order.order_number }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.fb-card { background:#fff; border-radius:16px; box-shadow:0 2px 16px rgba(0,0,0,.07); padding:2rem; margin-bottom:1.5rem; }
+.fb-card h3 { font-size:1rem; font-weight:700; margin:0 0 1rem; color:#1A1410; }
+.nps-grid { display:flex; gap:6px; flex-wrap:wrap; }
+.nps-grid input[type=radio] { display:none; }
+.nps-grid label {
+  width:44px; height:44px; border-radius:10px; border:2px solid #ddd;
+  display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:0.95rem; cursor:pointer; transition:.15s;
+}
+.nps-grid input[type=radio]:checked + label { border-color:#C9A84C; background:#C9A84C; color:#fff; }
+.nps-grid label:hover { border-color:#C9A84C; }
+.nps-labels { display:flex; justify-content:space-between; font-size:0.72rem; color:#888; margin-top:6px; }
+.star-row { display:flex; gap:8px; }
+.star-row input[type=radio] { display:none; }
+.star-row label {
+  font-size:1.6rem; cursor:pointer; color:#ddd; transition:.15s; line-height:1;
+}
+.star-row input[type=radio]:checked ~ label,
+.star-row label:hover,
+.star-row label:hover ~ label { color:#C9A84C; }
+/* Reverse star trick */
+.star-row { flex-direction: row-reverse; justify-content: flex-end; }
+.star-row input[type=radio]:checked ~ label { color:#C9A84C; }
+.star-row label:hover,
+.star-row label:hover ~ label { color:#C9A84C; }
+.photo-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:0.75rem; }
+.submit-btn {
+  width:100%; padding:1rem; background:#1A1410; color:#fff; border:none;
+  border-radius:12px; font-size:1rem; font-weight:700; cursor:pointer; transition:.15s;
+}
+.submit-btn:hover { background:#C9A84C; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:640px;">
+
+  <div style="margin-bottom:1.5rem;">
+    <h2 class="fw-bold">How was your order? 🙏</h2>
+    <p class="text-muted">Order {{ order.order_number }} · Delivered {{ order.updated|date:"F d, Y" }}</p>
+  </div>
+
+  {% if messages %}{% for m in messages %}<div class="alert alert-{{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
+
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+
+    <!-- NPS -->
+    <div class="fb-card">
+      <h3>{{ form.nps_score.label }}</h3>
+      <div class="nps-grid">
+        {% for val, label in form.nps_score.field.choices %}
+        <input type="radio" name="nps_score" id="nps_{{ val }}" value="{{ val }}" {% if form.nps_score.value == val|stringformat:"s" %}checked{% endif %} required>
+        <label for="nps_{{ val }}">{{ val }}</label>
+        {% endfor %}
+      </div>
+      <div class="nps-labels"><span>Not likely</span><span>Extremely likely</span></div>
+      {% if form.nps_score.errors %}<p class="text-danger small mt-1">{{ form.nps_score.errors|join:", " }}</p>{% endif %}
+    </div>
+
+    <!-- Category Ratings — uses the hardcoded fallback block below -->
+
+    <!-- Stars (direct field rendering for reliability) -->
+    <div class="fb-card">
+      <h3>Rate Your Experience</h3>
+
+      <div style="margin-bottom:1.25rem;">
+        <p style="font-weight:600;margin-bottom:.4rem;">🚚 Delivery Speed</p>
+        <div class="star-row">
+          {% for v in "54321" %}
+          <input type="radio" name="delivery_rating" id="dr_{{ v }}" value="{{ v }}" required>
+          <label for="dr_{{ v }}">★</label>
+          {% endfor %}
+        </div>
+        {% if form.delivery_rating.errors %}<p class="text-danger small">{{ form.delivery_rating.errors|join:", " }}</p>{% endif %}
+      </div>
+
+      <div style="margin-bottom:1.25rem;">
+        <p style="font-weight:600;margin-bottom:.4rem;">📦 Packaging Quality</p>
+        <div class="star-row">
+          {% for v in "54321" %}
+          <input type="radio" name="packaging_rating" id="pr_{{ v }}" value="{{ v }}" required>
+          <label for="pr_{{ v }}">★</label>
+          {% endfor %}
+        </div>
+        {% if form.packaging_rating.errors %}<p class="text-danger small">{{ form.packaging_rating.errors|join:", " }}</p>{% endif %}
+      </div>
+
+      <div>
+        <p style="font-weight:600;margin-bottom:.4rem;">🤝 Customer Service</p>
+        <div class="star-row">
+          {% for v in "54321" %}
+          <input type="radio" name="service_rating" id="sr_{{ v }}" value="{{ v }}" required>
+          <label for="sr_{{ v }}">★</label>
+          {% endfor %}
+        </div>
+        {% if form.service_rating.errors %}<p class="text-danger small">{{ form.service_rating.errors|join:", " }}</p>{% endif %}
+      </div>
+    </div>
+
+    <!-- Comment -->
+    <div class="fb-card">
+      <h3>💬 Tell Us More (optional)</h3>
+      {{ form.comment }}
+      {% if form.comment.errors %}<p class="text-danger small mt-1">{{ form.comment.errors|join:", " }}</p>{% endif %}
+    </div>
+
+    <!-- Photos -->
+    <div class="fb-card">
+      <h3>📷 Add Photos (optional — up to 3)</h3>
+      <div class="photo-grid">
+        <div>
+          <label class="small text-muted d-block mb-1">Photo 1</label>
+          {{ form.photo_1 }}
+          {% if form.photo_1.errors %}<p class="text-danger small">{{ form.photo_1.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="small text-muted d-block mb-1">Photo 2</label>
+          {{ form.photo_2 }}
+          {% if form.photo_2.errors %}<p class="text-danger small">{{ form.photo_2.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="small text-muted d-block mb-1">Photo 3</label>
+          {{ form.photo_3 }}
+          {% if form.photo_3.errors %}<p class="text-danger small">{{ form.photo_3.errors|join:", " }}</p>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <button type="submit" class="submit-btn">Submit Feedback 🙏</button>
+    <div class="text-center mt-3">
+      <a href="{% url 'my_orders' %}" class="text-muted small">Skip for now</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
