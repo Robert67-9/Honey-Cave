@@ -1137,6 +1137,7 @@ def paystack_callback(request):
     })
 
 
+@csrf_exempt
 @require_POST
 def paystack_webhook(request):
     """
