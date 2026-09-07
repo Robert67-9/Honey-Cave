@@ -224,6 +224,22 @@ def fulfillment_officer_order(request, pk):
             elif status == 'not_found':
                 messages.error(request, 'No code has been issued for this order yet. Contact admin.')
             return redirect('fulfillment_officer_order', pk=order.pk)
+        if action == 'verify_customer_code':
+            entered = request.POST.get('code', '').strip()
+            status, _, remaining = handoff_svc.verify_code(
+                order, 'officer_to_customer', entered, used_by_user=request.user
+            )
+            if status == 'ok':
+                messages.success(request, '\u2713 Customer pickup confirmed. Order complete.')
+            elif status == 'wrong':
+                messages.error(request, f'Wrong code. {remaining} attempt(s) left.')
+            elif status == 'locked':
+                messages.error(request, '\ud83d\udd12 Locked after 3 wrong attempts. Admin has been notified.')
+            elif status == 'expired':
+                messages.error(request, 'Code expired. Ask the customer to request a new one, or contact admin.')
+            elif status == 'not_found':
+                messages.error(request, 'No pickup code has been issued for this order yet.')
+            return redirect('fulfillment_officer_order', pk=order.pk)
 
         if action == 'assign_rider':
             # Fulfillment Officer assigns a rider once they have the package and are

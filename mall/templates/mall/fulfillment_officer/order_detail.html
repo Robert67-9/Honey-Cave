@@ -226,24 +226,34 @@
 {% if show_qr_for %}
 <div class="card">
   {% if show_qr_for.stage == 'officer_to_rider' %}
-    <h2>Step 2 — Show this code to the rider</h2>
+    <h2>Step 2 - Show this code to the rider</h2>
     <p style="font-size: 0.9rem; color: var(--muted);">
       Rider <strong>{{ rider_delivery.rider_name }}</strong> ({{ rider_delivery.rider_phone }})
       will enter this code in their portal to confirm pickup.
     </p>
+    <div class="code-display">{{ show_qr_for.code }}</div>
+    <div class="qr-wrap">{{ show_qr_for.qr_svg|safe }}</div>
+    <p class="timer" style="text-align: center;">
+      Expires in <span data-countdown="{{ show_qr_for.seconds_until_expiry }}">{{ show_qr_for.seconds_until_expiry }}s</span>
+      {% if show_qr_for.attempts %} - {{ show_qr_for.attempts }} wrong attempt(s) so far{% endif %}
+    </p>
   {% else %}
-    <h2>Step 2 — Show this code to the customer</h2>
+    <h2>Step 2 - Confirm customer pickup</h2>
     <p style="font-size: 0.9rem; color: var(--muted);">
-      The customer enters this code on their order tracking page to confirm collection.
+      Ask the customer for their 6-digit pickup code and enter it below.
+    </p>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="verify_customer_code">
+      <input type="text" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6"
+             class="code-input" placeholder="- - - - - -" autocomplete="off" required autofocus>
+      <button type="submit" class="btn btn-gold" style="width:100%; padding: 0.85rem;">Confirm Pickup</button>
+    </form>
+    <p class="timer" style="text-align: center; margin-top: 0.6rem;">
+      Expires in <span data-countdown="{{ show_qr_for.seconds_until_expiry }}">{{ show_qr_for.seconds_until_expiry }}s</span>
+      {% if show_qr_for.attempts %} - {{ show_qr_for.attempts }} wrong attempt(s) so far{% endif %}
     </p>
   {% endif %}
-
-  <div class="code-display">{{ show_qr_for.code }}</div>
-  <div class="qr-wrap">{{ show_qr_for.qr_svg|safe }}</div>
-  <p class="timer" style="text-align: center;">
-    Expires in <span data-countdown="{{ show_qr_for.seconds_until_expiry }}">{{ show_qr_for.seconds_until_expiry }}s</span>
-    {% if show_qr_for.attempts %} · {{ show_qr_for.attempts }} wrong attempt(s) so far{% endif %}
-  </p>
 </div>
 {% elif rider_code and rider_code.is_verified %}
 <div class="card">
