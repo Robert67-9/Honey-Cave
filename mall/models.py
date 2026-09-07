@@ -602,6 +602,12 @@ class Order(models.Model):
     def has_gps_pin(self):
         return self.delivery_lat is not None and self.delivery_lng is not None
 
+    @property
+    def total_shipping_fee(self):
+        """Sum of all per-seller delivery fees -- replaces the old flat shipping_fee lookup."""
+        total = self.seller_deliveries.aggregate(total=Sum('shipping_fee'))['total']
+        return total or Decimal('0')
+
     def subtotal(self):
         # BUG-03 FIX: Compute subtotal directly from order items so this method
         # is correct even when called before calculate_total() has run (e.g. in
@@ -1207,15 +1213,24 @@ class RiderSession(models.Model):
 
 class RiderDelivery(models.Model):
     """
-    Tracks a rider assigned to a delivery order.
-    The rider gets a unique token link — no login needed.
-    Flow: Officer assigns rider → rider taps "Mark Delivered" → notifications fire.
+    Tracks a rider assigned to deliver ONE seller's items within an order.
+    A single order can now have multiple RiderDelivery rows -- one per
+    distinct seller whose products are in that order -- each with its own
+    rider, its own fee, and its own delivery lifecycle.
     """
-    order         = models.OneToOneField('Order', on_delete=models.CASCADE, related_name='rider_delivery')
+    order   = models.ForeignKey('Order', on_delete=models.CASCADE, related_name='seller_deliveries')
+    seller  = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='deliveries_owed',
+        null=True, blank=True,
+        help_text='Which seller in this order this delivery covers. Null on '
+                  'legacy rows created before multi-seller delivery existed.',
+    )
+    shipping_fee = models.DecimalField(
+        max_digits=8, decimal_places=2, default=0,
+        help_text="This seller's share of the order's delivery cost, looked up "
+                  "from their branch's region -- not a split of a single flat fee.",
+    )
 
-    # Persistent FK to the rider roster (preferred path).
-    # Null when this delivery was dispatched ad-hoc to a one-off rider
-    # whose details only exist as the snapshot below.
     rider         = models.ForeignKey(
         Rider, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='deliveries',
@@ -1225,26 +1240,20 @@ class RiderDelivery(models.Model):
         help_text='True when dispatched to a one-off rider not in the roster. '
                   'Admin should review these and decide whether to promote the rider to permanent.',
     )
-
-    # Snapshot of rider info at dispatch time. Always populated — for roster
-    # riders, copied from the Rider record; for ad-hoc, typed by the officer.
-    # Kept as standalone fields so history survives even if the Rider is
-    # later renamed, deactivated, or the FK becomes NULL via on_delete.
     rider_name    = models.CharField(max_length=150)
     rider_phone   = models.CharField(max_length=20)
-
     token         = models.CharField(max_length=64, unique=True, editable=False)
     dispatched_at = models.DateTimeField(auto_now_add=True)
     delivered_at  = models.DateTimeField(null=True, blank=True)
     confirmed_at  = models.DateTimeField(null=True, blank=True)
-    # proof note the rider can optionally add
     rider_note    = models.TextField(blank=True)
 
     class Meta:
         verbose_name = 'Rider Delivery'
+        unique_together = [('order', 'seller')]
 
     def __str__(self):
-        return f'Rider {self.rider_name} — Order #{self.order_id}'
+        return f'Rider {self.rider_name} -- Order #{self.order_id} (seller: {self.seller_id})'
 
     def save(self, *args, **kwargs):
         if not self.token:
