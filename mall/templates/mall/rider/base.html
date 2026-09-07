@@ -18,8 +18,19 @@
   --success: #2e7d32;
 }
 * { box-sizing: border-box; }
+html, body {
+  /* FIX: a wide table (e.g. long withdrawal references) with no wrapping
+     rule used to force the whole page wider than the viewport, which made
+     mobile Chrome shrink the entire layout to fit — the "everything
+     squeezed into the left half of the screen" bug. Nothing on this page
+     should ever need to scroll sideways as a whole; individual wide
+     elements scroll internally via .table-scroll below instead. */
+  overflow-x: hidden;
+  max-width: 100%;
+}
 body {
   margin: 0;
+  width: 100%;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background: var(--bg);
   color: var(--dark);
@@ -109,11 +120,31 @@ h3 { font-size: 1rem; }
 .qr-wrap { display: flex; justify-content: center; padding: 1rem; }
 .qr-wrap svg { max-width: 220px; height: auto; }
 .timer { font-size: 0.85rem; color: var(--muted); }
+
+/* ── Tables ──────────────────────────────────────────────────────────────
+   Previously undefined: bare <table> elements (Recent Withdrawals, Recent
+   Activity on the earnings page) had no width/wrap rules at all, so a long
+   cell like a withdrawal reference forced the table — and with it the
+   whole page — wider than the screen. Every table is now wrapped in
+   .table-scroll so only the TABLE scrolls sideways if it has to, never
+   the page around it. */
+.table-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -0.1rem; }
+table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+th, td {
+  padding: 0.55rem 0.7rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); font-weight: 600; }
+tbody tr:last-child td { border-bottom: none; }
+
 @media (max-width: 540px) {
   main { padding: 1rem; }
   .card { padding: 1rem; }
   h1 { font-size: 1.35rem; }
   .code-display { font-size: 2rem; padding: 1rem; }
+  th, td { padding: 0.5rem 0.55rem; font-size: 0.78rem; }
 }
 </style>
 </head>

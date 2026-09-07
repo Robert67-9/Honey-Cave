@@ -1348,7 +1348,7 @@ def delivery_fee_api(request):
             'fee': float(fee),
             'fee_display': f'GH₵ {fee:.2f}',
             'eta_minutes': eta_minutes,
-            'eta_display': 'Within 24 hours',
+            'eta_display': eta_display,
             'distance_km': round(distance_km * 1.3, 1),  # road distance estimate
             'note': 'Fee based on your pinned location.',
         })
@@ -1421,7 +1421,7 @@ def delivery_fee_api(request):
         'fee': float(fee),
         'fee_display': f'GH₵ {fee:.2f}',
         'eta_minutes': eta_minutes,
-        'eta_display': 'Within 24 hours',
+        'eta_display': eta_display,
         'distance_km': round(distance_km * 1.3, 1),  # road distance estimate
     })
 
@@ -1758,7 +1758,31 @@ def _auto_create_order_from_stranded_payment(
     if branch is None:
         branch = _default_pickup_branch(getattr(request.user, 'profile', None))
     if branch is None:
+        logger.warning('Auto-create-order-from-stranded-payment: no branch could be resolved '
+                        '(selected_branch_id=%r, user=%s)', selected_branch_id, request.user)
         return None
+
+    # ── FIX: pick a branch that can actually fulfil the cart ────────────────
+    # The branch resolved above (customer's chosen/nearest/default branch) may
+    # not stock every item in the cart. Previously we plugged ahead with that
+    # branch regardless, which meant unavailable items were silently priced
+    # at product.price (not the real branch price) and, on a catalog where a
+    # branch stocks none of the cart's items, every item would come back
+    # unavailable — leaving nothing to actually create the order from. Since
+    # payment is already captured, we must not give up here: try the
+    # customer's branch first, then fall back to any other active branch that
+    # DOES have everything in stock, so the paid order still gets created.
+    _annotated, _subtotal_preview, _all_avail = reconcile_cart_with_branch(cart_items, branch)
+    if not _all_avail:
+        for candidate in Branch.objects.filter(is_active=True).exclude(pk=branch.pk):
+            _cand_annotated, _cand_subtotal, _cand_all = reconcile_cart_with_branch(cart_items, candidate)
+            if _cand_all:
+                logger.warning(
+                    'Auto-create-order-from-stranded-payment: branch %s could not fulfil the '
+                    'cart, switched to branch %s instead.', branch, candidate,
+                )
+                branch = candidate
+                break
 
     cleaned = getattr(form, 'cleaned_data', {}) or {}
     last_order = (
@@ -1792,25 +1816,52 @@ def _auto_create_order_from_stranded_payment(
     server_shipping_fee = Decimal('0.00')
     fulfillment = cleaned.get('fulfillment_type', 'pickup')
     if fulfillment == 'delivery':
-        confirmed_fee = request.session.get('delivery_fee_confirmed', '')
+        # Same priority order as the main checkout path (checkout() above):
+        # 1. A fee already confirmed for THIS branch in this session — what
+        #    the customer actually saw before paying.
+        # 2. Recalculate from their saved GPS pin, if we have one and the
+        #    branch has coordinates — most accurate.
+        # 3. Flat region rate as the last resort.
+        # Previously this fallback skipped straight to the flat region rate,
+        # so a stranded-payment order could charge/credit a delivery fee
+        # that didn't match what the customer actually paid for, which also
+        # throws off the rider's payout (rider earnings are a % of
+        # order.shipping_fee — see wallet.credit_order_earnings).
+        confirmed_fee    = request.session.get('delivery_fee_confirmed', '')
         confirmed_branch = request.session.get('delivery_branch_id', '')
+        delivery_lat     = request.session.get('delivery_lat')
+        delivery_lng     = request.session.get('delivery_lng')
         if confirmed_fee and confirmed_branch == str(branch.id):
             try:
                 server_shipping_fee = Decimal(confirmed_fee)
             except Exception:
                 server_shipping_fee = REGION_FEES.get(branch.region, DELIVERY_BASE_FEE)
+        elif delivery_lat and delivery_lng and branch.latitude and branch.longitude:
+            dist_km = branch.distance_to(float(delivery_lat), float(delivery_lng))
+            server_shipping_fee, _ = calculate_delivery_fee(dist_km)
         else:
             server_shipping_fee = REGION_FEES.get(branch.region, DELIVERY_BASE_FEE)
 
-    annotated, branch_subtotal, _all_avail = reconcile_cart_with_branch(cart_items, branch)
+    annotated, branch_subtotal, all_avail = reconcile_cart_with_branch(cart_items, branch)
+    # Only build order lines from items the chosen branch genuinely sells —
+    # falling back to product.price for an item the branch doesn't stock
+    # (the old behaviour) produced wrong totals and could leave the order
+    # with lines that can never be picked/packed.
     priced_items = [
         {
             'product': it['product'],
             'quantity': it['quantity'],
-            'branch_price': it.get('branch_price', it['product'].price),
+            'branch_price': it['branch_price'],
         }
         for it in annotated
+        if it.get('available_here')
     ]
+    if not priced_items:
+        logger.warning(
+            'Auto-create-order-from-stranded-payment: branch %s has none of the '
+            'cart items in stock, no order created for user %s.', branch, request.user,
+        )
+        return None
     subtotal = sum(i['branch_price'] * i['quantity'] for i in priced_items)
     grand_total = subtotal + server_shipping_fee
 
@@ -1848,10 +1899,13 @@ def _auto_create_order_from_stranded_payment(
 
             any_item_created = False
             for item in priced_items:
-                BranchProduct.objects.filter(
+                branch_rows_updated = BranchProduct.objects.filter(
                     product=item['product'], branch=branch,
                     stock__gte=item['quantity'],
                 ).update(stock=F('stock') - item['quantity'])
+                # Best-effort — the shared Product.stock counter is kept in
+                # sync where it applies, but its absence shouldn't block an
+                # already-paid order (branch stock is the source of truth).
                 Product.objects.filter(
                     pk=item['product'].pk, stock__gte=item['quantity'],
                 ).update(stock=F('stock') - item['quantity'])
@@ -1862,12 +1916,31 @@ def _auto_create_order_from_stranded_payment(
                     quantity=item['quantity'],
                     price=item['branch_price'],
                 )
-                any_item_created = True
+                if branch_rows_updated:
+                    any_item_created = True
+                else:
+                    # Stock moved between the reconcile check above and this
+                    # write (race with another checkout). The customer still
+                    # paid for it, so the order line stays — but flag it for
+                    # a human instead of pretending stock was decremented.
+                    logger.warning(
+                        'Auto-create-order-from-stranded-payment: stock for %s at branch %s '
+                        'changed before it could be decremented (order %s).',
+                        item['product'], branch, order.order_number,
+                    )
+                    any_item_created = True
 
             if not any_item_created:
                 raise ValueError('NO_ITEMS')
-    except Exception as e:
-        logger.warning('Auto-create-order-from-stranded-payment failed: %s', e)
+    except Exception:
+        # logger.exception (not .warning) so the full traceback lands in the
+        # logs — this path was previously swallowing real errors silently,
+        # making the "payment received but order not created" case
+        # impossible to diagnose from Render logs.
+        logger.exception(
+            'Auto-create-order-from-stranded-payment failed for user %s, ref %s',
+            request.user, submitted_ref_raw,
+        )
         return None
 
     try:

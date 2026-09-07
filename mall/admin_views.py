@@ -616,16 +616,31 @@ def admin_order_detail(request, pk):
                 audit_log(request, 'rider_assign', f'Order {order.order_number}', f'Rider: {rider_name} ({rider_phone})')
                 messages.success(request, f'Rider {rider_name} assigned and order marked as Dispatched.')
 
-                # If the fulfillment officer has already confirmed receipt of this
-                # order, the rider can be handed off immediately.
+                # NOTE: the officer→rider handoff code is deliberately NOT
+                # issued from here. Chain-of-custody codes flow admin→officer
+                # only from the admin panel; officer→rider and rider→customer
+                # codes are issued by the fulfillment officer and rider
+                # respectively (fulfillment_officer_views.py / rider_views.py)
+                # so the person confirming receipt of the previous stage is
+                # the one who triggers the next code. If admin needs to assign
+                # a rider directly (officer unreachable), nudge the officer to
+                # issue the code once they're available instead of admin
+                # short-circuiting the chain.
                 keeper_confirmed = order.handoff_codes.filter(
                     stage='admin_to_officer', used_at__isnull=False,
                 ).exists()
-                if keeper_confirmed:
-                    from . import handoff as _handoff_svc
-                    _handoff_svc.issue_code(
-                        order, 'officer_to_rider',
-                        issued_to_label=f'Rider: {rider_name}',
+                if keeper_confirmed and order.branch and order.branch.fulfillment_officer:
+                    from .notify import notify
+                    notify(
+                        order.branch.fulfillment_officer,
+                        notif_type='order_update',
+                        title=f'🛵 Rider assigned by admin — issue handoff code',
+                        message=(
+                            f'Admin assigned rider {rider_name} ({rider_phone}) to order '
+                            f'{order.order_number}. Please issue the officer→rider handoff '
+                            f'code from your portal to hand it off.'
+                        ),
+                        link=f'/officer/order/{order.id}/',
                     )
 
             # Send magic-link portal URL to the rider via WhatsApp + SMS.
@@ -643,18 +658,24 @@ def admin_order_detail(request, pk):
         # Handoff actions
         if action == 'issue_handoff_code':
             stage = request.POST.get('stage', '')
-            if stage not in dict(HandoffCode.STAGE_CHOICES):
-                messages.error(request, 'Invalid handoff stage.')
+            # Admin can only ever manually issue the FIRST handoff — admin to
+            # fulfillment officer. Every later stage (officer→rider,
+            # rider→customer / officer→customer) is issued automatically once
+            # the previous stage is verified, by the person who just received
+            # the order (see handoff.advance_after_verify). Letting admin
+            # issue those directly bypassed the fulfillment officer/rider
+            # confirming they actually had the order in hand.
+            if stage != 'admin_to_officer':
+                messages.error(
+                    request,
+                    'Only the admin → fulfillment officer code can be issued manually. '
+                    'Later handoff codes are issued automatically to the fulfillment '
+                    'officer or rider once they confirm the previous stage.',
+                )
             else:
                 from . import handoff as _handoff_svc
-                # Determine recipient label based on stage
-                if stage == 'admin_to_officer':
-                    keeper = order.branch.fulfillment_officer if order.branch else None
-                    label = f'Fulfillment Officer: {keeper.username}' if keeper else f'Branch: {order.branch}'
-                elif stage == 'officer_to_rider' and rider:
-                    label = f'Rider: {rider.rider_name}'
-                else:
-                    label = ''
+                keeper = order.branch.fulfillment_officer if order.branch else None
+                label = f'Fulfillment Officer: {keeper.username}' if keeper else f'Branch: {order.branch}'
                 handoff = _handoff_svc.issue_code(order, stage, issued_to_label=label)
                 audit_log(request, 'handoff_issue', f'Order {order.order_number}', f'Stage: {handoff.get_stage_display()}')
                 messages.success(request, f'Code issued for {handoff.get_stage_display()}.')

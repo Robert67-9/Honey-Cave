@@ -58,6 +58,7 @@
 <div class="card">
   <h2>Recent Withdrawals</h2>
   {% if recent_withdrawals %}
+  <div class="table-scroll">
   <table>
     <thead><tr><th>Reference</th><th>Amount</th><th>Method</th><th>Status</th><th>Requested</th><th></th></tr></thead>
     <tbody>
@@ -73,6 +74,7 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
   {% else %}
   <div class="empty">No withdrawals yet.</div>
   {% endif %}
@@ -81,6 +83,7 @@
 <div class="card">
   <h2>Recent Activity</h2>
   {% if recent_tx %}
+  <div class="table-scroll">
   <table>
     <thead><tr><th>Date</th><th>Type</th><th>Order</th><th>Amount</th><th>Status</th></tr></thead>
     <tbody>
@@ -97,6 +100,7 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
   {% else %}
   <div class="empty">No activity yet — earnings appear here once a customer confirms delivery.</div>
   {% endif %}
