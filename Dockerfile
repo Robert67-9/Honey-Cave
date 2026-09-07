@@ -38,7 +38,7 @@ COPY . .
 # Give the user a real home dir (/app) so gunicorn's control server and any
 # tooling that writes to $HOME don't hit "Permission denied: /home/market".
 RUN useradd --home-dir /app --shell /bin/false market \
- && mkdir -p /app/staticfiles /app/media \
+ && mkdir -p /app/staticfiles /app/media /app/logs \
  && chmod +x /app/docker-entrypoint.sh \
  && chown -R market:market /app
 ENV HOME=/app
