@@ -40,6 +40,7 @@ services:
     volumes:
       - media_files:/app/media         # persistent media uploads
       - static_files:/app/staticfiles  # served by Nginx
+      - app_logs:/app/logs
     networks:
       - backend
       - frontend
@@ -86,3 +87,4 @@ volumes:
   media_files:
   static_files:
   nginx_logs:
+  app_logs:

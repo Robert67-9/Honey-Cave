@@ -298,7 +298,7 @@ SENDGRID_ECHO_TO_STDOUT         = DEBUG   # mirror sent emails to logs while DEB
 EMAIL_TIMEOUT = 5   # seconds
 
 # Optional: receive error emails when DEBUG=False
-# ADMINS = [('Market Admin', 'admin@yourdomain.com')]
+ADMINS = [('Robert', 'dansorobert360@gmail.com')]
 
 # ─── Security Settings ────────────────────────────────────────────────────────
 # These activate automatically when DEBUG=False (production).
@@ -492,22 +492,31 @@ LOGGING = {
         'console': {
             'class': 'logging.StreamHandler',
         },
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': '/app/logs/django.log',
+            'maxBytes': 5 * 1024 * 1024,
+            'backupCount': 5,
+        },
+        'mail_admins': {
+            'class': 'django.utils.log.AdminEmailHandler',
+            'level': 'ERROR',
+        },
     },
     'root': {
-        'handlers': ['console'],
+        'handlers': ['console', 'file'],
         'level': 'WARNING',
     },
     'loggers': {
         'django': {
-            'handlers': ['console'],
+            'handlers': ['console', 'file'],
             'level': 'INFO',
             'propagate': False,
         },
         'django.request': {
-            'handlers': ['console'],
+            'handlers': ['console', 'file', 'mail_admins'],
             'level': 'ERROR',
             'propagate': False,
         },
     },
 }
-
