@@ -12,27 +12,6 @@ version: '3.9'
 
 services:
 
-  # ── PostgreSQL 15 ────────────────────────────────────────────────────────────
-  db:
-    image: postgres:15-alpine
-    restart: "no"
-    stop_signal: SIGTERM
-    stop_grace_period: 20s
-    environment:
-      POSTGRES_DB:       ${DB_NAME:-market}
-      POSTGRES_USER:     ${DB_USER:-market_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}        # required — set in .env
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - backend
-    healthcheck:
-      test: [\"CMD-SHELL\", \"pg_isready -U ${DB_USER:-market_user} -d ${DB_NAME:-market}\"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    # Do NOT expose port 5432 to host — DB only reachable inside Docker network
-
   # ── Redis (cache + rate limiting) ────────────────────────────────────────────
   redis:
     image: redis:7-alpine
@@ -45,7 +24,7 @@ services:
     networks:
       - backend
     healthcheck:
-      test: [\"CMD\", \"redis-cli\", \"-a\", \"${REDIS_PASSWORD:-changeme}\", \"ping\"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-changeme}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -58,17 +37,6 @@ services:
     # SIGTERM → Gunicorn graceful shutdown: finishes active requests then exits
     stop_signal: SIGTERM
     stop_grace_period: 30s
-    command: >
-      sh -c "python manage.py migrate --noinput &&
-             python manage.py collectstatic --noinput &&
-             gunicorn mall_project.wsgi:application
-               --bind 0.0.0.0:8000
-               --workers 3
-               --timeout 60
-               --graceful-timeout 30
-               --access-logfile -
-               --error-logfile -
-               --log-level info"
     volumes:
       - media_files:/app/media         # persistent media uploads
       - static_files:/app/staticfiles  # served by Nginx
@@ -78,13 +46,10 @@ services:
     env_file:
       - .env
     environment:
-      DB_HOST:        db
       REDIS_URL:      redis://:${REDIS_PASSWORD:-changeme}@redis:6379/1
       CACHE_BACKEND:  django_redis.cache.RedisCache
       CACHE_LOCATION: redis://:${REDIS_PASSWORD:-changeme}@redis:6379/1
     depends_on:
-      db:
-        condition: service_healthy
       redis:
         condition: service_healthy
     # No exposed ports — Nginx connects via internal network only
@@ -117,7 +82,6 @@ networks:
     driver: bridge
 
 volumes:
-  postgres_data:
   redis_data:
   media_files:
   static_files:
