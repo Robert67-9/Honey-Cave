@@ -2602,11 +2602,7 @@ def order_confirmation(request, order_id):
         if existing is None or h.created_at > existing.created_at:
             handoff_by_stage[h.stage] = h
 
-    rider_delivery_obj = None
-    try:
-        rider_delivery_obj = order.rider_delivery
-    except Exception:
-        pass
+    rider_delivery_obj = order.seller_deliveries.first()
 
     keeper_verified = handoff_by_stage.get('admin_to_officer')
     keeper_verified = keeper_verified.used_at if (keeper_verified and keeper_verified.is_verified) else None
@@ -4456,7 +4452,7 @@ def confirm_delivery(request, order_id):
         Order.objects.prefetch_related('handoff_codes', 'items__product'),
         id=order_id, user=request.user,
     )
-    rider = getattr(order, 'rider_delivery', None)
+    rider = order.seller_deliveries.first()
 
     # Pick the right code based on fulfillment type
     target_stage = (

@@ -203,7 +203,7 @@ def advance_after_verify(order, just_verified_stage):
             # when the fulfillment officer assigns a rider via the assign_rider
             # action (handled in fulfillment_officer_views.py). This is correct
             # behaviour: we can't issue a rider code before we know who the rider is.
-            rider = getattr(order, 'rider_delivery', None)
+            rider = order.seller_deliveries.first()
             if rider and rider.rider_phone:
                 issue_code(
                     order,
@@ -399,7 +399,7 @@ def _send_code_to_recipient(order, handoff, override=None):
                 profile = getattr(recipient_user, 'profile', None)
                 phone = (profile.phone if profile else '') or ''
         elif stage == 'officer_to_rider':
-            rider = getattr(order, 'rider_delivery', None)
+            rider = order.seller_deliveries.first()
             if rider:
                 phone = rider.rider_phone or ''
                 # If we have a Rider object backing this delivery, we still

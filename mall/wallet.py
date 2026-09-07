@@ -129,7 +129,7 @@ def credit_order_earnings(order):
             Wallet.objects.filter(pk=wallet.pk).update(reserve_held=F('reserve_held') + reserve)
 
     # ── Rider — paid from the delivery fee, home-delivery orders only ─────
-    rider_delivery = getattr(order, 'rider_delivery', None)
+    rider_delivery = order.seller_deliveries.first()
     if rider_delivery and rider_delivery.rider and order.fulfillment_type == 'delivery':
         gross = order.shipping_fee or Decimal('0')
         if gross > 0:

@@ -519,7 +519,7 @@ def admin_order_detail(request, pk):
     order = get_object_or_404(Order, pk=pk)
     items = order.items.select_related('product')
     notes = order.notes.select_related('staff').all()
-    rider = getattr(order, 'rider_delivery', None)
+    rider = order.seller_deliveries.first()
 
     if request.method == 'POST':
         action = request.POST.get('action', 'status')

@@ -154,7 +154,7 @@ def fulfillment_officer_dashboard(request):
     branches = _branches_for(request.user)
     orders = (Order.objects.filter(branch__in=branches)
               .exclude(status__in=['delivered', 'cancelled'])
-              .select_related('branch', 'rider_delivery')
+              .select_related('branch').prefetch_related('seller_deliveries')
               .prefetch_related('handoff_codes')
               .order_by('-created'))
 
@@ -356,10 +356,7 @@ def fulfillment_officer_order(request, pk):
                     )
 
             # Create or update the delivery row
-            try:
-                existing_delivery = order.rider_delivery
-            except Exception:
-                existing_delivery = None
+            existing_delivery = order.seller_deliveries.first()
             if existing_delivery:
                 existing_delivery.rider       = rider_record
                 existing_delivery.rider_name  = rider_name
@@ -417,12 +414,10 @@ def fulfillment_officer_order(request, pk):
             return redirect('fulfillment_officer_order', pk=order.pk)
 
     codes_by_stage = _codes_by_stage(order)
-    # OneToOneField reverse lookup raises if no related object exists,
-    # so wrap in try/except. The attribute hasattr() check works too.
-    try:
-        rider_delivery = order.rider_delivery
-    except Exception:
-        rider_delivery = None
+    # ForeignKey reverse (order -> seller_deliveries): .first() is safe,
+    # never raises. NOTE: once multi-seller dispatch ships, this must pick
+    # a specific seller's delivery, not just the first one.
+    rider_delivery = order.seller_deliveries.first()
 
     # Roster of riders the officer can pick from for THIS order's branch.
     # Verified riders shown first, then unverified — both alphabetical.

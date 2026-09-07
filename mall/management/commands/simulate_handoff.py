@@ -79,8 +79,8 @@ class Command(BaseCommand):
         self.stdout.write(f'  Status:      {order.get_status_display()}')
         self.stdout.write(f'  Branch:      {order.branch}')
         self.stdout.write(f'  Customer:    {order.full_name} ({order.phone})')
-        if hasattr(order, 'rider_delivery'):
-            r = order.rider_delivery
+        r = order.seller_deliveries.first()
+        if r:
             self.stdout.write(f'  Rider:       {r.rider_name} ({r.rider_phone})')
         self.stdout.write('')
         self.stdout.write(self.style.NOTICE('Handoff codes (newest first):'))
