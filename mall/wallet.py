@@ -128,19 +128,27 @@ def credit_order_earnings(order):
             )
             Wallet.objects.filter(pk=wallet.pk).update(reserve_held=F('reserve_held') + reserve)
 
-    # ── Rider — paid from the delivery fee, home-delivery orders only ─────
-    rider_delivery = order.seller_deliveries.first()
-    if rider_delivery and rider_delivery.rider and order.fulfillment_type == 'delivery':
-        gross = order.shipping_fee or Decimal('0')
-        if gross > 0:
+    # ── Riders — paid per seller-delivery, from that delivery's own fee ───
+    # (Multiple RiderDelivery rows can exist per order — one per seller —
+    # and may share the same rider or be split across different riders.
+    # Each row's shipping_fee is authoritative; order.shipping_fee is what
+    # the customer paid in total and is not used here.)
+    if order.fulfillment_type == 'delivery':
+        for delivery in order.seller_deliveries.select_related('rider').all():
+            if not delivery.rider:
+                continue
+            gross = delivery.shipping_fee or Decimal('0')
+            if gross <= 0:
+                continue
             commission = (gross * rider_rate).quantize(Decimal('0.01'))
             net = gross - commission
-            wallet = get_or_create_rider_wallet(rider_delivery.rider)
+            wallet = get_or_create_rider_wallet(delivery.rider)
             _credit(
                 wallet, amount=net, tx_type='sale_credit', order=order,
                 note=(
                     f'Delivery fee for order {order.order_number} — '
                     f'GH₵{gross} gross, {site.rider_commission_percent}% commission'
+                    + (f' (seller: {delivery.seller})' if delivery.seller_id else '')
                 ),
             )
 
