@@ -608,6 +608,41 @@ class Order(models.Model):
         total = self.seller_deliveries.aggregate(total=Sum('shipping_fee'))['total']
         return total or Decimal('0')
 
+    def seller_delivery_shares(self):
+        """
+        Returns a list of (seller_or_None, item_subtotal, fee_share) for
+        every distinct product owner on this order -- None represents
+        platform-owned items (Product.created_by is null). shipping_fee is
+        split proportionally by each party's share of the order's item
+        subtotal, not divided evenly and not looked up independently per
+        seller (every seller on one order shares the same branch/region,
+        so an independent per-seller regional fee would overpay riders by
+        a multiple of what the customer actually paid). The last party in
+        the list absorbs any rounding remainder so the shares always sum
+        to exactly order.shipping_fee.
+        """
+        totals = {}
+        for item in self.items.select_related('product__created_by'):
+            seller = item.product.created_by
+            totals[seller] = totals.get(seller, Decimal('0')) + item.get_total_price()
+        fee = self.shipping_fee or Decimal('0')
+        grand_subtotal = sum(totals.values())
+        items_list = list(totals.items())
+        shares = []
+        if grand_subtotal <= 0 or fee <= 0:
+            for seller, subtotal in items_list:
+                shares.append((seller, subtotal, Decimal('0')))
+            return shares
+        allocated = Decimal('0')
+        for i, (seller, subtotal) in enumerate(items_list):
+            if i == len(items_list) - 1:
+                share = fee - allocated
+            else:
+                share = (fee * subtotal / grand_subtotal).quantize(Decimal('0.01'))
+                allocated += share
+            shares.append((seller, subtotal, share))
+        return shares
+
     def subtotal(self):
         # BUG-03 FIX: Compute subtotal directly from order items so this method
         # is correct even when called before calculate_total() has run (e.g. in

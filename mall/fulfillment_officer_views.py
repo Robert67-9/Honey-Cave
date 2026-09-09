@@ -355,29 +355,43 @@ def fulfillment_officer_order(request, pk):
                         link='/panel/riders/?status=unverified',
                     )
 
-            # Create or update the delivery row
-            existing_delivery = order.seller_deliveries.first()
-            if existing_delivery:
-                existing_delivery.rider       = rider_record
-                existing_delivery.rider_name  = rider_name
-                existing_delivery.rider_phone = rider_phone
-                existing_delivery.is_adhoc   = is_adhoc
-                existing_delivery.save()
-                rider_obj = existing_delivery
-                is_new = False
-                messages.success(request, f'Rider details updated: {rider_name}.')
-            else:
-                rider_obj = RiderDelivery.objects.create(
-                    order=order,
-                    rider=rider_record,
-                    is_adhoc=is_adhoc,
-                    rider_name=rider_name,
-                    rider_phone=rider_phone,
+            # Create or update delivery rows -- one per distinct seller on
+            # this order (see Order.seller_delivery_shares()), all sharing
+            # this rider in the common case (officer picks one rider for
+            # the whole order). is_new reflects whether this is the order's
+            # first-ever rider assignment -- controls the 'Dispatched'
+            # status flip and outbound notifications below, same as before.
+            is_new = not order.seller_deliveries.exists()
+            delivery_rows = []
+            for seller, subtotal, fee_share in order.seller_delivery_shares():
+                delivery, _ = RiderDelivery.objects.get_or_create(
+                    order=order, seller=seller,
                 )
+                delivery.rider        = rider_record
+                delivery.rider_name   = rider_name
+                delivery.rider_phone  = rider_phone
+                delivery.is_adhoc     = is_adhoc
+                delivery.shipping_fee = fee_share
+                delivery.save()
+                delivery_rows.append(delivery)
+
+            if not delivery_rows:
+                # Defensive fallback -- should only happen for a delivery
+                # order with zero items, which shouldn't occur in practice.
+                delivery_rows = [RiderDelivery.objects.create(
+                    order=order, rider=rider_record, is_adhoc=is_adhoc,
+                    rider_name=rider_name, rider_phone=rider_phone,
+                    shipping_fee=order.shipping_fee or Decimal('0'),
+                )]
+
+            rider_obj = delivery_rows[0]
+
+            if is_new:
                 order.status = 'dispatched'
                 order.save(update_fields=['status'])
-                is_new = True
                 messages.success(request, f'Rider {rider_name} assigned. Order marked Dispatched.')
+            else:
+                messages.success(request, f'Rider details updated: {rider_name}.')
 
             # Auto-issue the officer_to_rider code (rider's pickup code)
             handoff_svc.issue_code(
