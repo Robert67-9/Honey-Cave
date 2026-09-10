@@ -89,6 +89,8 @@
   border-radius: 10px; padding: 1.25rem; margin-bottom: 1rem;
   display: flex; justify-content: space-between; align-items: center;
 }
+.avatar-file-input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+
 .order-badge {
   display: inline-block; padding: 0.2rem 0.65rem;
   border-radius: 20px; font-size: 0.7rem; font-weight: 600;
@@ -108,7 +110,13 @@
   <!-- ── Left sidebar ── -->
   <div>
     <div class="profile-card">
-      <div class="avatar">{{ user.first_name.0|upper|default:user.username.0|upper }}</div>
+      <div class="avatar">
+        {% if profile.profile_picture %}
+          <img src="{{ profile.profile_picture.url }}" alt="{{ user.username }}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">
+        {% else %}
+          {{ user.first_name.0|upper|default:user.username.0|upper }}
+        {% endif %}
+      </div>
       <div class="profile-name">{{ user.get_full_name|default:user.username }}</div>
       <div class="profile-username">@{{ user.username }}</div>
       <div style="font-size:0.8rem;color:var(--muted);margin-top:0.25rem;">{{ user.email }}</div>
@@ -198,9 +206,29 @@
         <span style="font-size:0.75rem;color:var(--muted);">click to expand</span>
       </summary>
       <div style="background: var(--bg-elevated);border:1px solid var(--border);border-top:none;border-radius:0 0 12px 12px;padding:1.5rem;">
-        <form method="post" novalidate>
+        <form method="post" enctype="multipart/form-data" novalidate>
           {% csrf_token %}
           <input type="hidden" name="action" value="update_profile">
+          <div class="form-group" style="margin-bottom:1.25rem;">
+            <label>Profile Picture</label>
+            <div style="display:flex;align-items:center;gap:1.25rem;">
+              <label for="id_profile_picture" style="position:relative;cursor:pointer;display:block;width:72px;height:72px;flex-shrink:0;">
+                <img id="avatar-preview"
+                     src="{% if profile.profile_picture %}{{ profile.profile_picture.url }}{% endif %}"
+                     alt="Profile picture"
+                     style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:1px solid var(--border);background:var(--cream);{% if not profile.profile_picture %}display:none;{% endif %}">
+                <div id="avatar-placeholder" style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg, var(--dark), #5a3a1a);color:var(--gold);display:{% if profile.profile_picture %}none{% else %}flex{% endif %};align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:700;">
+                  {{ user.first_name.0|upper|default:user.username.0|upper }}
+                </div>
+                <div style="position:absolute;bottom:-2px;right:-2px;width:26px;height:26px;border-radius:50%;background:var(--gold);border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:0.75rem;">📷</div>
+              </label>
+              <div>
+                {{ profile_form.profile_picture }}
+                <div style="font-size:0.78rem;color:var(--muted);margin-top:0.25rem;">Click the photo to change it (max 5MB)</div>
+              </div>
+            </div>
+            {% if profile_form.profile_picture.errors %}<div class="form-errors">{{ profile_form.profile_picture.errors }}</div>{% endif %}
+          </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <div class="form-group">
               <label>First Name</label>
@@ -341,6 +369,24 @@ function showFeedback(type, html) {
   const c = colors[type] || colors.error;
   fb.style.cssText = `display:block;padding:1rem 1.2rem;border-radius:10px;font-size:0.88rem;line-height:1.7;background:${c.bg};border:1px solid ${c.border};color:${c.color};`;
   fb.innerHTML = html;
+}
+
+// ── Live avatar preview on file select ──
+const avatarInput = document.getElementById('id_profile_picture');
+if (avatarInput) {
+  avatarInput.addEventListener('change', function () {
+    const file = this.files && this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const img = document.getElementById('avatar-preview');
+      const placeholder = document.getElementById('avatar-placeholder');
+      img.src = e.target.result;
+      img.style.display = 'block';
+      if (placeholder) placeholder.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 // Auto-detect on first visit (no branch assigned yet)

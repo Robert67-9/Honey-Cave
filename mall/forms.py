@@ -75,6 +75,11 @@ class ProfileUpdateForm(forms.ModelForm):
     class Meta:
         model  = UserProfile
         fields = ['phone', 'profile_picture']
+        widgets = {
+            'profile_picture': forms.FileInput(attrs={
+                'id': 'id_profile_picture', 'accept': 'image/*', 'class': 'avatar-file-input',
+            }),
+        }
 
     def clean_phone(self):
         phone = self.cleaned_data.get('phone', '').strip()
