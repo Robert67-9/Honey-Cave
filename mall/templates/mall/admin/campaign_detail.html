@@ -30,11 +30,18 @@
         Queue to Send →
       </button>
     </form>
-    {% elif campaign.status == 'queued' %}
-    <p style="margin-top:1.5rem;color:var(--muted);font-size:0.85rem;">
-      This campaign is queued. To actually send it, run on the server:<br>
-      <code>docker compose exec web python3 manage.py send_campaign {{ campaign.pk }}</code>
-    </p>
+    {% elif campaign.status == 'queued' or campaign.status == 'failed' %}
+    <form method="post" action="{% url 'admin_campaign_send' campaign.pk %}" style="margin-top:1.5rem;">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-gold" onclick="return confirm('Send this campaign to {{ campaign.recipient_count }} recipients now?');">
+        Send Now →
+      </button>
+      {% if campaign.status == 'failed' %}
+      <p style="margin-top:0.5rem;color:var(--muted);font-size:0.85rem;">
+        {{ campaign.failed_count }} recipient(s) failed previously — this will retry any still pending.
+      </p>
+      {% endif %}
+    </form>
     {% endif %}
   </div>
 </div>

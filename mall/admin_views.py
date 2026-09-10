@@ -3569,3 +3569,24 @@ def admin_campaign_detail(request, pk):
     return render(request, 'mall/admin/campaign_detail.html', {
         'campaign': campaign,
     })
+
+
+@campaign_permission_required
+def admin_campaign_send(request, pk):
+    """Actually send a queued (or failed/retry) campaign, triggered from
+    the admin panel instead of SSH-ing in to run the management command."""
+    campaign = get_object_or_404(EmailCampaign, pk=pk)
+
+    if request.method != 'POST':
+        return redirect('admin_campaign_detail', pk=campaign.pk)
+
+    if campaign.status not in ('queued', 'failed'):
+        messages.error(request, 'Only queued or failed campaigns can be sent.')
+        return redirect('admin_campaign_detail', pk=campaign.pk)
+
+    from mall.campaign_sending import run_campaign_send
+    sent, failed = run_campaign_send(campaign)
+
+    audit_log(request, 'campaign_sent', f'Campaign "{campaign.subject}"', f'sent={sent} failed={failed}')
+    messages.success(request, f'Campaign sent. Sent: {sent}  Failed: {failed}')
+    return redirect('admin_campaign_detail', pk=campaign.pk)

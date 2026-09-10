@@ -22,6 +22,7 @@ urlpatterns = [
     path('panel/campaigns/', admin_views.admin_campaigns, name='admin_campaigns'),
     path('panel/campaigns/new/', admin_views.admin_campaign_compose, name='admin_campaign_compose'),
     path('panel/campaigns/<int:pk>/', admin_views.admin_campaign_detail, name='admin_campaign_detail'),
+    path('panel/campaigns/<int:pk>/send/', admin_views.admin_campaign_send, name='admin_campaign_send'),
     path('unsubscribe/<int:user_id>/<str:token>/', views.unsubscribe_campaign, name='unsubscribe_campaign'),
     path('panel/reviews/', admin_views.admin_reviews, name='admin_reviews'),
     path('panel/reviews/<int:pk>/delete/', admin_views.admin_review_delete, name='admin_review_delete'),
