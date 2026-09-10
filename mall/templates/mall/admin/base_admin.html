@@ -277,6 +277,11 @@
         <a href="{% url 'admin_fulfillment_officers' %}" class="sidebar-link {% if 'fulfillment_officer' in request.resolver_match.url_name %}active{% endif %}">
             <span class="icon">📦</span> Fulfillment Officers
         </a>
+        {% if request.user.is_superuser or request.user.profile.can_send_campaigns %}
+        <a href="{% url 'admin_campaigns' %}" class="sidebar-link {% if 'campaign' in request.resolver_match.url_name %}active{% endif %}">
+            <span class="icon">📧</span> Email Campaigns
+        </a>
+        {% endif %}
         <a href="{% url 'admin_upload_requests' %}" class="sidebar-link {% if request.resolver_match.url_name == 'admin_upload_requests' %}active{% endif %}">
             <span class="icon">🧾</span> Upload Requests
         </a>

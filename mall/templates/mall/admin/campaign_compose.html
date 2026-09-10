@@ -1,0 +1,35 @@
+{% extends "mall/admin/base_admin.html" %}
+{% block title %}New Campaign — Admin{% endblock %}
+{% block page_title %}Compose Email Campaign{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label>Subject</label>
+        <input type="text" name="subject" value="{{ subject|default:'' }}" maxlength="200" required
+               style="width:100%;padding:0.75rem 1rem;border:1.5px solid var(--border);border-radius:8px;">
+      </div>
+      <div class="form-group" style="margin-top:1.25rem;">
+        <label>Audience</label>
+        <select name="audience" required style="width:100%;padding:0.75rem 1rem;border:1.5px solid var(--border);border-radius:8px;">
+          <option value="">-- Choose audience --</option>
+          <option value="customers" {% if audience == 'customers' %}selected{% endif %}>All Customers</option>
+          <option value="sellers" {% if audience == 'sellers' %}selected{% endif %}>All Sellers</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-top:1.25rem;">
+        <label>Message Body</label>
+        <textarea name="body_html" rows="12" required
+                  style="width:100%;padding:0.75rem 1rem;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;">{{ body_html|default:'' }}</textarea>
+        <p style="font-size:0.8rem;color:var(--muted);margin-top:0.35rem;">
+          Plain paragraphs. An unsubscribe link is added automatically at the bottom of every campaign email.
+        </p>
+      </div>
+      <button type="submit" class="btn btn-gold" style="margin-top:1.5rem;">Save as Draft →</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

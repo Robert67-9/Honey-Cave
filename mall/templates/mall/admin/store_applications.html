@@ -51,7 +51,17 @@
         </div>
         <div style="font-size:.82rem; color:var(--text-muted); margin-top:.15rem;">
           Reg. No: {{ a.business_reg_no }} · Category: {{ a.product_category }} · Location: {{ a.location }}
+          {% if a.nearby_landmark %} · Landmark: {{ a.nearby_landmark }}{% endif %}
         </div>
+        {% if a.latitude and a.longitude %}
+        <div style="font-size:.82rem; margin-top:.25rem; color:var(--text-muted);">
+          📍 GPS: {{ a.latitude|floatformat:6 }}, {{ a.longitude|floatformat:6 }}
+        </div>
+        {% else %}
+        <div style="font-size:.78rem; color:var(--text-faint); margin-top:.25rem;">
+          No GPS pin submitted with this application.
+        </div>
+        {% endif %}
         <div style="font-size:.82rem; margin-top:.4rem;">
           <a href="{{ a.id_document.url }}" target="_blank" rel="noopener" style="color:var(--accent); font-weight:600;">📎 View ID Document</a>
         </div>

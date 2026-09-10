@@ -103,6 +103,7 @@ class OTPVerification(models.Model):
 class UserProfile(models.Model):
     user            = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     phone           = models.CharField(max_length=20, blank=True)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
     is_verified     = models.BooleanField(default=False)
     # Location — set on login/register via browser geolocation
     latitude        = models.FloatField(null=True, blank=True)
@@ -123,12 +124,79 @@ class UserProfile(models.Model):
                                           help_text='Marks this user as a branch fulfillment officer. They can log in to the fulfillment officer portal and process orders for the branch they manage.')
     can_upload_products     = models.BooleanField(default=False,
                                           help_text='Allow this fulfillment officer to add/upload products and images from the officer portal.')
+    can_send_campaigns       = models.BooleanField(default=False,
+                                          help_text='Allow this staff user to compose and send email campaigns. Only a superuser can grant this.')
     assigned_products       = models.ManyToManyField(
                                           'Product', blank=True, related_name='assigned_officers',
                                           help_text='Products this fulfillment officer is responsible for processing/handling.')
 
     def __str__(self):
         return f'Profile({self.user.username})'
+
+
+class EmailCampaign(models.Model):
+    AUDIENCE_CHOICES = [
+        ('customers', 'All Customers'),
+        ('sellers',   'All Sellers'),
+    ]
+    STATUS_CHOICES = [
+        ('draft',   'Draft'),
+        ('queued',  'Queued to Send'),
+        ('sending', 'Sending'),
+        ('sent',    'Sent'),
+        ('failed',  'Failed'),
+    ]
+
+    subject         = models.CharField(max_length=200)
+    body_html       = models.TextField(help_text='Email body. Plain paragraphs -- no need for full HTML boilerplate.')
+    audience        = models.CharField(max_length=10, choices=AUDIENCE_CHOICES)
+    status          = models.CharField(max_length=10, choices=STATUS_CHOICES, default='draft')
+
+    created_by      = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='email_campaigns')
+    created         = models.DateTimeField(auto_now_add=True)
+    queued_at       = models.DateTimeField(null=True, blank=True)
+    sent_at         = models.DateTimeField(null=True, blank=True)
+
+    recipient_count = models.PositiveIntegerField(default=0)
+    sent_count      = models.PositiveIntegerField(default=0)
+    failed_count    = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['-created']
+
+    def __str__(self):
+        return f'{self.subject} ({self.get_status_display()})'
+
+
+class EmailCampaignRecipient(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('sent',    'Sent'),
+        ('failed',  'Failed'),
+    ]
+    campaign  = models.ForeignKey(EmailCampaign, on_delete=models.CASCADE, related_name='recipients')
+    user      = models.ForeignKey(User, on_delete=models.CASCADE)
+    status    = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    sent_at   = models.DateTimeField(null=True, blank=True)
+    error     = models.CharField(max_length=300, blank=True, default='')
+
+    class Meta:
+        unique_together = ('campaign', 'user')
+
+
+class EmailUnsubscribe(models.Model):
+    user    = models.OneToOneField(User, on_delete=models.CASCADE, related_name='email_unsubscribe')
+    token   = models.CharField(max_length=64, unique=True, editable=False)
+    created = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if not self.token:
+            import secrets
+            self.token = secrets.token_urlsafe(32)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f'Unsubscribed: {self.user.username}'
 
 
 class PaymentSettings(models.Model):
@@ -684,6 +752,63 @@ class OrderItem(models.Model):
 
     def get_total_price(self):
         return self.price * self.quantity
+
+
+class ReturnRequest(models.Model):
+    """
+    A customer's request to return a delivered order item for a refund.
+    Eligibility: order item's order must be status='delivered' (or
+    'confirmed'), and within RETURN_WINDOW_DAYS of the delivery timestamp
+    (from HandoffCode.used_at on the officer_to_customer/rider_to_customer
+    stage — Order itself has no delivered_at field).
+    """
+    RETURN_WINDOW_DAYS = 10
+
+    REASON_CHOICES = [
+        ('damaged',          'Arrived Damaged'),
+        ('wrong_item',       'Wrong Item Received'),
+        ('not_working',      "Doesn't Work / Defective"),
+        ('not_as_described', 'Not As Described'),
+        ('changed_mind',     'Changed My Mind'),
+        ('other',            'Other'),
+    ]
+    STATUS_CHOICES = [
+        ('requested',     'Requested'),
+        ('approved',      'Approved — Awaiting Item Pickup'),
+        ('rejected',      'Rejected'),
+        ('item_received', 'Item Received'),
+        ('refunded',      'Refunded'),
+    ]
+
+    order_item    = models.ForeignKey('OrderItem', on_delete=models.CASCADE, related_name='return_requests')
+    customer      = models.ForeignKey(User, on_delete=models.CASCADE, related_name='return_requests')
+    reason        = models.CharField(max_length=20, choices=REASON_CHOICES)
+    description   = models.TextField(blank=True, help_text="Customer's own words on what went wrong")
+    photo         = models.ImageField(upload_to='returns/photos/', null=True, blank=True)
+
+    status        = models.CharField(max_length=20, choices=STATUS_CHOICES, default='requested')
+    decision_note = models.CharField(max_length=300, blank=True, default='')
+    decided_by    = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='decided_returns')
+    decided_at    = models.DateTimeField(null=True, blank=True)
+
+    refund_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    refunded_at   = models.DateTimeField(null=True, blank=True)
+
+    created       = models.DateTimeField(auto_now_add=True)
+    updated       = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['order_item'],
+                condition=models.Q(status='requested'),
+                name='one_pending_return_per_item',
+            ),
+        ]
+
+    def __str__(self):
+        return f'Return #{self.pk} — {self.order_item.product.name} ({self.get_status_display()})'
 
 
 class Review(models.Model):
@@ -1923,6 +2048,9 @@ class StoreApplication(models.Model):
     store_name        = models.CharField(max_length=200)
     business_reg_no   = models.CharField(max_length=100, verbose_name='Business Registration No.')
     location          = models.CharField(max_length=300, help_text='City / area where the store operates')
+    nearby_landmark   = models.CharField(max_length=200, blank=True, help_text='Nearby landmark to help admin locate the store, e.g. "Opposite Shell filling station"')
+    latitude          = models.FloatField(null=True, blank=True, help_text='Store GPS latitude')
+    longitude         = models.FloatField(null=True, blank=True, help_text='Store GPS longitude')
     product_category  = models.CharField(max_length=150)
     phone             = models.CharField(max_length=20, blank=True)
     id_document       = models.FileField(

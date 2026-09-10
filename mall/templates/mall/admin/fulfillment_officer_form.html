@@ -95,12 +95,17 @@
 
         <div style="margin-top:1rem;">
             <label class="form-label">Assign to Branch</label>
+            {% if seller_pin %}
+            <p style="font-size:.78rem;color:var(--muted);margin:.0 0 .4rem;">
+                📍 Sorted by distance from this seller's pinned store location ({{ seller_pin.latitude|floatformat:6 }}, {{ seller_pin.longitude|floatformat:6 }}).
+            </p>
+            {% endif %}
             <select name="branch_id" class="form-input">
                 <option value="0">— No branch —</option>
                 {% for b in branches_available %}
                 <option value="{{ b.id }}"
                         {% if current_branch and current_branch.id == b.id %}selected{% endif %}>
-                    {{ b.name }} · {{ b.get_region_display }}
+                    {{ b.name }} · {{ b.get_region_display }}{% if b.distance_km is not None %} · {{ b.distance_km|floatformat:1 }} km away{% if forloop.first %} (nearest){% endif %}{% endif %}
                 </option>
                 {% endfor %}
             </select>

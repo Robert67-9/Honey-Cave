@@ -94,6 +94,21 @@
                 </form>
                 {% endif %}
 
+                {% if request.user.is_superuser %}
+                <hr style="border:none;border-top:1px solid var(--border);">
+                <form method="post" style="display:flex;align-items:center;justify-content:space-between;">
+                    {% csrf_token %}
+                    <div>
+                        <div style="font-weight:500;font-size:0.9rem;">Send Email Campaigns</div>
+                        <div style="font-size:0.8rem;color:var(--muted);">Can compose and send marketing emails to customers/sellers</div>
+                    </div>
+                    <button type="submit" name="action" value="toggle_campaign_permission"
+                        class="btn {% if target.profile.can_send_campaigns %}btn-danger{% else %}btn-gold{% endif %} btn-sm">
+                        {% if target.profile.can_send_campaigns %}Revoke Access{% else %}Grant Access{% endif %}
+                    </button>
+                </form>
+                {% endif %}
+
             </div>
         </div>
 

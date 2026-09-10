@@ -3,6 +3,7 @@
 
 {% block extra_css %}
 <style>
+
 .store-wrapper { max-width: 640px; margin: 0 auto; }
 .store-card {
     background: white;
@@ -97,6 +98,19 @@
                 {{ form.location }}
                 {% if form.location.errors %}<div class="form-errors">{{ form.location.errors }}</div>{% endif %}
             </div>
+	            <div class="form-group">
+                <label>Nearby Landmark</label>
+                {{ form.nearby_landmark }}
+                <p class="file-hint">Helps admin find you, e.g. "Opposite Shell filling station".</p>
+                {% if form.nearby_landmark.errors %}<div class="form-errors">{{ form.nearby_landmark.errors }}</div>{% endif %}
+            </div>
+            <div class="form-group">
+                                <label>Your Store's GPS Location</label>
+                <button type="button" id="use-my-location" class="btn btn-outline btn-sm">📍 Capture My Current Location</button>
+                <p class="file-hint" id="pin-status">Stand at your store and tap the button to capture its exact GPS coordinates for admin.</p>
+                {{ form.latitude }}
+                {{ form.longitude }}
+            </div>
             <div class="form-group">
                 <label>Product Category</label>
                 {{ form.product_category }}
@@ -118,4 +132,35 @@
     </div>
     {% endif %}
 </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function() {
+  var latInput = document.getElementById('id_latitude');
+  var lngInput = document.getElementById('id_longitude');
+  var statusEl = document.getElementById('pin-status');
+  var locBtn   = document.getElementById('use-my-location');
+  if (!locBtn) return;
+
+  if (latInput.value && lngInput.value) {
+    statusEl.textContent = 'Captured: ' + parseFloat(latInput.value).toFixed(5) + ', ' + parseFloat(lngInput.value).toFixed(5);
+  }
+
+  locBtn.addEventListener('click', function() {
+    if (!navigator.geolocation) {
+      statusEl.textContent = "Your browser doesn't support location capture — you can leave this blank.";
+      return;
+    }
+    statusEl.textContent = 'Getting your location…';
+    navigator.geolocation.getCurrentPosition(function(pos) {
+      var lat = pos.coords.latitude, lng = pos.coords.longitude;
+      latInput.value = lat.toFixed(6);
+      lngInput.value = lng.toFixed(6);
+      statusEl.textContent = '✓ Captured: ' + lat.toFixed(5) + ', ' + lng.toFixed(5);
+    }, function() {
+      statusEl.textContent = 'Could not get your location — you can leave this blank and just fill in the landmark.';
+    }, { enableHighAccuracy: true, timeout: 10000 });
+  });
+})();
+</script>
 {% endblock %}

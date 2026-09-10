@@ -1,0 +1,33 @@
+{% extends "mall/admin/base_admin.html" %}
+{% block title %}Email Campaigns — Admin{% endblock %}
+{% block page_title %}Email Campaigns{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2>All Campaigns</h2>
+    <a href="{% url 'admin_campaign_compose' %}" class="btn btn-gold btn-sm">+ New Campaign</a>
+  </div>
+  <div class="card-body" style="padding:0;">
+    <table>
+      <thead><tr><th>Subject</th><th>Audience</th><th>Status</th><th>Recipients</th><th>Sent</th><th>Failed</th><th>Created</th><th></th></tr></thead>
+      <tbody>
+        {% for c in campaigns %}
+        <tr>
+          <td>{{ c.subject }}</td>
+          <td>{{ c.get_audience_display }}</td>
+          <td><span class="badge {% if c.status == 'sent' %}badge-done{% elif c.status == 'failed' %}badge-locked{% else %}badge-pending{% endif %}">{{ c.get_status_display }}</span></td>
+          <td>{{ c.recipient_count }}</td>
+          <td>{{ c.sent_count }}</td>
+          <td>{{ c.failed_count }}</td>
+          <td>{{ c.created|date:"d M, H:i" }}</td>
+          <td><a href="{% url 'admin_campaign_detail' c.pk %}" class="row-link">View →</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="empty">No campaigns yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

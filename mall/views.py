@@ -3008,7 +3008,7 @@ def profile(request):
         action = request.POST.get('action')
 
         if action == 'update_profile':
-            profile_form = ProfileUpdateForm(request.POST, instance=user_profile)
+            profile_form = ProfileUpdateForm(request.POST, request.FILES, instance=user_profile)
             if profile_form.is_valid():
                 request.user.first_name = profile_form.cleaned_data.get('first_name', '').strip()
                 request.user.last_name  = profile_form.cleaned_data.get('last_name', '').strip()
@@ -4516,3 +4516,26 @@ def promotion_click(request, pk):
         url = safe_redirect_url(target, request, fallback='/')
         return redirect(url)
     return redirect('home')
+
+
+# ─── Email Campaign Unsubscribe ────────────────────────────────────────────
+
+def unsubscribe_campaign(request, user_id, token):
+    """
+    Public, no-login-required unsubscribe link clicked from a campaign
+    email. Token is a deterministic hash of the user's ID + SECRET_KEY
+    (see send_campaign management command), so it can't be guessed or
+    forged, but doesn't require the user to be logged in to use it.
+    """
+    import hashlib
+    from django.contrib.auth.models import User as _User
+    from .models import EmailUnsubscribe
+
+    target = get_object_or_404(_User, pk=user_id)
+    expected_token = hashlib.sha256(f'{target.pk}:{django_settings.SECRET_KEY}'.encode()).hexdigest()[:32]
+
+    if token != expected_token:
+        return render(request, 'mall/unsubscribe.html', {'invalid': True})
+
+    EmailUnsubscribe.objects.get_or_create(user=target)
+    return render(request, 'mall/unsubscribe.html', {'success': True})

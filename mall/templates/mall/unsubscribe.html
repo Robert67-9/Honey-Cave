@@ -1,0 +1,21 @@
+{% extends 'mall/base.html' %}
+{% block title %}Unsubscribe — Honey Cave Market{% endblock %}
+
+{% block content %}
+<div style="max-width:480px;margin:4rem auto;text-align:center;">
+  {% if success %}
+    <h1 style="font-family:'Playfair Display',serif;font-size:1.5rem;">You've been unsubscribed</h1>
+    <p style="color:var(--muted);margin-top:0.75rem;">
+      You won't receive marketing emails from Honey Cave Market anymore.
+      You'll still get order and account-related emails.
+    </p>
+  {% elif invalid %}
+    <h1 style="font-family:'Playfair Display',serif;font-size:1.5rem;">Link not valid</h1>
+    <p style="color:var(--muted);margin-top:0.75rem;">
+      This unsubscribe link couldn't be verified. If you'd like to stop receiving
+      marketing emails, please contact support.
+    </p>
+  {% endif %}
+  <a href="{% url 'home' %}" class="btn btn-gold" style="margin-top:1.5rem;">Return to Homepage</a>
+</div>
+{% endblock %}
