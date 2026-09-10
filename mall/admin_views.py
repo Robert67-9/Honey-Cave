@@ -9,7 +9,7 @@ from django.db.models import Sum, Count, Q, F
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from datetime import timedelta
-from .models import Product, Category, Order, OrderItem, Review, REGION_FEES, PaymentSettings, Branch, REGION_CHOICES as _RC, PromoCode, OrderNote, Notification, ProductImage, RiderDelivery, AuditLog, AdminTOTP, Promotion, SiteSettings, HandoffCode, BranchProduct, UserProfile, Rider, BranchAssignment, OfficerUploadRequest, StoreApplication, normalize_phone, Wallet, WalletTransaction, WithdrawalRequest, OfficerAutoLoginToken
+from .models import Product, Category, Order, OrderItem, Review, REGION_FEES, PaymentSettings, Branch, REGION_CHOICES as _RC, PromoCode, OrderNote, Notification, ProductImage, RiderDelivery, AuditLog, AdminTOTP, Promotion, SiteSettings, HandoffCode, BranchProduct, UserProfile, Rider, BranchAssignment, OfficerUploadRequest, StoreApplication, normalize_phone, Wallet, WalletTransaction, WithdrawalRequest, OfficerAutoLoginToken, EmailCampaign, EmailCampaignRecipient
 from .forms import PaymentSettingsForm
 from .security import validate_uploaded_image
 from . import wallet as wallet_svc
@@ -49,6 +49,21 @@ def admin_required(view_func):
     """Decorator: staff or superuser only. Redirects to the dedicated admin
     login page (/panel/login/) which has its own stricter rate limit scope."""
     return staff_member_required(view_func, login_url='/panel/login/')
+
+
+def campaign_permission_required(view_func):
+    """Decorator: superuser, or staff with UserProfile.can_send_campaigns.
+    Used to gate the email campaign compose/send views."""
+    @admin_required
+    def _wrapped(request, *args, **kwargs):
+        if request.user.is_superuser:
+            return view_func(request, *args, **kwargs)
+        profile = getattr(request.user, 'profile', None)
+        if profile and profile.can_send_campaigns:
+            return view_func(request, *args, **kwargs)
+        messages.error(request, "You don't have permission to send email campaigns.")
+        return redirect('admin_dashboard')
+    return _wrapped
 
 
 # ── Shared input helpers ──────────────────────────────────────────────────────
@@ -879,6 +894,12 @@ def admin_user_detail(request, pk):
             target.save()
             audit_log(request, 'user_superuser', f'User "{target.username}"', f'is_superuser={target.is_superuser}')
             messages.success(request, f'Superuser status updated for {target.username}.')
+        elif action == 'toggle_campaign_permission' and request.user.is_superuser:
+            profile, _ = UserProfile.objects.get_or_create(user=target)
+            profile.can_send_campaigns = not profile.can_send_campaigns
+            profile.save(update_fields=['can_send_campaigns'])
+            audit_log(request, 'user_campaign_permission', f'User "{target.username}"', f'can_send_campaigns={profile.can_send_campaigns}')
+            messages.success(request, f'Campaign-sending permission updated for {target.username}.')
         elif action == 'toggle_fulfillment_officer':
             profile, _ = UserProfile.objects.get_or_create(user=target)
             profile.is_fulfillment_officer = not profile.is_fulfillment_officer
@@ -1237,6 +1258,23 @@ def admin_fulfillment_officer_edit(request, pk):
     if current_branch and current_branch not in branches_available:
         branches_available = [current_branch] + branches_available
 
+    # If this officer applied via "Own a Store" and pinned a GPS location,
+    # sort branch choices by distance to that pin so admin can see the
+    # nearest branch first instead of just an alphabetical list.
+    seller_pin = (
+        StoreApplication.objects
+        .filter(applicant=user, latitude__isnull=False, longitude__isnull=False)
+        .order_by('-created')
+        .first()
+    )
+    if seller_pin:
+        for b in branches_available:
+            b.distance_km = b.distance_to(seller_pin.latitude, seller_pin.longitude)
+        branches_available.sort(key=lambda b: b.distance_km)
+    else:
+        for b in branches_available:
+            b.distance_km = None
+
     if request.method == 'POST':
         try:
             from django.db import transaction
@@ -1348,6 +1386,7 @@ def admin_fulfillment_officer_edit(request, pk):
         'assigned_product_ids': assigned_product_ids,
         'upload_req':          upload_req,
         'can_upload_now':      user.profile.can_upload_products,
+        'seller_pin':          seller_pin,
     })
 
 
@@ -3443,4 +3482,90 @@ def admin_withdrawals(request):
         'page_obj': page_obj,
         'counts':   counts,
         'status':   status,
+    })
+
+
+# ─── Email Campaigns ───────────────────────────────────────────────────────
+
+@campaign_permission_required
+def admin_campaigns(request):
+    """List all campaigns, newest first."""
+    campaigns = EmailCampaign.objects.all().order_by('-created')
+    return render(request, 'mall/admin/campaigns.html', {
+        'campaigns': campaigns,
+    })
+
+
+@campaign_permission_required
+def admin_campaign_compose(request):
+    """Compose a new campaign as a draft. Does not send -- sending happens
+    via a separate confirm step (admin_campaign_queue) and the actual
+    delivery runs via the send_campaign management command."""
+    if request.method == 'POST':
+        subject = (request.POST.get('subject') or '').strip()
+        body_html = (request.POST.get('body_html') or '').strip()
+        audience = request.POST.get('audience', '')
+
+        if not subject or not body_html or audience not in ('customers', 'sellers'):
+            messages.error(request, 'Please fill in subject, body, and pick an audience.')
+            return render(request, 'mall/admin/campaign_compose.html', {
+                'subject': subject, 'body_html': body_html, 'audience': audience,
+            })
+
+        campaign = EmailCampaign.objects.create(
+            subject=subject, body_html=body_html, audience=audience,
+            created_by=request.user, status='draft',
+        )
+        audit_log(request, 'campaign_created', f'Campaign "{campaign.subject}"', f'audience={audience}')
+        messages.success(request, f'Campaign "{campaign.subject}" saved as draft. Review it, then queue it to send.')
+        return redirect('admin_campaign_detail', pk=campaign.pk)
+
+    return render(request, 'mall/admin/campaign_compose.html', {})
+
+
+@campaign_permission_required
+def admin_campaign_detail(request, pk):
+    """View a single campaign's status and, if still a draft, queue it to
+    send. Queuing snapshots the current recipient list into
+    EmailCampaignRecipient rows and flips status to 'queued' -- the actual
+    sending is done by `python3 manage.py send_campaign <id>`, run manually
+    on the server, so a large recipient list can never time out a web
+    request."""
+    campaign = get_object_or_404(EmailCampaign, pk=pk)
+
+    if request.method == 'POST' and request.POST.get('action') == 'queue':
+        if campaign.status != 'draft':
+            messages.error(request, 'This campaign has already been queued or sent.')
+            return redirect('admin_campaign_detail', pk=campaign.pk)
+
+        if campaign.audience == 'sellers':
+            recipients = User.objects.filter(
+                profile__is_fulfillment_officer=True, is_active=True,
+            ).exclude(email='').distinct()
+        else:
+            recipients = User.objects.filter(
+                is_active=True,
+            ).exclude(email='').exclude(profile__is_fulfillment_officer=True).distinct()
+
+        # Exclude anyone who has unsubscribed from marketing emails.
+        recipients = recipients.exclude(email_unsubscribe__isnull=False)
+
+        rows = [EmailCampaignRecipient(campaign=campaign, user=u) for u in recipients]
+        EmailCampaignRecipient.objects.bulk_create(rows, ignore_conflicts=True)
+
+        campaign.recipient_count = campaign.recipients.count()
+        campaign.status = 'queued'
+        campaign.queued_at = timezone.now()
+        campaign.save(update_fields=['recipient_count', 'status', 'queued_at'])
+
+        audit_log(request, 'campaign_queued', f'Campaign "{campaign.subject}"', f'recipients={campaign.recipient_count}')
+        messages.success(
+            request,
+            f'Campaign queued with {campaign.recipient_count} recipients. '
+            f'Ask the server admin to run: python3 manage.py send_campaign {campaign.pk}'
+        )
+        return redirect('admin_campaign_detail', pk=campaign.pk)
+
+    return render(request, 'mall/admin/campaign_detail.html', {
+        'campaign': campaign,
     })

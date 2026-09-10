@@ -1,0 +1,41 @@
+{% extends "mall/admin/base_admin.html" %}
+{% block title %}{{ campaign.subject }} — Admin{% endblock %}
+{% block page_title %}Campaign: {{ campaign.subject }}{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <p><strong>Audience:</strong> {{ campaign.get_audience_display }}</p>
+    <p><strong>Status:</strong>
+      <span class="badge {% if campaign.status == 'sent' %}badge-done{% elif campaign.status == 'failed' %}badge-locked{% else %}badge-pending{% endif %}">
+        {{ campaign.get_status_display }}
+      </span>
+    </p>
+    <p><strong>Recipients:</strong> {{ campaign.recipient_count }}</p>
+    <p><strong>Sent:</strong> {{ campaign.sent_count }} &nbsp; <strong>Failed:</strong> {{ campaign.failed_count }}</p>
+    <p><strong>Created:</strong> {{ campaign.created|date:"d M Y, H:i" }} by {{ campaign.created_by.username|default:"—" }}</p>
+    {% if campaign.queued_at %}<p><strong>Queued:</strong> {{ campaign.queued_at|date:"d M Y, H:i" }}</p>{% endif %}
+    {% if campaign.sent_at %}<p><strong>Sent:</strong> {{ campaign.sent_at|date:"d M Y, H:i" }}</p>{% endif %}
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:1.5rem 0;">
+
+    <h3 style="font-size:0.95rem;margin-bottom:0.5rem;">Message Preview</h3>
+    <div style="background:var(--bg-sunken,#f5f5f5);border-radius:8px;padding:1.25rem;white-space:pre-wrap;font-size:0.9rem;">{{ campaign.body_html }}</div>
+
+    {% if campaign.status == 'draft' %}
+    <form method="post" style="margin-top:1.5rem;">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="queue">
+      <button type="submit" class="btn btn-gold" onclick="return confirm('Queue this campaign? This will snapshot the current recipient list and mark it ready to send.');">
+        Queue to Send →
+      </button>
+    </form>
+    {% elif campaign.status == 'queued' %}
+    <p style="margin-top:1.5rem;color:var(--muted);font-size:0.85rem;">
+      This campaign is queued. To actually send it, run on the server:<br>
+      <code>docker compose exec web python3 manage.py send_campaign {{ campaign.pk }}</code>
+    </p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
