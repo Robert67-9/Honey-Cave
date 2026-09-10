@@ -67,19 +67,26 @@ class RegisterForm(UserCreationForm):
 
 
 class ProfileUpdateForm(forms.ModelForm):
-    """Allow users to update their first/last name and phone from the profile page."""
+    """Allow users to update their first/last name, phone, and profile
+    picture from the profile page."""
     first_name = forms.CharField(max_length=50, required=False)
     last_name  = forms.CharField(max_length=50, required=False)
 
     class Meta:
         model  = UserProfile
-        fields = ['phone']
+        fields = ['phone', 'profile_picture']
 
     def clean_phone(self):
         phone = self.cleaned_data.get('phone', '').strip()
         if phone and not re.match(r'^[\d\s\+\-\(\)]{7,20}$', phone):
             raise forms.ValidationError('Enter a valid phone number.')
         return phone
+
+    def clean_profile_picture(self):
+        pic = self.cleaned_data.get('profile_picture')
+        if pic and hasattr(pic, 'size') and pic.size > 5 * 1024 * 1024:
+            raise forms.ValidationError('Image is too large — please keep it under 5MB.')
+        return pic
 
 
 class OTPVerifyForm(forms.Form):
@@ -137,7 +144,7 @@ class ContactForm(forms.Form):
 class StoreApplicationForm(forms.ModelForm):
     class Meta:
         model = StoreApplication
-        fields = ['store_name', 'business_reg_no', 'location', 'product_category', 'phone', 'id_document']
+        fields = ['store_name', 'business_reg_no', 'location', 'nearby_landmark', 'latitude', 'longitude', 'product_category', 'phone', 'id_document']
         labels = {
             'business_reg_no': 'Business Registration No.',
             'product_category': 'Product Category',
@@ -146,6 +153,9 @@ class StoreApplicationForm(forms.ModelForm):
             'store_name': forms.TextInput(attrs={'placeholder': "e.g. Adzo's Fashion House"}),
             'business_reg_no': forms.TextInput(attrs={'placeholder': 'Registrar General reg. number'}),
             'location': forms.TextInput(attrs={'placeholder': 'City / area, e.g. Osu, Accra'}),
+            'nearby_landmark': forms.TextInput(attrs={'placeholder': 'e.g. Opposite Shell filling station'}),
+            'latitude': forms.HiddenInput(),
+            'longitude': forms.HiddenInput(),
             'product_category': forms.TextInput(attrs={'placeholder': 'e.g. Fashion & Apparel'}),
             'phone': forms.TextInput(attrs={'placeholder': 'e.g. 0244 123 456'}),
         }
@@ -404,3 +414,26 @@ class OrderFeedbackForm(forms.ModelForm):
     def clean_photo_2(self): return self._validate_photo('photo_2')
     def clean_photo_3(self): return self._validate_photo('photo_3')
 
+
+
+from .models import ReturnRequest
+
+
+class ReturnRequestForm(forms.ModelForm):
+    class Meta:
+        model  = ReturnRequest
+        fields = ['reason', 'description', 'photo']
+        widgets = {
+            'description': forms.Textarea(attrs={
+                'rows': 4,
+                'placeholder': "Tell us what happened — the more detail, the faster we can process this.",
+            }),
+        }
+        labels = {
+            'reason':      'Reason for Return',
+            'description': 'Details',
+            'photo':       'Photo (optional)',
+        }
+
+    def clean_description(self):
+        return self.cleaned_data.get('description', '').strip()

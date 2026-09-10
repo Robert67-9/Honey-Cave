@@ -1,0 +1,35 @@
+{% extends "mall/base.html" %}
+{% block title %}Request a Return — Honey Cave Market{% endblock %}
+
+{% block content %}
+<div style="max-width:600px;margin:2rem auto;padding:0 1rem;">
+  <h2 style="margin-bottom:0.25rem;">Request a Return</h2>
+  <p style="color:var(--muted,#777);margin-bottom:1.5rem;">
+    {{ item.product.name }} — Order #{{ order.id }}
+  </p>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <div style="margin-bottom:1rem;">
+      <label style="display:block;font-weight:600;margin-bottom:0.4rem;">{{ form.reason.label }}</label>
+      {{ form.reason }}
+      {% if form.reason.errors %}<p style="color:#c0392b;font-size:0.85rem;">{{ form.reason.errors.0 }}</p>{% endif %}
+    </div>
+
+    <div style="margin-bottom:1rem;">
+      <label style="display:block;font-weight:600;margin-bottom:0.4rem;">{{ form.description.label }}</label>
+      {{ form.description }}
+      {% if form.description.errors %}<p style="color:#c0392b;font-size:0.85rem;">{{ form.description.errors.0 }}</p>{% endif %}
+    </div>
+
+    <div style="margin-bottom:1.5rem;">
+      <label style="display:block;font-weight:600;margin-bottom:0.4rem;">{{ form.photo.label }}</label>
+      {{ form.photo }}
+    </div>
+
+    <button type="submit" class="btn btn-gold" style="padding:0.75rem 1.5rem;">Submit Return Request</button>
+    <a href="{% url 'my_orders' %}" style="margin-left:1rem;color:var(--muted,#777);">Cancel</a>
+  </form>
+</div>
+{% endblock %}

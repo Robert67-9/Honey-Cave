@@ -445,6 +445,11 @@
           {% else %}
           <a href="{% url 'product_detail' item.product.slug %}#review" class="mo-item-action review">⭐ Review</a>
           {% endif %}
+          {% if item.return_requests.all|length > 0 %}
+          <span class="mo-item-action" style="opacity:.85;">↩ Return Requested</span>
+          {% else %}
+          <a href="{% url 'request_return' item.id %}" class="mo-item-action">↩ Return</a>
+          {% endif %}
         {% else %}
           <a href="{% url 'product_detail' item.product.slug %}" class="mo-item-action">View</a>
         {% endif %}

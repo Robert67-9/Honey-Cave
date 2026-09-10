@@ -1,0 +1,53 @@
+{% extends "mall/admin/base_admin.html" %}
+{% block title %}Returns — Admin{% endblock %}
+{% block page_title %}Return Requests{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <div style="margin-bottom:1rem;">
+      <a href="?" style="margin-right:0.75rem;{% if not status %}font-weight:700;{% endif %}">All</a>
+      <a href="?status=requested" style="margin-right:0.75rem;{% if status == 'requested' %}font-weight:700;{% endif %}">Requested</a>
+      <a href="?status=approved" style="margin-right:0.75rem;{% if status == 'approved' %}font-weight:700;{% endif %}">Approved</a>
+      <a href="?status=item_received" style="margin-right:0.75rem;{% if status == 'item_received' %}font-weight:700;{% endif %}">Item Received</a>
+      <a href="?status=refunded" style="margin-right:0.75rem;{% if status == 'refunded' %}font-weight:700;{% endif %}">Refunded</a>
+      <a href="?status=rejected" style="{% if status == 'rejected' %}font-weight:700;{% endif %}">Rejected</a>
+    </div>
+
+    {% for rr in returns %}
+    <div style="border:1px solid var(--border,#e5e5e5);border-radius:8px;padding:1rem;margin-bottom:1rem;">
+      <p><strong>{{ rr.order_item.product.name }}</strong> — Order #{{ rr.order_item.order.id }}</p>
+      <p style="font-size:0.9rem;color:var(--muted,#777);">
+        {{ rr.customer.username }} · {{ rr.get_reason_display }} · {{ rr.created|date:"d M Y, H:i" }}
+      </p>
+      <p style="font-size:0.9rem;">{{ rr.description }}</p>
+      {% if rr.photo %}<img src="{{ rr.photo.url }}" style="max-width:200px;border-radius:6px;margin:0.5rem 0;">{% endif %}
+      <p><strong>Status:</strong> {{ rr.get_status_display }}</p>
+      {% if rr.decision_note %}<p style="font-size:0.85rem;color:var(--muted,#777);">Note: {{ rr.decision_note }}</p>{% endif %}
+
+      {% if rr.status == 'requested' %}
+      <form method="post" action="{% url 'admin_return_decide' rr.pk %}" style="margin-top:0.75rem;">
+        {% csrf_token %}
+        <input type="text" name="note" placeholder="Optional note" style="width:60%;padding:0.4rem;margin-right:0.5rem;">
+        <button type="submit" name="decision" value="approve" class="btn btn-gold">Approve</button>
+        <button type="submit" name="decision" value="reject" class="btn" style="background:#c0392b;color:#fff;">Reject</button>
+      </form>
+      {% elif rr.status == 'approved' %}
+      <form method="post" action="{% url 'admin_return_mark_received' rr.pk %}" style="margin-top:0.75rem;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-gold">Mark Item Received</button>
+      </form>
+      {% elif rr.status == 'item_received' %}
+      <form method="post" action="{% url 'admin_return_refund' rr.pk %}" style="margin-top:0.75rem;">
+        {% csrf_token %}
+        <input type="number" step="0.01" name="refund_amount" placeholder="Refund amount (GH₵)" required style="width:200px;padding:0.4rem;margin-right:0.5rem;">
+        <button type="submit" class="btn btn-gold">Record Refund</button>
+      </form>
+      {% endif %}
+    </div>
+    {% empty %}
+    <p style="color:var(--muted,#777);">No return requests{% if status %} with this status{% endif %}.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

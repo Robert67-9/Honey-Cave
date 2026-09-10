@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views, admin_views, google_auth, fulfillment_officer_views, rider_views
+from . import views, admin_views, google_auth, fulfillment_officer_views, rider_views, return_views
 
 urlpatterns = [
 
@@ -23,6 +23,11 @@ urlpatterns = [
     path('panel/campaigns/new/', admin_views.admin_campaign_compose, name='admin_campaign_compose'),
     path('panel/campaigns/<int:pk>/', admin_views.admin_campaign_detail, name='admin_campaign_detail'),
     path('panel/campaigns/<int:pk>/send/', admin_views.admin_campaign_send, name='admin_campaign_send'),
+    path('orders/item/<int:item_id>/return/', return_views.request_return, name='request_return'),
+    path('panel/returns/', return_views.admin_returns, name='admin_returns'),
+    path('panel/returns/<int:pk>/decide/', return_views.admin_return_decide, name='admin_return_decide'),
+    path('panel/returns/<int:pk>/received/', return_views.admin_return_mark_received, name='admin_return_mark_received'),
+    path('panel/returns/<int:pk>/refund/', return_views.admin_return_refund, name='admin_return_refund'),
     path('unsubscribe/<int:user_id>/<str:token>/', views.unsubscribe_campaign, name='unsubscribe_campaign'),
     path('panel/reviews/', admin_views.admin_reviews, name='admin_reviews'),
     path('panel/reviews/<int:pk>/delete/', admin_views.admin_review_delete, name='admin_review_delete'),
