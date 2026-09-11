@@ -4558,7 +4558,7 @@ def call_gemini(prompt_or_messages, system_prompt=None, max_tokens=600):
         payload['systemInstruction'] = {'parts': [{'text': system_prompt}]}
 
     req = urllib.request.Request(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + api_key,
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=' + api_key,
         data=json.dumps(payload).encode(),
         headers={'Content-Type': 'application/json'},
         method='POST',
