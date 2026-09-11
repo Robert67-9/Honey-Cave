@@ -3832,7 +3832,7 @@ def ai_chat_message(request):
     Returns JSON: { "ok": true, "reply": "..." } or { "ok": false, "error": "..." }
     """
     from django.conf import settings as django_settings
-    api_key = django_settings.ANTHROPIC_API_KEY
+    api_key = django_settings.GEMINI_API_KEY
     if not api_key:
         return JsonResponse({'ok': False, 'error': 'Chat assistant is not configured.'}, status=200)
 
@@ -3862,29 +3862,10 @@ def ai_chat_message(request):
     )
 
     try:
-        payload = json.dumps({
-            'model': 'claude-sonnet-4-20250514',
-            'max_tokens': 600,
-            'system': system_prompt,
-            'messages': messages,
-        }).encode()
-
-        req = urllib.request.Request(
-            'https://api.anthropic.com/v1/messages',
-            data=payload,
-            headers={
-                'Content-Type': 'application/json',
-                'x-api-key': api_key,
-                'anthropic-version': '2023-06-01',
-            },
-            method='POST',
-        )
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            data = json.loads(resp.read())
-            reply = (data.get('content') or [{}])[0].get('text', '').strip()
-            if not reply:
-                reply = "Sorry, I couldn't process that. Please try again."
-            return JsonResponse({'ok': True, 'reply': reply})
+        reply = call_gemini(messages, system_prompt=system_prompt, max_tokens=600)
+        if not reply:
+            reply = "Sorry, I couldn't process that. Please try again."
+        return JsonResponse({'ok': True, 'reply': reply})
     except Exception as e:
         logger.warning('AI chat message failed: %s', e)
         return JsonResponse({
@@ -3951,55 +3932,37 @@ Example: [{{"name":"X","slug":"x-slug","price":49.99,"category":"Electronics","r
 
     try:
         from django.conf import settings as django_settings
-        api_key = django_settings.ANTHROPIC_API_KEY
+        api_key = django_settings.GEMINI_API_KEY
         if not api_key:
             return JsonResponse({'ok': False, 'error': 'AI recommendations are not configured.'}, status=200)
 
         import json as _json
-        payload = _json.dumps({
-            'model': 'claude-sonnet-4-20250514',
-            'max_tokens': 500,
-            'messages': [{'role': 'user', 'content': prompt}],
-        }).encode()
-
-        req = urllib.request.Request(
-            'https://api.anthropic.com/v1/messages',
-            data=payload,
-            headers={
-                'Content-Type': 'application/json',
-                'x-api-key': api_key,
-                'anthropic-version': '2023-06-01',
-            },
-            method='POST',
-        )
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            data = _json.loads(resp.read())
-            text = data['content'][0]['text'].strip()
-            # Strip any accidental markdown fences
-            if text.startswith('```'):
-                text = text.split('```')[1]
-                if text.startswith('json'):
-                    text = text[4:]
-            recs = _json.loads(text)
-            # Enrich with actual product data for accurate prices/availability
-            slugs = [r.get('slug') for r in recs if r.get('slug')]
-            products_map = {
-                p.slug: p for p in Product.objects.filter(slug__in=slugs, available=True)
-            }
-            enriched = []
-            for r in recs:
-                p = products_map.get(r.get('slug'))
-                if p:
-                    enriched.append({
-                        'name':     p.name,
-                        'slug':     p.slug,
-                        'price':    float(p.price),
-                        'category': p.category.name,
-                        'image':    p.image.url if p.image else None,
-                        'reason':   r.get('reason', ''),
-                        'url':      f'/products/{p.slug}/',
-                    })
-            return JsonResponse({'ok': True, 'recommendations': enriched})
+        text = call_gemini(prompt, max_tokens=500)
+        # Strip any accidental markdown fences
+        if text.startswith('```'):
+            text = text.split('```')[1]
+            if text.startswith('json'):
+                text = text[4:]
+        recs = _json.loads(text)
+        # Enrich with actual product data for accurate prices/availability
+        slugs = [r.get('slug') for r in recs if r.get('slug')]
+        products_map = {
+            p.slug: p for p in Product.objects.filter(slug__in=slugs, available=True)
+        }
+        enriched = []
+        for r in recs:
+            p = products_map.get(r.get('slug'))
+            if p:
+                enriched.append({
+                    'name':     p.name,
+                    'slug':     p.slug,
+                    'price':    float(p.price),
+                    'category': p.category.name,
+                    'image':    p.image.url if p.image else None,
+                    'reason':   r.get('reason', ''),
+                    'url':      f'/products/{p.slug}/',
+                })
+        return JsonResponse({'ok': True, 'recommendations': enriched})
     except Exception as e:
         return JsonResponse({'ok': False, 'error': str(e)}, status=200)
 
@@ -4033,30 +3996,12 @@ Reviews:
 
     try:
         from django.conf import settings as django_settings
-        api_key = django_settings.ANTHROPIC_API_KEY
+        api_key = django_settings.GEMINI_API_KEY
         if not api_key:
             return JsonResponse({'ok': False, 'error': 'Review summaries are not configured.'}, status=200)
 
-        payload = _json.dumps({
-            'model': 'claude-sonnet-4-20250514',
-            'max_tokens': 300,
-            'messages': [{'role': 'user', 'content': prompt}],
-        }).encode()
-
-        req = urllib.request.Request(
-            'https://api.anthropic.com/v1/messages',
-            data=payload,
-            headers={
-                'Content-Type': 'application/json',
-                'x-api-key': api_key,
-                'anthropic-version': '2023-06-01',
-            },
-            method='POST',
-        )
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            data = _json.loads(resp.read())
-            summary = data['content'][0]['text'].strip()
-            return JsonResponse({'ok': True, 'summary': summary, 'count': reviews.count()})
+        summary = call_gemini(prompt, max_tokens=300)
+        return JsonResponse({'ok': True, 'summary': summary, 'count': reviews.count()})
     except Exception as e:
         return JsonResponse({'ok': False, 'error': 'Could not generate summary right now.'}, status=200)
 
@@ -4582,3 +4527,42 @@ self.addEventListener('fetch', function (event) {
     response = _HttpResponse(js, content_type="application/javascript")
     response["Service-Worker-Allowed"] = "/"
     return response
+
+
+# ─── AI — Gemini helper (free tier, replaces Anthropic calls) ───────────────
+def call_gemini(prompt_or_messages, system_prompt=None, max_tokens=600):
+    """
+    Calls Google's Gemini API (free tier). Accepts either a plain string
+    prompt, or a list of {'role': 'user'/'assistant', 'content': str}
+    messages for multi-turn chat. Returns the reply text, or raises on
+    failure (callers should catch and handle as before).
+    """
+    from django.conf import settings as django_settings
+    api_key = django_settings.GEMINI_API_KEY
+    if not api_key:
+        raise ValueError('Gemini API key not configured')
+
+    if isinstance(prompt_or_messages, str):
+        contents = [{'role': 'user', 'parts': [{'text': prompt_or_messages}]}]
+    else:
+        contents = []
+        for m in prompt_or_messages:
+            role = 'model' if m.get('role') == 'assistant' else 'user'
+            contents.append({'role': role, 'parts': [{'text': m.get('content', '')}]})
+
+    payload = {
+        'contents': contents,
+        'generationConfig': {'maxOutputTokens': max_tokens},
+    }
+    if system_prompt:
+        payload['systemInstruction'] = {'parts': [{'text': system_prompt}]}
+
+    req = urllib.request.Request(
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + api_key,
+        data=json.dumps(payload).encode(),
+        headers={'Content-Type': 'application/json'},
+        method='POST',
+    )
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        data = json.loads(resp.read())
+        return data['candidates'][0]['content']['parts'][0]['text'].strip()

@@ -1632,7 +1632,7 @@ own headers and don't need the customer bottom nav.
 
     fetch('/api/ai/chat-message/', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
       body: JSON.stringify({ system: systemPrompt, messages: history }),
     })
       .then(function (r) { return r.json(); })

@@ -429,6 +429,7 @@ GOOGLE_CLIENT_SECRET = config('GOOGLE_CLIENT_SECRET', default='')
 # /api/ai/recommendations/ and review-summary endpoints. Leave blank to
 # disable those features gracefully (they return a friendly error instead).
 ANTHROPIC_API_KEY = config('ANTHROPIC_API_KEY', default='')
+GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
 
 # ── WhatsApp notifications via Twilio ─────────────────────────────────────────
 # Sign up free at https://www.twilio.com
