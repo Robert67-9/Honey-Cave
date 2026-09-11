@@ -14,8 +14,11 @@
         <input type="text" name="name" maxlength="200" required style="width:100%;padding:0.75rem;border:1px solid var(--border);border-radius:8px;" value="{{ request.POST.name|default_if_none:'' }}">
       </label>
       <label>
-        Price (GH₵)<br>
-        <input type="text" name="price" required style="width:100%;padding:0.75rem;border:1px solid var(--border);border-radius:8px;" value="{{ request.POST.price|default_if_none:'' }}">
+        Your price (GH₵) — what you want to receive<br>
+        <input type="text" name="price" id="seller-price-input" required style="width:100%;padding:0.75rem;border:1px solid var(--border);border-radius:8px;" value="{{ request.POST.price|default_if_none:'' }}">
+        <small id="commission-preview" style="display:block;margin-top:0.4rem;color:var(--muted);">
+          Enter a price to see the listed price with the {{ commission_percent }}% platform fee added.
+        </small>
       </label>
       <label>
         Stock<br>
@@ -116,8 +119,33 @@
 document.addEventListener('DOMContentLoaded', function () {
   var form = document.querySelector('form[enctype="multipart/form-data"]');
   var btn = document.getElementById('add-product-btn');
+  var priceInput = document.getElementById('seller-price-input');
+  var preview = document.getElementById('commission-preview');
+  var commissionPercent = {{ commission_percent }};
+
+  function updatePreview() {
+    var sellerPrice = parseFloat(priceInput.value);
+    if (!isNaN(sellerPrice) && sellerPrice > 0) {
+      var listedPrice = sellerPrice + (sellerPrice * commissionPercent / 100);
+      preview.textContent = 'Listed price (with ' + commissionPercent + '% platform fee added): GH₵' + listedPrice.toFixed(2);
+    } else {
+      preview.textContent = 'Enter a price to see the listed price with the ' + commissionPercent + '% platform fee added.';
+    }
+  }
+
+  if (priceInput && preview) {
+    priceInput.addEventListener('input', updatePreview);
+  }
+
   if (form && btn) {
     form.addEventListener('submit', function () {
+      // Replace the seller's entered price with the marked-up listed price
+      // before submission, so the platform fee is baked into what's saved.
+      var sellerPrice = parseFloat(priceInput.value);
+      if (!isNaN(sellerPrice) && sellerPrice > 0) {
+        var listedPrice = sellerPrice + (sellerPrice * commissionPercent / 100);
+        priceInput.value = listedPrice.toFixed(2);
+      }
       btn.disabled = true;
       btn.textContent = 'Adding product… (this can take up to 30s)';
     });

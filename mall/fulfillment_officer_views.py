@@ -953,9 +953,13 @@ def officer_product_upload(request):
     except Exception:
         assigned_products = []
 
+    from .models import SiteSettings
+    commission_percent = SiteSettings.load().seller_commission_percent
+
     return render(request, 'mall/fulfillment_officer/product_upload.html', {
         'categories': categories,
         'assigned_products': assigned_products,
+        'commission_percent': commission_percent,
     })
 
 
