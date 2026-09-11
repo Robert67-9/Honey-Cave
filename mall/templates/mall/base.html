@@ -92,12 +92,7 @@
     <script>
     (function() {
       try {
-        var saved = localStorage.getItem('hcm-theme');
-        if (!saved) {
-          saved = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-                ? 'dark' : 'light';
-        }
-        document.documentElement.setAttribute('data-theme', saved);
+        document.documentElement.setAttribute('data-theme', 'light');
       } catch (e) { /* localStorage blocked — fall back to light */ }
     })();
     </script>
@@ -312,6 +307,7 @@
 
         /* ── Theme toggle button (proper, not childish) ────────────── */
         .theme-toggle {
+            display: none !important;
           background: rgba(255,255,255,.06);
           border: 1px solid rgba(255,255,255,.12);
           color: rgba(255,255,255,.85);
@@ -1212,8 +1208,6 @@
     }
     var btn    = document.getElementById('theme-btn');
     var btnMob = document.getElementById('theme-btn-mob');
-    if (btn)    btn.addEventListener('click', doToggle);
-    if (btnMob) btnMob.addEventListener('click', doToggle);
   });
 })();
 </script>
