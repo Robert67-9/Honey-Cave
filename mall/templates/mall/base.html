@@ -1514,7 +1514,11 @@ own headers and don't need the customer bottom nav.
   var history  = [];
   var systemPrompt = 'You are a helpful, friendly customer service assistant for Honey Cave Market, ' +
     'a Ghanaian e-commerce store. Serves customers across Ghana, accepts card/mobile money/bank transfer ' +
-    'via Paystack, offers home delivery and branch pickup. Be concise (2-4 sentences) and friendly.';
+    'via Paystack, offers home delivery and branch pickup. Be concise (2-4 sentences) and friendly. ' +
+    'The store sells products across these real categories: {{ store_category_names|escapejs }}. ' +
+    'Never guess or invent what the store sells — only reference the categories listed above. ' +
+    'If asked about a product not obviously covered by these categories, say you are not sure and ' +
+    'suggest they browse the shop or use search.';
 
   function toggle(open) {
     panel.classList.toggle('open', open);

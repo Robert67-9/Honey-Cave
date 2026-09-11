@@ -66,3 +66,17 @@ def branding(request):
         'site_settings':    settings_obj,
         'google_login_enabled': google_login_enabled,
     }
+
+
+def store_categories(request):
+    """
+    Exposes the real product category names to every template, so the
+    floating AI chat widget can build an accurate system prompt instead
+    of letting the model guess from the store name alone.
+    """
+    from .models import Category
+    try:
+        names = ', '.join(c.name for c in Category.objects.all())
+    except Exception:
+        names = ''
+    return {'store_category_names': names}

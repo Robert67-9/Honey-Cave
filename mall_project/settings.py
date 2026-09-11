@@ -102,6 +102,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'mall.context_processors.cart_count',
                 'mall.context_processors.branding',
+                'mall.context_processors.store_categories',
             ],
         },
     },
