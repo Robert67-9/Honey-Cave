@@ -905,8 +905,6 @@ def officer_product_upload(request):
 
             img = request.FILES.get('image')
             if img:
-                img = whiten_background(img)
-            if img:
                 err = validate_uploaded_image(img)
                 if err:
                     raise ValueError(f'Image: {err}')
@@ -930,7 +928,6 @@ def officer_product_upload(request):
             for slot in range(2, 7):
                 extra = request.FILES.get(f'image_{slot}')
                 if extra:
-                    extra = whiten_background(extra)
                     err = validate_uploaded_image(extra)
                     if err:
                         messages.warning(request, f'Image slot {slot} skipped: {err}')
@@ -1763,32 +1760,6 @@ def officer_deposit_verify(request):
 
     request.session.pop('pending_deposit_id', None)
     return JsonResponse({'verified': True, 'redirect': '/officer/wallet/deposit/'})
-
-
-from rembg import remove
-from PIL import Image
-import io
-from django.core.files.uploadedfile import InMemoryUploadedFile
-
-
-def whiten_background(uploaded_file):
-    """Remove background from an uploaded product image and replace with white."""
-    uploaded_file.seek(0)
-    input_image = Image.open(uploaded_file).convert("RGBA")
-    output_image = remove(input_image)
-
-    white_bg = Image.new("RGBA", output_image.size, (255, 255, 255, 255))
-    white_bg.paste(output_image, (0, 0), output_image)
-    final = white_bg.convert("RGB")
-
-    buffer = io.BytesIO()
-    final.save(buffer, format="JPEG", quality=90)
-    buffer.seek(0)
-
-    return InMemoryUploadedFile(
-        buffer, None, uploaded_file.name.rsplit('.', 1)[0] + '.jpg',
-        'image/jpeg', buffer.getbuffer().nbytes, None
-    )
 
 
 from django.db import IntegrityError, transaction

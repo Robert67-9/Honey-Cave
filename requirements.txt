@@ -48,5 +48,3 @@ urllib3==2.7.0
 charset-normalizer==3.4.6
 idna==3.16
 PyJWT==2.13.0
-rembg[cpu]
-onnxruntime
