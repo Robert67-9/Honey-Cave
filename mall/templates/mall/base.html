@@ -962,6 +962,7 @@
         }
     </style>
     {% block extra_css %}{% endblock %}
+<link rel="manifest" href="/static/manifest.json">
 </head>
 <body id="top">
 {% if site_settings.maintenance_mode and user.is_staff %}
@@ -1664,6 +1665,11 @@ own headers and don't need the customer bottom nav.
     this.style.height = Math.min(this.scrollHeight, 90) + 'px';
   });
 })();
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("{% static 'sw.js' %}");
+}
 </script>
 
 </body>
