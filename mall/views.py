@@ -4539,3 +4539,46 @@ def unsubscribe_campaign(request, user_id, token):
 
     EmailUnsubscribe.objects.get_or_create(user=target)
     return render(request, 'mall/unsubscribe.html', {'success': True})
+
+# ─── PWA: manifest + service worker (served from site root, not /static/,
+#     so the service worker's scope covers the whole site) ────────────────
+
+def pwa_manifest(request):
+    from django.templatetags.static import static as _static
+    from django.http import JsonResponse as _JsonResponse
+
+    data = {
+        "name": "Honey Cave Market",
+        "short_name": "Honey Cave",
+        "description": "Shop across Honey Cave Market's branches in Ghana.",
+        "start_url": "/",
+        "scope": "/",
+        "display": "standalone",
+        "background_color": "#FAF7F2",
+        "theme_color": "#C9A84C",
+        "icons": [
+            {"src": _static("images/pwa/icon-192.png"), "sizes": "192x192", "type": "image/png", "purpose": "any"},
+            {"src": _static("images/pwa/icon-512.png"), "sizes": "512x512", "type": "image/png", "purpose": "any"},
+            {"src": _static("images/pwa/icon-maskable-512.png"), "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+        ],
+    }
+    return _JsonResponse(data, content_type="application/manifest+json")
+
+
+def pwa_service_worker(request):
+    from django.http import HttpResponse as _HttpResponse
+
+    js = """
+self.addEventListener('install', function (event) {
+  self.skipWaiting();
+});
+self.addEventListener('activate', function (event) {
+  event.waitUntil(self.clients.claim());
+});
+self.addEventListener('fetch', function (event) {
+  event.respondWith(fetch(event.request));
+});
+""".strip()
+    response = _HttpResponse(js, content_type="application/javascript")
+    response["Service-Worker-Allowed"] = "/"
+    return response

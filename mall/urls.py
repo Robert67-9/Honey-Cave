@@ -2,6 +2,8 @@ from django.urls import path
 from . import views, admin_views, google_auth, fulfillment_officer_views, rider_views, return_views
 
 urlpatterns = [
+    path('manifest.json', views.pwa_manifest, name='pwa_manifest'),
+    path('sw.js', views.pwa_service_worker, name='pwa_service_worker'),
 
     # ─── Custom Admin Panel ───────────────────────────────────────────────────
     path('panel/', admin_views.admin_dashboard, name='admin_dashboard'),
@@ -239,6 +241,9 @@ urlpatterns = [
     path('officer/boosts/',           fulfillment_officer_views.officer_boosts,             name='officer_boosts'),
     path('officer/boosts/start/',     fulfillment_officer_views.officer_boost_start,        name='officer_boost_start'),
     path('officer/boosts/verify/',    fulfillment_officer_views.officer_boost_verify,       name='officer_boost_verify'),
+    path('officer/wallet/deposit/', fulfillment_officer_views.officer_wallet_deposit, name='officer_wallet_deposit'),
+    path('officer/wallet/deposit/start/', fulfillment_officer_views.officer_deposit_start, name='officer_deposit_start'),
+    path('officer/wallet/deposit/verify/', fulfillment_officer_views.officer_deposit_verify, name='officer_deposit_verify'),
 
     # Admin fulfillment officer management — admin registers / edits fulfillment officer accounts
     path('panel/fulfillment-officers/',                       admin_views.admin_fulfillment_officers,           name='admin_fulfillment_officers'),

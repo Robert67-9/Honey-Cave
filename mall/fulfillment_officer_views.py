@@ -29,7 +29,7 @@ from .models import (
     Order, Branch, BranchAssignment, HandoffCode, Rider, RiderDelivery,
     Product, Category, ProductImage, UserProfile, ProductUpload, ProductUploadItem,
     BranchProduct, OfficerUploadRequest, OTPVerification,
-    Wallet, WalletTransaction, WithdrawalRequest, SiteSettings, ProductBoost,
+    Wallet, WalletTransaction, WithdrawalRequest, SiteSettings, ProductBoost, WalletDeposit,
     normalize_phone,
 )
 from . import wallet as wallet_svc
@@ -1590,7 +1590,7 @@ def officer_boost_start(request):
 
     amount = ProductBoost.TIER_PRICE[tier]
 
-    if ProductBoost.objects.filter(product=product, status='active').exists():
+    if ProductBoost.objects.filter(product=product, status='active', ends_at__gte=timezone.now()).exists():
         messages.info(request, f'"{product.name}" already has an active boost.')
         return redirect('officer_boosts')
 
@@ -1655,3 +1655,105 @@ def officer_boost_verify(request):
 
     request.session.pop('pending_boost_id', None)
     return JsonResponse({'verified': True, 'redirect': '/officer/boosts/'})
+
+
+# ─── Wallet Deposits (seller tops up wallet with own money) ────────────────
+
+@fulfillment_officer_required
+def officer_wallet_deposit(request):
+    """
+    Seller adds their own money into their wallet's available_balance —
+    separate from sale earnings — via a Paystack card payment. Follows the
+    same inline-popup pattern as officer_boosts.
+    """
+    wallet = wallet_svc.get_or_create_seller_wallet(request.user)
+    from django.conf import settings as dj_settings
+    paystack_public_key = dj_settings.PAYSTACK_PUBLIC_KEY
+    paystack_configured = bool(paystack_public_key and paystack_public_key.startswith(('pk_live_', 'pk_test_')))
+
+    pending_deposit = None
+    pending_deposit_id = request.session.get('pending_deposit_id')
+    if pending_deposit_id:
+        pending_deposit = (WalletDeposit.objects
+                            .filter(pk=pending_deposit_id, seller=request.user, status='pending_payment')
+                            .first())
+        if pending_deposit is None:
+            request.session.pop('pending_deposit_id', None)
+
+    past_deposits = (WalletDeposit.objects
+                      .filter(seller=request.user)
+                      .exclude(status='pending_payment')
+                      .order_by('-created_at')[:20])
+
+    return render(request, 'mall/fulfillment_officer/wallet_deposit.html', {
+        'wallet': wallet,
+        'pending_deposit': pending_deposit,
+        'past_deposits': past_deposits,
+        'paystack_public_key': paystack_public_key,
+        'paystack_configured': paystack_configured,
+        'officer_email': request.user.email,
+        'pending_deposit_amount_pesewas': int(pending_deposit.amount * 100) if pending_deposit else 0,
+    })
+
+
+@fulfillment_officer_required
+@require_POST
+def officer_deposit_start(request):
+    """Seller submits a deposit amount — creates the pending WalletDeposit
+    and hands control to the page's Paystack popup."""
+    try:
+        amount = Decimal(request.POST.get('amount', '0'))
+    except Exception:
+        amount = Decimal('0')
+
+    if amount < Decimal('1'):
+        messages.error(request, 'Enter a valid deposit amount (minimum GH\u20b51.00).')
+        return redirect('officer_wallet_deposit')
+
+    deposit = WalletDeposit.objects.create(
+        seller=request.user, amount=amount, status='pending_payment',
+    )
+    request.session['pending_deposit_id'] = deposit.id
+    return redirect('officer_wallet_deposit')
+
+
+@fulfillment_officer_required
+@require_POST
+def officer_deposit_verify(request):
+    """AJAX: verify a Paystack card payment for a pending WalletDeposit."""
+    from .payments import dispatch as _dispatch
+    import json as _json
+
+    try:
+        body = _json.loads(request.body)
+        reference = (body.get('reference') or '').strip()
+        deposit_id = body.get('deposit_id')
+    except Exception:
+        return JsonResponse({'verified': False, 'error': 'Invalid request.'}, status=400)
+
+    deposit = WalletDeposit.objects.filter(pk=deposit_id, seller=request.user, status='pending_payment').first()
+    if deposit is None:
+        return JsonResponse({'verified': False, 'error': 'No pending deposit found.'}, status=400)
+
+    adapter, _ps = _dispatch.gateway_by_provider('paystack')
+    if adapter is None:
+        return JsonResponse({'verified': False, 'error': 'Paystack is not configured.'}, status=500)
+
+    result = adapter.verify_payment(reference)
+    if not result.success or not result.is_paid:
+        return JsonResponse({'verified': False, 'error': result.error_message or 'Payment not successful.'}, status=400)
+
+    required_pesewas = int(deposit.amount * 100)
+    if result.amount_pesewas < required_pesewas:
+        return JsonResponse({
+            'verified': False,
+            'error': f'Amount paid (GH\u20b5{result.amount_pesewas/100:.2f}) is less than the required GH\u20b5{deposit.amount:.2f}.',
+        }, status=400)
+
+    deposit.payment_reference = reference
+    deposit.save(update_fields=['payment_reference'])
+    wallet = wallet_svc.get_or_create_seller_wallet(request.user)
+    wallet_svc.credit_wallet_deposit(wallet, deposit)
+
+    request.session.pop('pending_deposit_id', None)
+    return JsonResponse({'verified': True, 'redirect': '/officer/wallet/deposit/'})

@@ -23,7 +23,7 @@ Render Cron Job — every 15 minutes:
 """
 from django.core.management.base import BaseCommand
 
-from mall.models import Wallet
+from mall.models import Wallet, ProductBoost
 from mall import wallet as wallet_svc
 
 
@@ -49,7 +49,10 @@ class Command(BaseCommand):
             max_age_minutes=options['otp_max_age_minutes'],
         )
 
+        expired_boosts = ProductBoost.expire_ended()
+
         self.stdout.write(self.style.SUCCESS(
             f'Released matured earnings for {released_wallets} wallet(s). '
-            f'Expired {expired} stale pending-OTP withdrawal(s).'
+            f'Expired {expired} stale pending-OTP withdrawal(s). '
+            f'Expired {expired_boosts} stale boost(s).'
         ))

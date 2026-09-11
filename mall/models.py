@@ -2440,6 +2440,7 @@ class WalletTransaction(models.Model):
         ('refund_debit',     'Refund / Chargeback'),
         ('reversal',         'Reversal'),
         ('adjustment',       'Manual Admin Adjustment'),
+        ('deposit_credit',   'Wallet Deposit'),
     ]
     STATUS_CHOICES = [
         ('pending',   'Pending (in hold)'),
@@ -2529,6 +2530,32 @@ class WithdrawalRequest(models.Model):
         super().save(*args, **kwargs)
 
 
+class WalletDeposit(models.Model):
+    """
+    Seller voluntarily adds their own money into their wallet's
+    available_balance — separate from sale earnings — so they have funds
+    ready to spend on boosts (or anything else the wallet covers) without
+    reaching for a card every time.
+    """
+    STATUS_CHOICES = [
+        ('pending_payment', 'Pending Payment'),
+        ('completed',       'Completed'),
+        ('cancelled',       'Cancelled'),
+    ]
+
+    seller             = models.ForeignKey(User, on_delete=models.CASCADE, related_name='wallet_deposits')
+    amount             = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_reference  = models.CharField(max_length=100, blank=True, default='')
+    status             = models.CharField(max_length=16, choices=STATUS_CHOICES, default='pending_payment')
+    created_at         = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def str(self):
+        return f'GH₵{self.amount} deposit by {self.seller.username} ({self.get_status_display()})'
+
+
 class ProductBoost(models.Model):
     """
     Seller-paid promotion — the seller pays extra so their product ranks
@@ -2582,3 +2609,10 @@ class ProductBoost(models.Model):
         return cls.objects.filter(
             status='active', starts_at__lte=now, ends_at__gte=now,
         ).values_list('product_id', flat=True)
+
+    @classmethod
+    def expire_ended(cls):
+        """Flip any boost whose end date has passed from 'active' to 'expired'.
+        Returns the number of rows updated."""
+        now = timezone.now()
+        return cls.objects.filter(status='active', ends_at__lt=now).update(status='expired')

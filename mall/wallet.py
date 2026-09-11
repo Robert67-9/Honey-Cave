@@ -393,3 +393,22 @@ def purchase_boost_from_wallet(wallet, boost):
     boost.save(update_fields=['payment_reference'])
     activate_boost(boost)
     return boost
+
+
+@transaction.atomic
+def credit_wallet_deposit(wallet, deposit):
+    """
+    Confirm a paid WalletDeposit and credit the seller's available_balance.
+    Called from the deposit-verify view once Paystack confirms payment.
+    """
+    Wallet.objects.filter(pk=wallet.pk).update(
+        available_balance=F('available_balance') + deposit.amount,
+    )
+    WalletTransaction.objects.create(
+        wallet=wallet, type='deposit_credit', status='available',
+        amount=deposit.amount,
+        note=f'Wallet deposit of GH\u20b5{deposit.amount}, paid by card',
+    )
+    deposit.status = 'completed'
+    deposit.save(update_fields=['status'])
+    return deposit
