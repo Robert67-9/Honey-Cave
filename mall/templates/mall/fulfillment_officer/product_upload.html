@@ -66,7 +66,7 @@
     </label>
 
     <div style="margin-top:1.5rem;display:flex;gap:1rem;flex-wrap:wrap;align-items:center;">
-      <button type="submit" class="btn btn-gold">Add Product</button>
+      <button type="submit" class="btn btn-gold" id="add-product-btn">Add Product</button>
       <a href="{% url 'officer_csv_upload' %}" class="btn btn-ghost">Upload CSV instead</a>
     </div>
   </form>
@@ -112,3 +112,15 @@
 </div>
 {% endif %}
 {% endblock %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var form = document.querySelector('form[enctype="multipart/form-data"]');
+  var btn = document.getElementById('add-product-btn');
+  if (form && btn) {
+    form.addEventListener('submit', function () {
+      btn.disabled = true;
+      btn.textContent = 'Adding product… (this can take up to 30s)';
+    });
+  }
+});
+</script>

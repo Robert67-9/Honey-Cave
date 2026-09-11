@@ -911,8 +911,7 @@ def officer_product_upload(request):
                 if err:
                     raise ValueError(f'Image: {err}')
                 p.image = img
-
-            p.save()
+            save_product_with_unique_slug(p, base_slug)
 
             # Stock the product at every branch this officer manages.
             # Strict-stock policy: a BranchProduct row is what makes the
@@ -1786,3 +1785,21 @@ def whiten_background(uploaded_file):
         buffer, None, uploaded_file.name.rsplit('.', 1)[0] + '.jpg',
         'image/jpeg', buffer.getbuffer().nbytes, None
     )
+
+
+from django.db import IntegrityError, transaction
+
+
+def save_product_with_unique_slug(p, base_slug, max_attempts=5):
+    """Save a Product, regenerating the slug on a rare slug-collision race."""
+    n = 1
+    for attempt in range(max_attempts):
+        try:
+            with transaction.atomic():
+                p.save()
+            return
+        except IntegrityError:
+            n += 1
+            p.slug = f'{base_slug}-{n}'
+    # Last attempt, let it raise if it still fails
+    p.save()
