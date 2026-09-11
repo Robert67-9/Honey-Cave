@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function updatePreview() {
     var sellerPrice = parseFloat(priceInput.value);
     if (!isNaN(sellerPrice) && sellerPrice > 0) {
-      var listedPrice = sellerPrice + (sellerPrice * commissionPercent / 100);
+      var listedPrice = sellerPrice / (1 - commissionPercent / 100);
       preview.textContent = 'Listed price (with ' + commissionPercent + '% platform fee added): GH₵' + listedPrice.toFixed(2);
     } else {
       preview.textContent = 'Enter a price to see the listed price with the ' + commissionPercent + '% platform fee added.';
@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // before submission, so the platform fee is baked into what's saved.
       var sellerPrice = parseFloat(priceInput.value);
       if (!isNaN(sellerPrice) && sellerPrice > 0) {
-        var listedPrice = sellerPrice + (sellerPrice * commissionPercent / 100);
+        var listedPrice = sellerPrice / (1 - commissionPercent / 100);
         priceInput.value = listedPrice.toFixed(2);
       }
       btn.disabled = true;

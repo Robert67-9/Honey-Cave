@@ -877,6 +877,17 @@ def officer_product_upload(request):
             except Exception:
                 raise ValueError('Price must be a positive number.')
 
+            # 'price' above is the amount the seller wants to net. The
+            # customer-facing listed price must be marked up so that after
+            # the platform's commission is deducted at payout, the seller
+            # nets exactly what they typed: listed = price / (1 - rate).
+            from .models import SiteSettings
+            commission_percent = SiteSettings.load().seller_commission_percent
+            commission_rate = commission_percent / Decimal('100')
+            if commission_rate >= 1:
+                raise ValueError('Commission percent is misconfigured.')
+            listed_price = (price / (Decimal('1') - commission_rate)).quantize(Decimal('0.01'))
+
             try:
                 stock = int(stock_raw)
                 if stock < 0:
@@ -898,7 +909,7 @@ def officer_product_upload(request):
 
             p = Product(
                 name=name, slug=slug, description=desc,
-                price=price, stock=stock, category=category,
+                price=listed_price, stock=stock, category=category,
                 available='available' in request.POST,
                 created_by=request.user,   # so it shows under "My Products"
             )
@@ -921,7 +932,7 @@ def officer_product_upload(request):
             for b in officer_branches:
                 BranchProduct.objects.get_or_create(
                     product=p, branch=b,
-                    defaults={'price': price, 'stock': stock, 'is_available': True},
+                    defaults={'price': listed_price, 'stock': stock, 'is_available': True},
                 )
 
             # Additional gallery images (up to 5 extra)
