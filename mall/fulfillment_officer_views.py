@@ -30,6 +30,7 @@ from .models import (
     Product, Category, ProductImage, UserProfile, ProductUpload, ProductUploadItem,
     BranchProduct, OfficerUploadRequest, OTPVerification,
     Wallet, WalletTransaction, WithdrawalRequest, SiteSettings, ProductBoost, WalletDeposit,
+    StoreApplication,
     normalize_phone,
 )
 from . import wallet as wallet_svc
