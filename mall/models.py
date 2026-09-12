@@ -2660,13 +2660,6 @@ class ProductBoost(models.Model):
         now = timezone.now()
         return cls.objects.filter(status='active', ends_at__lt=now).update(status='expired')
 
-class SellerReserve(models.Model):
-    seller = models.OneToOneField(User, on_delete=models.CASCADE, related_name="reserve")
-    balance = models.DecimalField(max_digits=8, decimal_places=2, default=0)
-    target_min = models.DecimalField(max_digits=8, decimal_places=2, default=100)
-    target_max = models.DecimalField(max_digits=8, decimal_places=2, default=300)
-
-
 class SellerIncident(models.Model):
     seller = models.ForeignKey(User, on_delete=models.CASCADE, related_name="incidents")
     return_request = models.ForeignKey('ReturnRequest', on_delete=models.CASCADE)

@@ -414,49 +414,88 @@ def credit_wallet_deposit(wallet, deposit):
     return deposit
 
 from decimal import Decimal
-from .models import ChargeableParty, SellerReserve, SellerIncident
+from .models import ChargeableParty, SellerIncident
 
 
-def credit_rider_for_rejection(rejection):
-    """Called once the return is confirmed (ReturnRequest.status == 'item_received')."""
-    order = rejection.order_item.order
-    rider = order.rider  # adjust to your actual FK name if different
-    original_fee = order.delivery_fee
+@transaction.atomic
+def credit_rider_for_rejection(rr):
+    """
+    Called when a ReturnRequest reaches 'item_received'. The rider's
+    ORIGINAL delivery fee was already credited via credit_order_earnings
+    when the order was first delivered -- this only pays the return-trip
+    fee (+ any waiting fee), and only when the rider wasn't at fault.
+    """
+    if rr.rider_paid:
+        return
 
-    total = original_fee
-    if rejection.chargeable_party != ChargeableParty.NONE:
-        total += rejection.return_fee
-    total += rejection.waiting_fee
+    if rr.chargeable_party == ChargeableParty.RIDER:
+        rr.rider_paid = True
+        rr.save(update_fields=['rider_paid'])
+        return
 
-    if rejection.chargeable_party == ChargeableParty.RIDER:
-        total = original_fee
+    seller = rr.order_item.product.created_by
+    delivery = rr.order_item.order.seller_deliveries.filter(
+        seller=seller
+    ).select_related('rider').first()
 
-    credit_wallet(rider, total, reason=f"Delivery + rejection payout, order #{order.id}")
+    extra = (rr.return_fee or Decimal('0')) + (rr.waiting_fee or Decimal('0'))
 
-    rejection.rider_paid = True
-    rejection.save()
+    if delivery and delivery.rider and extra > 0:
+        wallet = get_or_create_rider_wallet(delivery.rider)
+        _credit(
+            wallet, amount=extra, tx_type='sale_credit',
+            order=rr.order_item.order,
+            note=f"Return-trip fee for rejected item, order {rr.order_item.order.order_number}",
+        )
 
-    extra = total - original_fee if rejection.chargeable_party != ChargeableParty.NONE else 0
-    debit_from_responsible_party(rejection, extra)
+    rr.rider_paid = True
+    rr.save(update_fields=['rider_paid'])
+
+    debit_from_responsible_party(rr, extra)
 
 
-def debit_from_responsible_party(rejection, amount):
+def debit_from_responsible_party(rr, amount):
     if amount <= 0:
         return
-    party = rejection.chargeable_party
-    seller = rejection.order_item.product.created_by  # adjust if seller FK path differs
+    party = rr.chargeable_party
+    seller = rr.order_item.product.created_by
 
-    if party == ChargeableParty.SELLER:
-        debit_seller_reserve(seller, amount)
-        record_incident(seller, rejection)
+    if party == ChargeableParty.SELLER and seller:
+        debit_seller_reserve(seller, amount, rr)
+        record_incident(seller, rr)
     elif party == ChargeableParty.BUYER:
-        debit_wallet(rejection.customer, amount, reason=f"Return fee, order #{rejection.order_item.order.id}")
-    elif party == ChargeableParty.PLATFORM:
-        pass  # absorbed by HoneyCave
-def record_incident(seller, rejection):
+        if rr.refund_amount is not None:
+            rr.refund_amount = max(Decimal('0'), rr.refund_amount - amount)
+            rr.save(update_fields=['refund_amount'])
+    # PLATFORM -- absorbed by HoneyCave, no debit needed
+
+
+@transaction.atomic
+def debit_seller_reserve(seller, amount, rr):
+    """Draw the return-trip fee from the seller's existing reserve_held
+    balance. Falls back to available_balance if reserve isn't enough."""
+    wallet = get_or_create_seller_wallet(seller)
+    take_from_reserve = min(amount, wallet.reserve_held)
+    shortfall = amount - take_from_reserve
+
+    if take_from_reserve > 0:
+        WalletTransaction.objects.create(
+            wallet=wallet, order=rr.order_item.order, type='refund_debit', status='available',
+            amount=take_from_reserve,
+            note=f"Return-trip fee charged to reserve, order {rr.order_item.order.order_number}",
+        )
+        Wallet.objects.filter(pk=wallet.pk).update(reserve_held=F('reserve_held') - take_from_reserve)
+
+    if shortfall > 0:
+        WalletTransaction.objects.create(
+            wallet=wallet, order=rr.order_item.order, type='refund_debit', status='available',
+            amount=shortfall,
+            note=f"Return-trip fee (reserve insufficient), order {rr.order_item.order.order_number}",
+        )
+        Wallet.objects.filter(pk=wallet.pk).update(available_balance=F('available_balance') - shortfall)
+
+
+def record_incident(seller, rr):
     count = SellerIncident.objects.filter(seller=seller).count()
     level = 1 if count == 0 else (2 if count < 3 else 3)
-    SellerIncident.objects.create(seller=seller, return_request=rejection, penalty_level=level)
-    if level == 3:
-        seller.mall_profile.is_suspended = True  # adjust to your actual seller-profile field
-        seller.mall_profile.save()
+    SellerIncident.objects.create(seller=seller, return_request=rr, penalty_level=level)

@@ -12,6 +12,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 
 from .models import OrderItem, ReturnRequest, HandoffCode
+from .wallet import credit_rider_for_rejection
 from .forms import ReturnRequestForm
 from .admin_views import staff_member_required, audit_log
 from .notify import notify
@@ -138,6 +139,7 @@ def admin_return_mark_received(request, pk):
         return redirect('admin_returns')
     rr.status = 'item_received'
     rr.save(update_fields=['status', 'updated'])
+    credit_rider_for_rejection(rr)
     audit_log(request, 'return_item_received', f'{rr.order_item.product.name} — {rr.customer.username}')
     messages.success(request, 'Marked as item received.')
     return redirect('admin_returns')
