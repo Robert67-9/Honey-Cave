@@ -17,6 +17,7 @@ from .models import (
     ProductUploadItem,
     UploadedProductImage,
 )
+from .models import UserProfile
 
 
 @admin.register(Category)
@@ -198,3 +199,12 @@ class StoreApplicationAdmin(admin.ModelAdmin):
     list_filter   = ['status']
     search_fields = ['store_name', 'applicant__username', 'business_reg_no']
     readonly_fields = ['created', 'updated']
+
+
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ['user', 'is_suspended', 'is_fulfillment_officer', 'is_verified']
+    list_filter = ['is_suspended', 'is_fulfillment_officer']
+    list_editable = ['is_suspended']
+    search_fields = ['user__username', 'user__email', 'phone']
+    readonly_fields = ['google_id', 'email_verified']
