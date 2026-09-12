@@ -33,9 +33,12 @@
         <button type="submit" name="decision" value="reject" class="btn" style="background:#c0392b;color:#fff;">Reject</button>
       </form>
       {% elif rr.status == 'approved' %}
+      <p style="font-size:0.85rem;color:var(--muted,#777);">Chargeable party: {{ rr.get_chargeable_party_display|default:"—" }}</p>
       <form method="post" action="{% url 'admin_return_mark_received' rr.pk %}" style="margin-top:0.75rem;">
         {% csrf_token %}
-        <button type="submit" class="btn btn-gold">Mark Item Received</button>
+        <input type="number" step="0.01" name="return_fee" placeholder="Return-trip fee (GH₵)" style="width:180px;padding:0.4rem;margin-right:0.5rem;">
+        <input type="number" step="0.01" name="waiting_fee" placeholder="Waiting fee (GH₵)" style="width:160px;padding:0.4rem;margin-right:0.5rem;">
+        <button type="submit" class="btn btn-gold">Mark Item Received &amp; Pay Rider</button>
       </form>
       {% elif rr.status == 'item_received' %}
       <form method="post" action="{% url 'admin_return_refund' rr.pk %}" style="margin-top:0.75rem;">

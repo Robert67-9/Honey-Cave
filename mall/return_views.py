@@ -137,8 +137,16 @@ def admin_return_mark_received(request, pk):
     if rr.status != 'approved':
         messages.error(request, 'Only approved returns can be marked as received.')
         return redirect('admin_returns')
+    def _dec(val):
+        try:
+            return Decimal(val) if val else Decimal('0')
+        except Exception:
+            return Decimal('0')
+
+    rr.return_fee = _dec(request.POST.get('return_fee'))
+    rr.waiting_fee = _dec(request.POST.get('waiting_fee'))
     rr.status = 'item_received'
-    rr.save(update_fields=['status', 'updated'])
+    rr.save(update_fields=['status', 'updated', 'return_fee', 'waiting_fee'])
     credit_rider_for_rejection(rr)
     audit_log(request, 'return_item_received', f'{rr.order_item.product.name} — {rr.customer.username}')
     messages.success(request, 'Marked as item received.')
