@@ -7,6 +7,29 @@ from django.utils import timezone
 from datetime import timedelta
 
 
+class ChargeableParty(models.TextChoices):
+    SELLER = "seller", "Seller"
+    BUYER = "buyer", "Buyer"
+    PLATFORM = "platform", "HoneyCave"
+    RIDER = "rider", "Rider (liability)"
+    NONE = "none", "No extra charge"
+
+
+REJECTION_CHARGE_MAP = {
+    'damaged': ChargeableParty.SELLER,
+    'wrong_item': ChargeableParty.SELLER,
+    'misleading_listing': ChargeableParty.SELLER,
+    'not_working': ChargeableParty.SELLER,
+    'not_as_described': ChargeableParty.SELLER,
+    'system_error': ChargeableParty.PLATFORM,
+    'changed_mind': ChargeableParty.BUYER,
+    'wrong_address': ChargeableParty.NONE,
+    'other': ChargeableParty.BUYER,
+}
+
+
+
+
 def normalize_phone(raw):
     """Normalize phone numbers to digits-only E.164-like form."""
     if not raw:
@@ -771,6 +794,9 @@ class ReturnRequest(models.Model):
         ('not_as_described', 'Not As Described'),
         ('changed_mind',     'Changed My Mind'),
         ('other',            'Other'),
+        ('misleading_listing', "Seller's Listing Was Misleading"),
+        ('system_error',      'HoneyCave System/Order Error'),
+        ('wrong_address',     'Rider Delivered To Wrong Address'),
     ]
     STATUS_CHOICES = [
         ('requested',     'Requested'),
@@ -785,6 +811,11 @@ class ReturnRequest(models.Model):
     reason        = models.CharField(max_length=20, choices=REASON_CHOICES)
     description   = models.TextField(blank=True, help_text="Customer's own words on what went wrong")
     photo         = models.ImageField(upload_to='returns/photos/', null=True, blank=True)
+    rider_evidence_photo = models.ImageField(upload_to='returns/rider_photos/', null=True, blank=True)
+    chargeable_party     = models.CharField(max_length=20, choices=ChargeableParty.choices, blank=True)
+    return_fee           = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+    waiting_fee          = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+    rider_paid           = models.BooleanField(default=False)
 
     status        = models.CharField(max_length=20, choices=STATUS_CHOICES, default='requested')
     decision_note = models.CharField(max_length=300, blank=True, default='')
@@ -806,6 +837,11 @@ class ReturnRequest(models.Model):
                 name='one_pending_return_per_item',
             ),
         ]
+
+    def save(self, *args, **kwargs):
+        if not self.chargeable_party:
+            self.chargeable_party = REJECTION_CHARGE_MAP.get(self.reason, ChargeableParty.NONE)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f'Return #{self.pk} — {self.order_item.product.name} ({self.get_status_display()})'
@@ -2624,54 +2660,6 @@ class ProductBoost(models.Model):
         now = timezone.now()
         return cls.objects.filter(status='active', ends_at__lt=now).update(status='expired')
 
-class RejectionReason(models.TextChoices):
-    WRONG_ITEM = "wrong_item", "Seller supplied wrong product/size/quantity"
-    MISLEADING_LISTING = "misleading_listing", "Seller's listing was misleading"
-    SYSTEM_ERROR = "system_error", "HoneyCave system/order error"
-    BUYER_CHANGED_MIND = "buyer_changed_mind", "Buyer ordered incorrectly / changed mind"
-    WRONG_ADDRESS = "wrong_address", "Rider delivered to wrong address"
-    RIDER_DAMAGE = "rider_damage", "Product damaged by rider"
-    SELLER_DAMAGE = "seller_damage", "Product already damaged/poorly packaged by seller"
-
-
-class ChargeableParty(models.TextChoices):
-    SELLER = "seller", "Seller"
-    BUYER = "buyer", "Buyer"
-    PLATFORM = "platform", "HoneyCave"
-    RIDER = "rider", "Rider (liability)"
-    NONE = "none", "No extra charge"
-
-
-# Maps each rejection reason to who pays the rider's fees
-REJECTION_CHARGE_MAP = {
-    RejectionReason.WRONG_ITEM: ChargeableParty.SELLER,
-    RejectionReason.MISLEADING_LISTING: ChargeableParty.SELLER,
-    RejectionReason.SYSTEM_ERROR: ChargeableParty.PLATFORM,
-    RejectionReason.BUYER_CHANGED_MIND: ChargeableParty.BUYER,
-    RejectionReason.WRONG_ADDRESS: ChargeableParty.NONE,  # rider gets no return fee, buyer not charged
-    RejectionReason.RIDER_DAMAGE: ChargeableParty.RIDER,
-    RejectionReason.SELLER_DAMAGE: ChargeableParty.SELLER,
-}
-
-
-class OrderRejection(models.Model):
-    order = models.OneToOneField("Order", on_delete=models.CASCADE, related_name="rejection")
-    reason = models.CharField(max_length=30, choices=RejectionReason.choices)
-    buyer_evidence_photo = models.ImageField(upload_to="rejections/buyer/")
-    rider_evidence_photo = models.ImageField(upload_to="rejections/rider/", null=True, blank=True)
-    chargeable_party = models.CharField(max_length=20, choices=ChargeableParty.choices, blank=True)
-    return_confirmed_by_seller = models.BooleanField(default=False)
-    return_fee = models.DecimalField(max_digits=8, decimal_places=2, default=0)
-    waiting_fee = models.DecimalField(max_digits=8, decimal_places=2, default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
-    resolved_at = models.DateTimeField(null=True, blank=True)
-
-    def save(self, *args, **kwargs):
-        if not self.chargeable_party:
-            self.chargeable_party = REJECTION_CHARGE_MAP[self.reason]
-        super().save(*args, **kwargs)
-
-
 class SellerReserve(models.Model):
     seller = models.OneToOneField(User, on_delete=models.CASCADE, related_name="reserve")
     balance = models.DecimalField(max_digits=8, decimal_places=2, default=0)
@@ -2681,6 +2669,6 @@ class SellerReserve(models.Model):
 
 class SellerIncident(models.Model):
     seller = models.ForeignKey(User, on_delete=models.CASCADE, related_name="incidents")
-    order_rejection = models.ForeignKey(OrderRejection, on_delete=models.CASCADE)
+    return_request = models.ForeignKey('ReturnRequest', on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     penalty_level = models.PositiveSmallIntegerField(default=1)  # 1=warning, 2=service penalty, 3=suspension

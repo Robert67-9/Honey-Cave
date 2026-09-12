@@ -418,9 +418,9 @@ from .models import ChargeableParty, SellerReserve, SellerIncident
 
 
 def credit_rider_for_rejection(rejection):
-    """Called once the return is confirmed by the seller."""
-    order = rejection.order
-    rider = order.rider  # adjust to your actual FK name
+    """Called once the return is confirmed (ReturnRequest.status == 'item_received')."""
+    order = rejection.order_item.order
+    rider = order.rider  # adjust to your actual FK name if different
     original_fee = order.delivery_fee
 
     total = original_fee
@@ -429,44 +429,34 @@ def credit_rider_for_rejection(rejection):
     total += rejection.waiting_fee
 
     if rejection.chargeable_party == ChargeableParty.RIDER:
-        # liability assessed separately — don't auto-credit return/waiting fee
         total = original_fee
 
     credit_wallet(rider, total, reason=f"Delivery + rejection payout, order #{order.id}")
 
-    rejection.return_confirmed_by_seller = True
-    rejection.resolved_at = timezone.now()
+    rejection.rider_paid = True
     rejection.save()
 
-    debit_from_responsible_party(rejection, total - original_fee if rejection.chargeable_party != ChargeableParty.NONE else 0)
+    extra = total - original_fee if rejection.chargeable_party != ChargeableParty.NONE else 0
+    debit_from_responsible_party(rejection, extra)
 
 
 def debit_from_responsible_party(rejection, amount):
     if amount <= 0:
         return
     party = rejection.chargeable_party
-    seller = rejection.order.product.created_by  # adjust to your actual path to seller
+    seller = rejection.order_item.product.created_by  # adjust if seller FK path differs
 
     if party == ChargeableParty.SELLER:
         debit_seller_reserve(seller, amount)
         record_incident(seller, rejection)
     elif party == ChargeableParty.BUYER:
-        debit_wallet(rejection.order.buyer, amount, reason=f"Return fee, order #{rejection.order.id}")
+        debit_wallet(rejection.customer, amount, reason=f"Return fee, order #{rejection.order_item.order.id}")
     elif party == ChargeableParty.PLATFORM:
-        pass  # absorbed by HoneyCave — just log it for accounting
-
-
-def debit_seller_reserve(seller, amount):
-    reserve, _ = SellerReserve.objects.get_or_create(seller=seller)
-    reserve.balance -= Decimal(amount)
-    reserve.save()
-    # TODO: if balance goes negative, flag for top-up from seller's next payout
-
-
+        pass  # absorbed by HoneyCave
 def record_incident(seller, rejection):
     count = SellerIncident.objects.filter(seller=seller).count()
     level = 1 if count == 0 else (2 if count < 3 else 3)
-    SellerIncident.objects.create(seller=seller, order_rejection=rejection, penalty_level=level)
+    SellerIncident.objects.create(seller=seller, return_request=rejection, penalty_level=level)
     if level == 3:
         seller.mall_profile.is_suspended = True  # adjust to your actual seller-profile field
         seller.mall_profile.save()
