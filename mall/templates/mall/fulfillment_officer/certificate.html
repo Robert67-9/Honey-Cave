@@ -4,6 +4,11 @@
 
 {% block content %}
 <style>
+  #certificate-print-area, #certificate-print-area * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
+  }
   @media print {
     body * { visibility: hidden; }
     #certificate-print-area, #certificate-print-area * { visibility: visible; }
