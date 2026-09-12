@@ -1,0 +1,54 @@
+{% extends 'mall/fulfillment_officer/base.html' %}
+
+{% block title %}Seller Certificate — Fulfillment Officer{% endblock %}
+
+{% block content %}
+<style>
+  @media print {
+    body * { visibility: hidden; }
+    #certificate-print-area, #certificate-print-area * { visibility: visible; }
+    #certificate-print-area { position: absolute; top: 0; left: 0; width: 100%; }
+    #certificate-actions { display: none !important; }
+  }
+</style>
+
+<div id="certificate-actions" style="margin-bottom:1rem;display:flex;gap:1rem;flex-wrap:wrap;">
+  <button onclick="window.print()" class="btn btn-gold">🖨️ Print / Save as PDF</button>
+</div>
+
+<div id="certificate-print-area" style="max-width:480px;margin:0 auto;">
+  <div style="border:2px solid #ec1e79;border-radius:20px;overflow:hidden;background:linear-gradient(180deg,#fdf2f6,#ffffff 30%);padding:2rem 1.5rem;text-align:center;">
+
+    <div style="font-size:1.6rem;font-weight:800;">
+      <span style="background:linear-gradient(90deg,#f5515f,#ec1e79);-webkit-background-clip:text;background-clip:text;color:transparent;">HONEY</span><span style="color:#1d1405;">CAVE</span>
+    </div>
+    <div style="font-size:0.9rem;letter-spacing:0.3em;color:#555;margin-top:0.1rem;">MARKET</div>
+
+    <div style="margin:1.4rem auto;display:inline-block;background:linear-gradient(90deg,#ec1e79,#f5825f);color:#fff;font-weight:800;font-size:1.1rem;padding:0.7rem 1.6rem;border-radius:999px;">
+      OFFICIAL SELLER PARTNER
+    </div>
+
+    <p style="color:#333;font-size:1.02rem;line-height:1.5;margin:1rem 0 1.4rem;">
+      <strong>{{ application.store_name }}</strong> is officially registered and recognised as a seller on Honey Cave Market.
+    </p>
+
+    <img src="{{ qr_data_uri }}" alt="Scan to verify {{ application.store_name }}" style="width:180px;height:180px;border:3px solid #ec1e79;border-radius:12px;padding:8px;background:#fff;">
+
+    <div style="margin-top:0.7rem;font-weight:800;color:#ec1e79;letter-spacing:0.05em;font-size:0.9rem;">
+      SCAN TO VERIFY SELLER
+    </div>
+
+    <div style="margin-top:0.6rem;font-size:1.15rem;font-weight:800;color:#1d1405;">
+      Shop with confidence.
+    </div>
+
+    <div style="margin-top:1.4rem;display:inline-block;background:#fdecf3;color:#ec1e79;font-weight:700;padding:0.55rem 1.2rem;border-radius:999px;font-size:0.9rem;">
+      🌐 honeycavemarket.com
+    </div>
+
+    <p style="margin-top:1.2rem;font-size:0.78rem;color:#888;">
+      Seller ID: {{ application.seller_code }}
+    </p>
+  </div>
+</div>
+{% endblock %}

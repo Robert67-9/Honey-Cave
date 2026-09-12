@@ -1260,6 +1260,43 @@ def officer_product_delete_confirm(request, pk):
 
 
 @fulfillment_officer_required
+@fulfillment_officer_required
+def officer_certificate(request):
+    """
+    Printable "Official Seller Partner" certificate for an approved store
+    owner, with an embedded QR code linking to their public verification
+    page (/verify/<seller_code>/). Guarded on an approved application
+    with a seller_code existing (should always be true once approved).
+    """
+    application = (StoreApplication.objects
+                   .filter(applicant=request.user, status='approved')
+                   .order_by('-decided_at')
+                   .first())
+    if not application or not application.seller_code:
+        messages.error(request, 'No approved store application found for your account.')
+        return redirect('fulfillment_officer_dashboard')
+
+    from django.conf import settings as dj_settings
+    import qrcode
+    import io as _io
+    import base64
+
+    verify_url = f'{dj_settings.SITE_URL.rstrip("/")}/verify/{application.seller_code}/'
+    qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_H, box_size=10, border=2)
+    qr.add_data(verify_url)
+    qr.make(fit=True)
+    qr_img = qr.make_image(fill_color='black', back_color='white')
+    buf = _io.BytesIO()
+    qr_img.save(buf, format='PNG')
+    qr_data_uri = 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode('ascii')
+
+    return render(request, 'mall/fulfillment_officer/certificate.html', {
+        'application': application,
+        'verify_url': verify_url,
+        'qr_data_uri': qr_data_uri,
+    })
+
+
 def officer_upload_access(request):
     """
     Landing page for upload access. Shows the officer the current state of

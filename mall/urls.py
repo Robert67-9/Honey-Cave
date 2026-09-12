@@ -113,6 +113,7 @@ urlpatterns = [
     # ─── Apply for Job / Own a Store / Shipping Import-Export ─────────────────
     path('apply/job/', views.apply_job, name='apply_job'),
     path('apply/store/', views.store_application, name='store_application'),
+    path('verify/<str:seller_code>/', views.verify_seller, name='verify_seller'),
     path('shipping-import-export/', views.shipping_import_export, name='shipping_import_export'),
     path('shipping-import-export/book/', views.shipping_book, name='shipping_book'),
     path('shipping-import-export/track/', views.shipping_track, name='shipping_track'),
@@ -229,6 +230,7 @@ urlpatterns = [
     path('officer/riders/add/',       fulfillment_officer_views.fulfillment_officer_rider_add,        name='fulfillment_officer_rider_add'),
     path('officer/product-upload/',   fulfillment_officer_views.officer_product_upload,     name='officer_product_upload'),
     path('officer/upload-access/',     fulfillment_officer_views.officer_upload_access,      name='officer_upload_access'),
+    path('officer/certificate/', fulfillment_officer_views.officer_certificate, name='officer_certificate'),
     path('officer/upload-access/request/', fulfillment_officer_views.officer_request_upload_access, name='officer_request_upload_access'),
     path('officer/upload-access/verify/',  fulfillment_officer_views.officer_upload_pay_verify,     name='officer_upload_pay_verify'),
     path('officer/my-products/',      fulfillment_officer_views.officer_my_products,        name='officer_my_products'),

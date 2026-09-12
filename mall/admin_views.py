@@ -3171,6 +3171,21 @@ def admin_store_application_decide(request, pk):
         application.status = 'approved'
         admin_note = note or f'Approved by {request.user.username}'
 
+        # Generate the public seller code + slug that power the printable
+        # QR verification certificate (/verify/<seller_code>/). Uses the
+        # application's own pk so it's guaranteed unique with no counter.
+        if not application.seller_code:
+            application.seller_code = f'HC-SLR-{application.pk:06d}'
+        if not application.store_slug:
+            from django.utils.text import slugify as _slugify
+            base_slug = _slugify(application.store_name) or f'store-{application.pk}'
+            candidate = base_slug
+            n = 1
+            while StoreApplication.objects.filter(store_slug=candidate).exclude(pk=application.pk).exists():
+                n += 1
+                candidate = f'{base_slug}-{n}'
+            application.store_slug = candidate
+
         profile, _ = UserProfile.objects.get_or_create(user=application.applicant)
         profile.is_fulfillment_officer = True
         profile.save(update_fields=['is_fulfillment_officer'])

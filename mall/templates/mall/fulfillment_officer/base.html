@@ -188,6 +188,7 @@ a.row-link:hover { color: var(--gold); }
     <a href="{% url 'officer_earnings' %}" {% if request.resolver_match.url_name in 'officer_earnings,officer_withdraw,officer_withdraw_confirm' %}style="font-weight:600;color:#fff;"{% endif %}>Earnings</a>
     <a href="{% url 'officer_boosts' %}" {% if request.resolver_match.url_name in 'officer_boosts,officer_boost_start,officer_boost_verify' %}style="font-weight:600;color:#fff;"{% endif %}>Boosts</a>
     <a href="{% url 'officer_wallet_deposit' %}" {% if request.resolver_match.url_name in 'officer_wallet_deposit,officer_deposit_start,officer_deposit_verify' %}style="font-weight:600;color:#fff;"{% endif %}>Add Funds</a>
+    <a href="{% url 'officer_certificate' %}" {% if request.resolver_match.url_name == 'officer_certificate' %}style="font-weight:600;color:#fff;"{% endif %}>Certificate</a>
     {% if user.profile and user.profile.can_upload_products %}
       <a href="{% url 'officer_product_upload' %}" {% if request.resolver_match.url_name == 'officer_product_upload' %}style="font-weight:600;color:#fff;"{% endif %}>Upload Product</a>
       <a href="{% url 'officer_my_products' %}" {% if request.resolver_match.url_name == 'officer_my_products' %}style="font-weight:600;color:#fff;"{% endif %}>My Products</a>

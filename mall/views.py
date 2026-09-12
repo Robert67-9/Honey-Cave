@@ -3321,6 +3321,21 @@ def store_application(request):
 
 # ─── Branches Page ───────────────────────────────────────────────────────────
 
+def verify_seller(request, seller_code):
+    """
+    Public seller-verification page, linked from the QR code printed on a
+    seller's "Official Seller Partner" certificate. Anyone who scans the
+    code lands here — no login required. Only shows non-sensitive fields
+    (never the ID document or business_reg_no).
+    """
+    application = get_object_or_404(StoreApplication, seller_code=seller_code)
+    verified = application.status == 'approved'
+    return render(request, 'mall/verify_seller.html', {
+        'application': application,
+        'verified': verified,
+    })
+
+
 def branches(request):
     all_branches = Branch.objects.filter(is_active=True).order_by('region', 'name')
     grouped = {}

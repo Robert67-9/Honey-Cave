@@ -2069,6 +2069,13 @@ class StoreApplication(models.Model):
     created           = models.DateTimeField(auto_now_add=True)
     updated           = models.DateTimeField(auto_now=True)
 
+    # Set only when status flips to 'approved' (see admin_store_application_decide).
+    # Powers the public /verify/<seller_code>/ page and the printable QR
+    # certificate — never contains sensitive details like ID numbers.
+    seller_code       = models.CharField(max_length=20, unique=True, null=True, blank=True,
+                                          help_text='e.g. HC-SLR-000125 — generated on approval')
+    store_slug        = models.SlugField(max_length=220, unique=True, null=True, blank=True)
+
     class Meta:
         ordering = ['-created']
 
