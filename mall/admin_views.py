@@ -374,6 +374,7 @@ def admin_product_add(request):
         'action': 'Add',
         'branches': Branch.objects.filter(is_active=True).order_by('region', 'name'),
         'branch_products_by_id': {},
+        'commission_percent': SiteSettings.load().seller_commission_percent,
     })
 
 
@@ -431,6 +432,7 @@ def admin_product_edit(request, pk):
         'gallery_images': product.gallery.all() if product.pk else [],
         'branches': Branch.objects.filter(is_active=True).order_by('region', 'name'),
         'branch_products_by_id': branch_products_by_id,
+        'commission_percent': SiteSettings.load().seller_commission_percent,
     })
 
 

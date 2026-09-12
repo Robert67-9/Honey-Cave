@@ -34,6 +34,7 @@
                     <div class="form-group">
                         <label>Price (GH₵)</label>
                         <input type="number" name="price" step="0.01" min="0" value="{{ product.price|default:'0.00' }}" required>
+                        <small style="display:block;margin-top:0.4rem;color:var(--muted, #888);">This price should already include your {{ commission_percent }}% platform commission.</small>
                     </div>
                     <div class="form-group">
                         <label>Stock Quantity</label>
