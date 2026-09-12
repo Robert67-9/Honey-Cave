@@ -2623,3 +2623,64 @@ class ProductBoost(models.Model):
         Returns the number of rows updated."""
         now = timezone.now()
         return cls.objects.filter(status='active', ends_at__lt=now).update(status='expired')
+
+class RejectionReason(models.TextChoices):
+    WRONG_ITEM = "wrong_item", "Seller supplied wrong product/size/quantity"
+    MISLEADING_LISTING = "misleading_listing", "Seller's listing was misleading"
+    SYSTEM_ERROR = "system_error", "HoneyCave system/order error"
+    BUYER_CHANGED_MIND = "buyer_changed_mind", "Buyer ordered incorrectly / changed mind"
+    WRONG_ADDRESS = "wrong_address", "Rider delivered to wrong address"
+    RIDER_DAMAGE = "rider_damage", "Product damaged by rider"
+    SELLER_DAMAGE = "seller_damage", "Product already damaged/poorly packaged by seller"
+
+
+class ChargeableParty(models.TextChoices):
+    SELLER = "seller", "Seller"
+    BUYER = "buyer", "Buyer"
+    PLATFORM = "platform", "HoneyCave"
+    RIDER = "rider", "Rider (liability)"
+    NONE = "none", "No extra charge"
+
+
+# Maps each rejection reason to who pays the rider's fees
+REJECTION_CHARGE_MAP = {
+    RejectionReason.WRONG_ITEM: ChargeableParty.SELLER,
+    RejectionReason.MISLEADING_LISTING: ChargeableParty.SELLER,
+    RejectionReason.SYSTEM_ERROR: ChargeableParty.PLATFORM,
+    RejectionReason.BUYER_CHANGED_MIND: ChargeableParty.BUYER,
+    RejectionReason.WRONG_ADDRESS: ChargeableParty.NONE,  # rider gets no return fee, buyer not charged
+    RejectionReason.RIDER_DAMAGE: ChargeableParty.RIDER,
+    RejectionReason.SELLER_DAMAGE: ChargeableParty.SELLER,
+}
+
+
+class OrderRejection(models.Model):
+    order = models.OneToOneField("Order", on_delete=models.CASCADE, related_name="rejection")
+    reason = models.CharField(max_length=30, choices=RejectionReason.choices)
+    buyer_evidence_photo = models.ImageField(upload_to="rejections/buyer/")
+    rider_evidence_photo = models.ImageField(upload_to="rejections/rider/", null=True, blank=True)
+    chargeable_party = models.CharField(max_length=20, choices=ChargeableParty.choices, blank=True)
+    return_confirmed_by_seller = models.BooleanField(default=False)
+    return_fee = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+    waiting_fee = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        if not self.chargeable_party:
+            self.chargeable_party = REJECTION_CHARGE_MAP[self.reason]
+        super().save(*args, **kwargs)
+
+
+class SellerReserve(models.Model):
+    seller = models.OneToOneField(User, on_delete=models.CASCADE, related_name="reserve")
+    balance = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+    target_min = models.DecimalField(max_digits=8, decimal_places=2, default=100)
+    target_max = models.DecimalField(max_digits=8, decimal_places=2, default=300)
+
+
+class SellerIncident(models.Model):
+    seller = models.ForeignKey(User, on_delete=models.CASCADE, related_name="incidents")
+    order_rejection = models.ForeignKey(OrderRejection, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    penalty_level = models.PositiveSmallIntegerField(default=1)  # 1=warning, 2=service penalty, 3=suspension
