@@ -9,10 +9,34 @@
     print-color-adjust: exact;
     color-adjust: exact;
   }
+  @page { size: A4; margin: 1.5cm; }
   @media print {
     body * { visibility: hidden; }
     #certificate-print-area, #certificate-print-area * { visibility: visible; }
-    #certificate-print-area { position: absolute; top: 0; left: 0; width: 100%; }
+    #certificate-print-area {
+      position: absolute; top: 0; left: 0;
+      width: 100%;
+      margin: 0;
+      page-break-inside: avoid;
+    }
+    #certificate-print-area > div {
+      width: 90% !important;
+      max-width: none !important;
+      margin: 4vh auto !important;
+      padding: 3rem 2.5rem !important;
+      page-break-inside: avoid;
+    }
+    #certificate-print-area h1,
+    #certificate-print-area div[style*="font-size:1.6rem"] {
+      font-size: 2.1rem !important;
+    }
+    #certificate-print-area p {
+      font-size: 1.15rem !important;
+    }
+    #certificate-print-area img {
+      width: 220px !important;
+      height: 220px !important;
+    }
     #certificate-actions { display: none !important; }
   }
 </style>
