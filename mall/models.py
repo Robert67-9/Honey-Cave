@@ -280,6 +280,15 @@ class Category(models.Model):
         return self.name
 
 
+class ProductManager(models.Manager):
+    def visible(self):
+        """Available products from non-suspended sellers. Products with no
+        created_by (platform-owned / legacy) are never excluded by this."""
+        return self.get_queryset().filter(available=True).exclude(
+            created_by__profile__is_suspended=True
+        )
+
+
 class Product(models.Model):
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='products')
     name = models.CharField(max_length=200)
@@ -300,6 +309,8 @@ class Product(models.Model):
         help_text='User (admin or officer) who added this product.',
     )
     
+    objects = ProductManager()
+
     def __str__(self):
         return self.name
 

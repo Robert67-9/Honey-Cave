@@ -76,7 +76,7 @@ def get_cart_details(request):
 
     products_by_id = {
         p.id: p
-        for p in Product.objects.filter(id__in=product_ids, available=True)
+        for p in Product.objects.visible().filter(id__in=product_ids)
     }
 
     cart_items, subtotal = [], Decimal('0')
@@ -637,7 +637,7 @@ def _check_stock_alerts(product):
 
 def home(request):
     categories = Category.objects.all()
-    featured   = (Product.objects.filter(available=True)
+    featured   = (Product.objects.visible()
                   .select_related('category')
                   .prefetch_related('gallery')[:8])
     wishlist_ids = set()
@@ -664,7 +664,7 @@ def product_list(request):
         queryset=BranchProduct.objects.filter(is_available=True, branch__is_active=True).select_related('branch'),
         to_attr='live_branch_products',
     )
-    products         = (Product.objects.filter(available=True)
+    products         = (Product.objects.visible()
                         .select_related('category')
                         .prefetch_related('gallery', branch_prefetch))
     categories       = Category.objects.all()
@@ -768,11 +768,11 @@ def product_detail(request, slug):
     # so they resolve in a single SQL query rather than 3 separate DB round-trips
     # per product page load.
     product = get_object_or_404(
-        Product.objects.annotate(
+        Product.objects.visible().annotate(
             annotated_avg=Avg('reviews__rating',  filter=DQ(reviews__is_approved=True)),
             annotated_count=Count('reviews',       filter=DQ(reviews__is_approved=True)),
         ),
-        slug=slug, available=True,
+        slug=slug,
     )
     reviews     = product.reviews.filter(is_approved=True).select_related('user')
     review_form = ReviewForm()
@@ -860,7 +860,7 @@ def cart_view(request):
 
 @require_POST
 def add_to_cart(request, product_id):
-    product = get_object_or_404(Product, id=product_id, available=True)
+    product = get_object_or_404(Product.objects.visible(), id=product_id)
     if product.stock < 1:
         messages.warning(request, f'"{product.name}" is out of stock.')
         referer = request.META.get('HTTP_REFERER', '')
@@ -3521,7 +3521,7 @@ def wishlist_view(request):
 @require_POST
 @login_required
 def wishlist_toggle(request, product_id):
-    product = get_object_or_404(Product, id=product_id, available=True)
+    product = get_object_or_404(Product.objects.visible(), id=product_id)
     item, created = WishlistItem.objects.get_or_create(user=request.user, product=product)
     if not created:
         item.delete()
@@ -3915,7 +3915,7 @@ def ai_recommendations(request):
 
     # Available products sample (up to 30 for context window)
     available = list(
-        Product.objects.filter(available=True, stock__gt=0)
+        Product.objects.visible().filter(stock__gt=0)
         .select_related('category')
         .order_by('?')[:30]
         .values('name', 'price', 'slug', 'category__name')
@@ -3962,7 +3962,7 @@ Example: [{{"name":"X","slug":"x-slug","price":49.99,"category":"Electronics","r
         # Enrich with actual product data for accurate prices/availability
         slugs = [r.get('slug') for r in recs if r.get('slug')]
         products_map = {
-            p.slug: p for p in Product.objects.filter(slug__in=slugs, available=True)
+            p.slug: p for p in Product.objects.visible().filter(slug__in=slugs)
         }
         enriched = []
         for r in recs:
@@ -3991,7 +3991,7 @@ def ai_review_summary(request, product_slug):
     """
     import urllib.request, urllib.error, json as _json
 
-    product = get_object_or_404(Product, slug=product_slug, available=True)
+    product = get_object_or_404(Product.objects.visible(), slug=product_slug)
     reviews = product.reviews.filter(is_approved=True).order_by('-created')[:50]
 
     if reviews.count() < 3:
