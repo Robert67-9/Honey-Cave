@@ -139,13 +139,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (form && btn) {
     form.addEventListener('submit', function () {
-      // Replace the seller's entered price with the marked-up listed price
-      // before submission, so the platform fee is baked into what's saved.
-      var sellerPrice = parseFloat(priceInput.value);
-      if (!isNaN(sellerPrice) && sellerPrice > 0) {
-        var listedPrice = sellerPrice / (1 - commissionPercent / 100);
-        priceInput.value = listedPrice.toFixed(2);
-      }
+      // NOTE: the price markup is applied server-side (see
+      // fulfillment_officer_views.py) so it stays correct even if this
+      // JS fails to load or is disabled. Do NOT mutate priceInput.value
+      // here — doing so would double the commission markup on top of
+      // the server-side calculation.
       btn.disabled = true;
       btn.textContent = 'Adding product… (this can take up to 30s)';
     });
