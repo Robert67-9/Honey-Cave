@@ -41,6 +41,9 @@
         <button type="submit" class="btn btn-gold">Mark Item Received &amp; Pay Rider</button>
       </form>
       {% elif rr.status == 'item_received' %}
+      {% if rr.buyer_fee_deduction > 0 %}
+      <p style="font-size:0.85rem;color:#c0392b;">Note: GH₵{{ rr.buyer_fee_deduction }} return/waiting fee will be deducted from whatever refund amount you enter below.</p>
+      {% endif %}
       <form method="post" action="{% url 'admin_return_refund' rr.pk %}" style="margin-top:0.75rem;">
         {% csrf_token %}
         <input type="number" step="0.01" name="refund_amount" placeholder="Refund amount (GH₵)" required style="width:200px;padding:0.4rem;margin-right:0.5rem;">

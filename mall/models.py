@@ -816,6 +816,7 @@ class ReturnRequest(models.Model):
     return_fee           = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     waiting_fee          = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     rider_paid           = models.BooleanField(default=False)
+    buyer_fee_deduction  = models.DecimalField(max_digits=8, decimal_places=2, default=0)
 
     status        = models.CharField(max_length=20, choices=STATUS_CHOICES, default='requested')
     decision_note = models.CharField(max_length=300, blank=True, default='')

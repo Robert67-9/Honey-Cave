@@ -167,6 +167,9 @@ def admin_return_refund(request, pk):
         messages.error(request, 'Enter a valid refund amount.')
         return redirect('admin_returns')
 
+    if rr.buyer_fee_deduction > 0:
+        amount = max(Decimal('0'), amount - rr.buyer_fee_deduction)
+
     rr.refund_amount = amount
     rr.refunded_at = timezone.now()
     rr.status = 'refunded'

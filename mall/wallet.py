@@ -464,9 +464,10 @@ def debit_from_responsible_party(rr, amount):
         debit_seller_reserve(seller, amount, rr)
         record_incident(seller, rr)
     elif party == ChargeableParty.BUYER:
-        if rr.refund_amount is not None:
-            rr.refund_amount = max(Decimal('0'), rr.refund_amount - amount)
-            rr.save(update_fields=['refund_amount'])
+        # refund_amount isn't set yet at this point (it's entered later in
+        # admin_return_refund) -- store the deduction so it can be applied then.
+        rr.buyer_fee_deduction = amount
+        rr.save(update_fields=['buyer_fee_deduction'])
     # PLATFORM -- absorbed by HoneyCave, no debit needed
 
 
