@@ -84,6 +84,18 @@
            style="margin-top:0.4rem;text-align:center;border:1px solid var(--border);border-radius:7px;padding:0.4rem;text-decoration:none;font-weight:600;font-size:0.8rem;color:inherit;">
           View on storefront ↗
         </a>
+        {% if row.product.created_by_id == request.user.id %}
+        <div style="display:flex;gap:0.4rem;margin-top:0.4rem;">
+          <a href="{% url 'officer_product_edit' row.product.pk %}"
+             style="flex:1;text-align:center;border:1px solid var(--border);border-radius:7px;padding:0.4rem;text-decoration:none;font-weight:600;font-size:0.8rem;color:inherit;">
+             Edit
+          </a>
+          <a href="{% url 'officer_product_delete_confirm' row.product.pk %}"
+             style="flex:1;text-align:center;border:1px solid #b3261e;border-radius:7px;padding:0.4rem;text-decoration:none;font-weight:600;font-size:0.8rem;color:#b3261e;">
+             Delete
+          </a>
+        </div>
+        {% endif %}
       </div>
     </div>
     {% endfor %}

@@ -1137,6 +1137,129 @@ def officer_my_products(request):
 # ─── Officer Upload Access: request → (pay | free) → granted ──────────────────
 
 @fulfillment_officer_required
+def officer_product_edit(request, pk):
+    """
+    Officer: edit a product THEY uploaded. Scoped to created_by=request.user
+    so an officer can never edit another officer's or admin's product, even
+    by guessing a URL.
+
+    Price field keeps the same convention as officer_product_upload: the
+    officer enters what they want to net, and the server marks it up to
+    the commission-inclusive listed price. Editing syncs the new
+    price/stock to every BranchProduct row at this officer's branches.
+    """
+    product = get_object_or_404(Product, pk=pk, created_by=request.user)
+    categories = Category.objects.all().order_by('name')
+    commission_percent = SiteSettings.load().seller_commission_percent
+
+    if request.method == 'POST':
+        try:
+            name = request.POST.get('name', '').strip()[:200]
+            if not name:
+                raise ValueError('Product name is required.')
+            desc = request.POST.get('description', '').strip()[:5000]
+            price_raw = request.POST.get('price', '').strip()
+            stock_raw = request.POST.get('stock', '0').strip()
+            cat_id = request.POST.get('category', '').strip()
+
+            try:
+                price = Decimal(price_raw)
+                if price <= 0:
+                    raise ValueError()
+            except Exception:
+                raise ValueError('Price must be a positive number.')
+
+            try:
+                stock = int(stock_raw)
+                if stock < 0:
+                    raise ValueError()
+            except Exception:
+                raise ValueError('Stock must be a non-negative whole number.')
+
+            if not cat_id:
+                raise ValueError('Please select a category.')
+            category = Category.objects.filter(pk=cat_id).first()
+            if not category:
+                raise ValueError('Selected category does not exist.')
+
+            commission_rate = commission_percent / Decimal('100')
+            if commission_rate >= 1:
+                raise ValueError('Commission percent is misconfigured.')
+            listed_price = (price / (Decimal('1') - commission_rate)).quantize(Decimal('0.01'))
+
+            product.name = name
+            product.description = desc
+            product.price = listed_price
+            product.stock = stock
+            product.category = category
+            product.available = 'available' in request.POST
+
+            img = request.FILES.get('image')
+            if img:
+                err = validate_uploaded_image(img)
+                if err:
+                    raise ValueError(f'Image: {err}')
+                product.image = img
+
+            product.save()
+
+            officer_branches = _branches_for(request.user)
+            for b in officer_branches:
+                BranchProduct.objects.update_or_create(
+                    product=product, branch=b,
+                    defaults={'price': listed_price, 'stock': stock, 'is_available': True},
+                )
+
+            for slot in range(2, 7):
+                extra = request.FILES.get(f'image_{slot}')
+                if extra:
+                    err = validate_uploaded_image(extra)
+                    if err:
+                        messages.warning(request, f'Image slot {slot} skipped: {err}')
+                        continue
+                    ProductImage.objects.create(product=product, image=extra, sort_order=slot)
+
+            messages.success(request, f'Product "{product.name}" updated.')
+            return redirect('officer_my_products')
+
+        except ValueError as e:
+            messages.error(request, str(e))
+
+    commission_rate = commission_percent / Decimal('100')
+    seller_price_prefill = (product.price * (Decimal('1') - commission_rate)).quantize(Decimal('0.01')) if commission_rate < 1 else product.price
+
+    return render(request, 'mall/fulfillment_officer/product_edit.html', {
+        'product': product,
+        'categories': categories,
+        'commission_percent': commission_percent,
+        'seller_price_prefill': seller_price_prefill,
+    })
+
+
+@fulfillment_officer_required
+@require_POST
+def officer_product_delete(request, pk):
+    """
+    Officer: delete a product THEY uploaded. Scoped to created_by=request.user.
+    POST-only (no GET delete) with a confirm template in between.
+    """
+    product = get_object_or_404(Product, pk=pk, created_by=request.user)
+    name = product.name
+    product.delete()
+    messages.success(request, f'Product "{name}" deleted.')
+    return redirect('officer_my_products')
+
+
+@fulfillment_officer_required
+def officer_product_delete_confirm(request, pk):
+    """Confirm page shown before officer_product_delete actually deletes."""
+    product = get_object_or_404(Product, pk=pk, created_by=request.user)
+    return render(request, 'mall/fulfillment_officer/product_delete_confirm.html', {
+        'product': product,
+    })
+
+
+@fulfillment_officer_required
 def officer_upload_access(request):
     """
     Landing page for upload access. Shows the officer the current state of

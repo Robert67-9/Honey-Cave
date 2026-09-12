@@ -1,0 +1,113 @@
+{% extends 'mall/fulfillment_officer/base.html' %}
+
+{% block title %}Edit Product — Fulfillment Officer{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h1>Edit Product</h1>
+  <p style="margin-bottom:1rem; color:var(--muted);">Editing "{{ product.name }}".</p>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:1rem;">
+      <label>
+        Product name<br>
+        <input type="text" name="name" maxlength="200" required style="width:100%;padding:0.75rem;border:1px solid var(--border);border-radius:8px;" value="{{ product.name }}">
+      </label>
+      <label>
+        Your price (GH₵) — what you want to receive<br>
+        <input type="text" name="price" id="seller-price-input" required style="width:100%;padding:0.75rem;border:1px solid var(--border);border-radius:8px;" value="{{ seller_price_prefill }}">
+        <small id="commission-preview" style="display:block;margin-top:0.4rem;color:var(--muted);">
+          Current listed price (with {{ commission_percent }}% platform fee added): GH₵{{ product.price }}
+        </small>
+      </label>
+      <label>
+        Stock<br>
+        <input type="number" name="stock" min="0" style="width:100%;padding:0.75rem;border:1px solid var(--border);border-radius:8px;" value="{{ product.stock }}">
+      </label>
+      <label>
+        Category<br>
+        <select name="category" required style="width:100%;padding:0.75rem;border:1px solid var(--border);border-radius:8px;">
+          <option value="">Select category</option>
+          {% for category in categories %}
+            <option value="{{ category.id }}" {% if product.category_id == category.id %}selected{% endif %}>{{ category.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+
+    <label style="display:block;margin-top:1rem;">
+      Description<br>
+      <textarea name="description" rows="4" style="width:100%;padding:0.75rem;border:1px solid var(--border);border-radius:8px;">{{ product.description }}</textarea>
+    </label>
+
+    <label style="display:block;margin-top:1rem;">
+      Main image (leave blank to keep current)<br>
+      {% if product.image %}
+        <img src="{{ product.image.url }}" alt="" style="display:block;width:100px;height:100px;object-fit:cover;border:1px solid var(--border);border-radius:8px;margin:0.5rem 0;">
+      {% endif %}
+      <input type="file" name="image" accept="image/*" style="margin-top:0.5rem;">
+    </label>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:1rem;margin-top:1rem;">
+      <label>
+        Add extra image<br>
+        <input type="file" name="image_2" accept="image/*" style="margin-top:0.5rem;">
+      </label>
+      <label>
+        Add extra image<br>
+        <input type="file" name="image_3" accept="image/*" style="margin-top:0.5rem;">
+      </label>
+      <label>
+        Add extra image<br>
+        <input type="file" name="image_4" accept="image/*" style="margin-top:0.5rem;">
+      </label>
+      <label>
+        Add extra image<br>
+        <input type="file" name="image_5" accept="image/*" style="margin-top:0.5rem;">
+      </label>
+    </div>
+    <p style="font-size:0.8rem;color:var(--muted);margin-top:0.3rem;">Uploading extra images here adds them alongside existing gallery images — it doesn't replace them.</p>
+
+    <label style="display:block;margin-top:1rem;font-size:0.95rem;">
+      <input type="checkbox" name="available" {% if product.available %}checked{% endif %}> Mark product as available for sale
+    </label>
+
+    <div style="margin-top:1.5rem;display:flex;gap:1rem;flex-wrap:wrap;align-items:center;">
+      <button type="submit" class="btn btn-gold" id="save-product-btn">Save Changes</button>
+      <a href="{% url 'officer_my_products' %}" class="btn btn-ghost">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var btn = document.getElementById('save-product-btn');
+  var priceInput = document.getElementById('seller-price-input');
+  var preview = document.getElementById('commission-preview');
+  var commissionPercent = {{ commission_percent }};
+  var form = priceInput ? priceInput.closest('form') : null;
+
+  function updatePreview() {
+    var sellerPrice = parseFloat(priceInput.value);
+    if (!isNaN(sellerPrice) && sellerPrice > 0) {
+      var listedPrice = sellerPrice / (1 - commissionPercent / 100);
+      preview.textContent = 'New listed price (with ' + commissionPercent + '% platform fee added): GH₵' + listedPrice.toFixed(2);
+    } else {
+      preview.textContent = 'Enter a price to see the new listed price with the ' + commissionPercent + '% platform fee added.';
+    }
+  }
+
+  if (priceInput && preview) {
+    priceInput.addEventListener('input', updatePreview);
+  }
+
+  // NOTE: price markup is applied server-side — do NOT mutate priceInput.value
+  // here, that would double the commission markup.
+  if (form && btn) {
+    form.addEventListener('submit', function () {
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+    });
+  }
+});
+</script>
