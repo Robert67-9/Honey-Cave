@@ -11,7 +11,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 
-from .models import OrderItem, ReturnRequest, HandoffCode
+from .models import OrderItem, ReturnRequest, HandoffCode, SellerIncident
 from .wallet import credit_rider_for_rejection
 from .forms import ReturnRequestForm
 from .admin_views import staff_member_required, audit_log
@@ -178,3 +178,46 @@ def admin_return_refund(request, pk):
     audit_log(request, 'return_refunded', f'{rr.order_item.product.name} — GH₵{amount}')
     messages.success(request, 'Refund recorded.')
     return redirect('admin_returns')
+
+
+@staff_member_required
+def admin_seller_incidents(request):
+    """List sellers with return/rejection incidents, grouped, worst first."""
+    from django.db.models import Count, Max
+    from django.contrib.auth.models import User
+
+    sellers = (
+        User.objects.filter(incidents__isnull=False)
+        .annotate(incident_count=Count('incidents'), last_incident=Max('incidents__created_at'))
+        .order_by('-incident_count')
+    )
+    return render(request, 'mall/admin/seller_incidents.html', {'sellers': sellers})
+
+
+@staff_member_required
+def admin_seller_incident_detail(request, user_id):
+    """Show one seller's incident history and a manual suspend/unsuspend control."""
+    from django.contrib.auth.models import User
+
+    seller = get_object_or_404(User, pk=user_id)
+    incidents = SellerIncident.objects.filter(seller=seller).select_related('return_request').order_by('-created_at')
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        profile = seller.profile
+        if action == 'suspend':
+            profile.is_suspended = True
+            profile.save(update_fields=['is_suspended'])
+            audit_log(request, 'seller_suspended', seller.username)
+            messages.success(request, f'{seller.username} suspended.')
+        elif action == 'unsuspend':
+            profile.is_suspended = False
+            profile.save(update_fields=['is_suspended'])
+            audit_log(request, 'seller_unsuspended', seller.username)
+            messages.success(request, f'{seller.username} unsuspended.')
+        return redirect('admin_seller_incident_detail', user_id=seller.id)
+
+    return render(request, 'mall/admin/seller_incident_detail.html', {
+        'seller': seller,
+        'incidents': incidents,
+    })

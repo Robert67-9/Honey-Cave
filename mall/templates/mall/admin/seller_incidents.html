@@ -1,0 +1,25 @@
+{% extends "mall/admin/base_admin.html" %}
+{% block title %}Seller Incidents — Admin{% endblock %}
+{% block page_title %}Seller Incidents{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    {% for seller in sellers %}
+    <div style="border:1px solid var(--border,#e5e5e5);border-radius:8px;padding:1rem;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <p><strong>{{ seller.username }}</strong>
+          {% if seller.profile.is_suspended %}<span style="color:#c0392b;font-size:0.85rem;"> · SUSPENDED</span>{% endif %}
+        </p>
+        <p style="font-size:0.9rem;color:var(--muted,#777);">
+          {{ seller.incident_count }} incident{{ seller.incident_count|pluralize }} · last {{ seller.last_incident|date:"d M Y" }}
+        </p>
+      </div>
+      <a href="{% url 'admin_seller_incident_detail' seller.id %}" class="btn btn-gold">View</a>
+    </div>
+    {% empty %}
+    <p style="color:var(--muted,#777);">No seller incidents recorded.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

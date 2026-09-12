@@ -152,6 +152,8 @@ class UserProfile(models.Model):
     assigned_products       = models.ManyToManyField(
                                           'Product', blank=True, related_name='assigned_officers',
                                           help_text='Products this fulfillment officer is responsible for processing/handling.')
+    is_suspended            = models.BooleanField(default=False,
+                                          help_text='Seller is suspended due to repeated incidents (wrong items, damaged goods, etc). Suspended sellers should not have their products shown at checkout -- storefront enforcement is a separate follow-up.')
 
     def __str__(self):
         return f'Profile({self.user.username})'

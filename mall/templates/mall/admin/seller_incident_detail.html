@@ -1,0 +1,33 @@
+{% extends "mall/admin/base_admin.html" %}
+{% block title %}{{ seller.username }} — Incidents{% endblock %}
+{% block page_title %}{{ seller.username }}'s Incidents{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <p><strong>Status:</strong>
+      {% if seller.profile.is_suspended %}<span style="color:#c0392b;">Suspended</span>{% else %}Active{% endif %}
+    </p>
+    <form method="post" style="margin:1rem 0;">
+      {% csrf_token %}
+      {% if seller.profile.is_suspended %}
+      <button type="submit" name="action" value="unsuspend" class="btn btn-gold">Unsuspend Seller</button>
+      {% else %}
+      <button type="submit" name="action" value="suspend" class="btn" style="background:#c0392b;color:#fff;">Suspend Seller</button>
+      {% endif %}
+    </form>
+
+    <h3 style="margin-top:1.5rem;">Incident History</h3>
+    {% for inc in incidents %}
+    <div style="border:1px solid var(--border,#e5e5e5);border-radius:8px;padding:1rem;margin-bottom:1rem;">
+      <p><strong>Level {{ inc.penalty_level }}</strong> — {{ inc.created_at|date:"d M Y, H:i" }}</p>
+      <p style="font-size:0.9rem;">
+        {{ inc.return_request.order_item.product.name }} — {{ inc.return_request.get_reason_display }}
+      </p>
+    </div>
+    {% empty %}
+    <p style="color:var(--muted,#777);">No incidents recorded.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
