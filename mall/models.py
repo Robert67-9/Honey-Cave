@@ -1065,10 +1065,10 @@ class ProductUploadItem(models.Model):
                     'slug': slugify(cat_name) or f'cat-{self.upload_id}-{int(timezone.now().timestamp())}',
                 }
             )
-            slug = slugify(self.product_name) or f'product-{self.upload_id}-{self.pk or "new"}'
+            slug = (slugify(self.product_name) or f'product-{self.upload_id}-{self.pk or "new"}')[:45]
             base_slug, n = slug, 1
             while Product.objects.filter(slug=slug).exists():
-                slug = f'{base_slug}-{n}'
+                slug = f'{base_slug}-{n}'[:50]
                 n += 1
 
             product = Product.objects.create(

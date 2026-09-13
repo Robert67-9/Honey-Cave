@@ -903,7 +903,7 @@ def officer_product_upload(request):
             if not category:
                 raise ValueError('Selected category does not exist.')
 
-            slug = slugify(name)
+            slug = slugify(name)[:45]
             base_slug, n = slug, 1
             while Product.objects.filter(slug=slug).exists():
                 slug = f'{base_slug}-{n}'; n += 1
@@ -1938,15 +1938,20 @@ from django.db import IntegrityError, transaction
 
 
 def save_product_with_unique_slug(p, base_slug, max_attempts=5):
-    """Save a Product, regenerating the slug on a rare slug-collision race."""
+    """Save a Product, regenerating the slug on a rare slug-collision race.
+    base_slug is truncated defensively so the '-n' suffix never pushes the
+    slug past the SlugField's 50-char limit (StringDataRightTruncation)."""
+    from django.db.utils import DataError
+    base_slug = (base_slug or '')[:45]
+    p.slug = base_slug
     n = 1
     for attempt in range(max_attempts):
         try:
             with transaction.atomic():
                 p.save()
             return
-        except IntegrityError:
+        except (IntegrityError, DataError):
             n += 1
-            p.slug = f'{base_slug}-{n}'
+            p.slug = f'{base_slug}-{n}'[:50]
     # Last attempt, let it raise if it still fails
     p.save()
