@@ -2679,3 +2679,23 @@ class SellerIncident(models.Model):
     return_request = models.ForeignKey('ReturnRequest', on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     penalty_level = models.PositiveSmallIntegerField(default=1)  # 1=warning, 2=service penalty, 3=suspension
+
+
+class PushSubscription(models.Model):
+    """
+    A browser's Web Push subscription (endpoint + encryption keys), saved
+    when a logged-in user grants notification permission. A user may have
+    several (phone, desktop, etc.) — notify() sends to all of them.
+    """
+    user       = models.ForeignKey(User, on_delete=models.CASCADE, related_name='push_subscriptions')
+    endpoint   = models.URLField(max_length=500)
+    p256dh     = models.CharField(max_length=255)
+    auth       = models.CharField(max_length=255)
+    user_agent = models.CharField(max_length=255, blank=True)
+    created    = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [('user', 'endpoint')]
+
+    def str(self):
+        return f'PushSubscription({self.user.username})'

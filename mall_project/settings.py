@@ -182,6 +182,11 @@ MEDIA_URL = '/media/'
 # Disk and set MEDIA_ROOT to its mount path (e.g. /var/data/media).
 MEDIA_ROOT = config('MEDIA_ROOT', default=str(BASE_DIR / 'media'))
 
+# ─── Web Push (VAPID) ──────────────────────────────────────────────────────
+VAPID_PUBLIC_KEY = config('VAPID_PUBLIC_KEY', default='')
+VAPID_PRIVATE_KEY = config('VAPID_PRIVATE_KEY', default='')
+VAPID_ADMIN_EMAIL = config('VAPID_ADMIN_EMAIL', default='dansorobert360@gmail.com')
+
 # ─── Storage ──────────────────────────────────────────────────────────────────
 # FIX-2: Render's filesystem is ephemeral — uploaded files are wiped on every
 # deploy or restart. Cloudinary is used for media (user uploads) in production.

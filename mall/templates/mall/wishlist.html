@@ -214,7 +214,7 @@ document.querySelectorAll('.wishlist-remove-btn').forEach(btn => {
           // Show empty state if no items left
           if (remaining === 0) {
             const grid = document.getElementById('watchlist-grid');
-            if (grid) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--muted);"><p style='font-size:3rem;'>♡</p><h4>Watchlist is empty</h4><a href="/products/" class="btn btn-gold" style="margin-top:1rem;">Browse Products</a></div>';
+            if (grid) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--muted);"><p style="font-size:3rem;">♡</p><h4>Watchlist is empty</h4><a href="/products/" class="btn btn-gold" style="margin-top:1rem;">Browse Products</a></div>';
           }
         }, 300);
         showToast('Removed from watchlist');

@@ -69,7 +69,7 @@ def notify(
     """
     from .models import Notification
 
-    result = {'in_app': False, 'whatsapp': False, 'sms': False, 'email': False}
+    result = {'in_app': False, 'whatsapp': False, 'sms': False, 'email': False, 'push': False}
 
     # ── In-app ──────────────────────────────────────────────────────
     try:
@@ -83,6 +83,10 @@ def notify(
         result['in_app'] = True
     except Exception as e:
         logger.warning('In-app notification failed for user %s: %s', user.pk if user else None, e)
+
+    # ── Web Push ────────────────────────────────────────────────────
+    if user:
+        result['push'] = _send_web_push(user, title, message, link)
 
     # ── Email ───────────────────────────────────────────────────────
     if email_subject and email_text:
@@ -245,3 +249,47 @@ def notify_admins(
         whatsapp_text=whatsapp_text,
         sms_text=sms_text,
     )
+
+
+def _send_web_push(user, title, message, link=''):
+    """Send a Web Push notification to all of the user's saved subscriptions.
+    Never raises; prunes dead subscriptions (404/410) automatically."""
+    try:
+        from pywebpush import webpush, WebPushException
+        from py_vapid import Vapid01
+        from django.conf import settings as django_settings
+        from .models import PushSubscription
+        import json as _json
+
+        private_key = (django_settings.VAPID_PRIVATE_KEY or '').replace('\\n', '\n')
+        if not private_key or not django_settings.VAPID_PUBLIC_KEY:
+            return False
+
+        subs = PushSubscription.objects.filter(user=user)
+        if not subs.exists():
+            return False
+
+        payload = _json.dumps({'title': title, 'body': message, 'url': link or '/'})
+        sent_any = False
+        for sub in subs:
+            try:
+                webpush(
+                    subscription_info={
+                        'endpoint': sub.endpoint,
+                        'keys': {'p256dh': sub.p256dh, 'auth': sub.auth},
+                    },
+                    data=payload,
+                    vapid_private_key=Vapid01.from_pem(private_key.encode()),
+                    vapid_claims={'sub': 'mailto:' + getattr(django_settings, 'VAPID_ADMIN_EMAIL', 'dansorobert360@gmail.com')},
+                )
+                sent_any = True
+            except WebPushException as e:
+                status = getattr(e.response, 'status_code', None)
+                if status in (404, 410):
+                    sub.delete()
+                else:
+                    logger.warning('Web push failed for user %s: %s', user.pk, e)
+        return sent_any
+    except Exception as e:
+        logger.warning('Web push channel error for user %s: %s', getattr(user, "pk", None), e)
+        return False

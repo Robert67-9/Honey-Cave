@@ -1666,7 +1666,59 @@ own headers and don't need the customer bottom nav.
 </script>
 <script>
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("{% static 'sw.js' %}");
+  navigator.serviceWorker.register("/sw.js");
+
+// Web Push: request permission and subscribe
+(function () {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+  if (!{{ request.user.is_authenticated|yesno:"true,false" }}) return;
+
+  function urlBase64ToUint8Array(base64String) {
+    var padding = '='.repeat((4 - base64String.length % 4) % 4);
+    var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    var rawData = window.atob(base64);
+    var outputArray = new Uint8Array(rawData.length);
+    for (var i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  }
+
+  function getCookie(name) {
+    var value = '; ' + document.cookie;
+    var parts = value.split('; ' + name + '=');
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+  }
+
+  var VAPID_PUBLIC_KEY = "BOOdzXGGgLDRDn5_Unijw2SOPRT0np-fiDKSY2wUGZhC9PPjV6pEClpisyJ1GOdvpTc1Moj3bnkUL1wdu92mpVA";
+
+  navigator.serviceWorker.ready.then(function (registration) {
+    if (Notification.permission === 'denied') return;
+    registration.pushManager.getSubscription().then(function (existingSub) {
+      if (existingSub) return existingSub;
+      return Notification.requestPermission().then(function (permission) {
+        if (permission !== 'granted') return null;
+        return registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+      });
+    }).then(function (sub) {
+      if (!sub) return;
+      fetch("{% url 'save_push_subscription' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify(sub)
+      });
+    }).catch(function (err) {
+      console.warn('Push subscription failed:', err);
+    });
+  });
+})();
 }
 </script>
 

@@ -4,6 +4,7 @@ from . import views, admin_views, google_auth, fulfillment_officer_views, rider_
 urlpatterns = [
     path('manifest.json', views.pwa_manifest, name='pwa_manifest'),
     path('sw.js', views.pwa_service_worker, name='pwa_service_worker'),
+    path('api/push/subscribe/', views.save_push_subscription, name='save_push_subscription'),
 
     # ─── Custom Admin Panel ───────────────────────────────────────────────────
     path('panel/', admin_views.admin_dashboard, name='admin_dashboard'),

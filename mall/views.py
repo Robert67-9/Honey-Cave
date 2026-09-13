@@ -4535,16 +4535,34 @@ self.addEventListener('install', function (event) {
 self.addEventListener('activate', function (event) {
   event.waitUntil(self.clients.claim());
 });
-self.addEventListener('fetch', function (event) {
-  event.respondWith(fetch(event.request));
+
+self.addEventListener('push', function (event) {
+  var data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (e) {
+    data = { title: 'Honey Cave Market', body: event.data ? event.data.text() : '' };
+  }
+  var title = data.title || 'Honey Cave Market';
+  var options = {
+    body: data.body || '',
+    icon: '/static/images/android-chrome-192x192.png',
+    badge: '/static/images/android-chrome-192x192.png',
+    data: { url: data.url || '/' }
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', function (event) {
+  event.notification.close();
+  var url = (event.notification.data && event.notification.data.url) || '/';
+  event.waitUntil(clients.openWindow(url));
 });
 """.strip()
     response = _HttpResponse(js, content_type="application/javascript")
     response["Service-Worker-Allowed"] = "/"
     return response
 
-
-# ─── AI — Gemini helper (free tier, replaces Anthropic calls) ───────────────
 def call_gemini(prompt_or_messages, system_prompt=None, max_tokens=600):
     """
     Calls Google's Gemini API (free tier). Accepts either a plain string
@@ -4581,3 +4599,31 @@ def call_gemini(prompt_or_messages, system_prompt=None, max_tokens=600):
     with urllib.request.urlopen(req, timeout=20) as resp:
         data = json.loads(resp.read())
         return data['candidates'][0]['content']['parts'][0]['text'].strip()
+
+
+def save_push_subscription(request):
+    """Save or update a browser push subscription for the logged-in user."""
+    import json
+    from django.http import JsonResponse
+    from .models import PushSubscription
+
+    if not request.user.is_authenticated:
+        return JsonResponse({'ok': False, 'error': 'Not authenticated'}, status=401)
+    if request.method != 'POST':
+        return JsonResponse({'ok': False, 'error': 'POST required'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        endpoint = data.get('endpoint', '')
+        keys = data.get('keys', {})
+        p256dh = keys.get('p256dh', '')
+        auth = keys.get('auth', '')
+        if not endpoint or not p256dh or not auth:
+            return JsonResponse({'ok': False, 'error': 'Missing subscription fields'}, status=400)
+        PushSubscription.objects.update_or_create(
+            user=request.user, endpoint=endpoint,
+            defaults={'p256dh': p256dh, 'auth': auth, 'user_agent': request.META.get('HTTP_USER_AGENT', '')[:255]},
+        )
+        return JsonResponse({'ok': True})
+    except Exception as e:
+        return JsonResponse({'ok': False, 'error': str(e)}, status=400)
