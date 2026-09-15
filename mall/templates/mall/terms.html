@@ -1,5 +1,5 @@
 {% extends 'mall/base.html' %}
-{% block title %}Terms & Conditions — Market{% endblock %}
+{% block title %}Terms & Conditions — HoneyCave Market{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -7,10 +7,18 @@
 .legal-card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 3rem; }
 .legal-card h2 { font-family: 'Playfair Display', serif; font-size: 1.3rem; margin: 2rem 0 0.75rem; color: var(--dark); }
 .legal-card h2:first-child { margin-top: 0; }
+.legal-card h3 { font-family: 'Playfair Display', serif; font-size: 1.05rem; margin: 1.25rem 0 0.5rem; color: var(--dark); }
 .legal-card p { color: var(--muted); line-height: 1.8; margin-bottom: 1rem; font-size: 0.9rem; }
 .legal-card ul { color: var(--muted); line-height: 1.8; margin-bottom: 1rem; font-size: 0.9rem; padding-left: 1.5rem; }
 .legal-card li { margin-bottom: 0.4rem; }
+.legal-card table { width: 100%; border-collapse: collapse; margin-bottom: 1.25rem; font-size: 0.88rem; }
+.legal-card table th, .legal-card table td { text-align: left; padding: 0.6rem 0.75rem; border: 1px solid var(--border); color: var(--muted); vertical-align: top; }
+.legal-card table th { color: var(--dark); background: #faf8f3; font-weight: 600; }
+.legal-notice { background: #faf6ea; border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.25rem; font-size: 0.85rem; color: var(--muted); margin-bottom: 1.5rem; }
 .last-updated { font-size: 0.8rem; color: var(--muted); margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+.legal-toc { font-size: 0.85rem; color: var(--muted); line-height: 1.9; margin-bottom: 2rem; columns: 2; }
+.legal-toc a { color: var(--muted); text-decoration: none; }
+.legal-toc a:hover { color: var(--gold); }
 </style>
 {% endblock %}
 
@@ -18,45 +26,262 @@
 <div class="legal-wrapper">
     <div class="page-header">
         <p class="eyebrow">✦ Legal ✦</p>
-        <h1>Terms & Conditions</h1>
+        <h1>Platform Terms, Privacy &amp; Delivery Agreement</h1>
     </div>
     <div class="legal-card">
-        <p class="last-updated">Last updated: May 5, 2026</p>
-        <h2>1. Acceptance of Terms</h2>
-        <p>By accessing and using Market, you accept and agree to be bound by the terms and provision of this agreement. Additionally, when using Market's services, you shall be subject to any posted guidelines or rules applicable to such services.</p>
+        <p class="last-updated">
+            Effective date: [Insert Effective Date] &nbsp;·&nbsp; Document version 2.0
+        </p>
 
-        <h2>2. Use of the Service</h2>
-        <p>Market provides an online shopping platform. You agree to use the service only for lawful purposes and in a way that does not infringe the rights of others. You must be at least 18 years old to make purchases.</p>
+        <div class="legal-notice">
+            These terms form a binding agreement between HoneyCave Market and each person who accesses or uses
+            the platform as a buyer, seller or rider. Different provisions apply according to the role performed in
+            a transaction. Please read the entire agreement before registering, listing a product, accepting a
+            delivery assignment or placing an order.
+        </div>
 
-        <h2>3. User Accounts</h2>
-        <p>When you create an account with us, you must provide accurate and complete information. You are responsible for maintaining the confidentiality of your account and password. You agree to notify us immediately of any unauthorized use of your account.</p>
+        <div class="legal-toc">
+            <a href="#s1">1. Introduction and acceptance</a>
+            <a href="#s2">2. Definitions and interpretation</a>
+            <a href="#s3">3. Eligibility, registration and account security</a>
+            <a href="#s4">4. Ghana Card and identity verification</a>
+            <a href="#s5">5. Nature of the marketplace</a>
+            <a href="#s6">6. General acceptable use</a>
+            <a href="#s7">7. Buyer terms</a>
+            <a href="#s8">8. Seller onboarding and duties</a>
+            <a href="#s9">9. Seller fulfilment and third-party suppliers</a>
+            <a href="#s10">10. Prohibited seller and middleman conduct</a>
+            <a href="#s11">11. Product listings, pricing and stock</a>
+            <a href="#s12">12. Orders, payments, balances and settlement</a>
+            <a href="#s13">13. Cashout controls, reserves and deductions</a>
+            <a href="#s14">14. Rider onboarding, status and relationship</a>
+            <a href="#s15">15. Delivery zones and assignment rules</a>
+            <a href="#s16">16. Pickup, packaging and parcel custody</a>
+            <a href="#s17">17. Delivery, buyer acceptance and proof</a>
+            <a href="#s18">18. Failed delivery, cancellation and rider compensation</a>
+            <a href="#s19">19. Returns, refunds, warranties and disputes</a>
+            <a href="#s20">20. Fraud monitoring and enforcement</a>
+            <a href="#s21">21. Fees, taxes and records</a>
+            <a href="#s22">22. Intellectual property</a>
+            <a href="#s23">23. Privacy policy</a>
+            <a href="#s24">24. Data security, retention and user rights</a>
+            <a href="#s25">25. Third-party services</a>
+            <a href="#s26">26. Disclaimers and limitation of liability</a>
+            <a href="#s27">27. Indemnity</a>
+            <a href="#s28">28. Suspension, termination and survival</a>
+            <a href="#s29">29. Complaints, appeals and notices</a>
+            <a href="#s30">30. Changes to these terms</a>
+            <a href="#s31">31. Governing law and dispute resolution</a>
+            <a href="#s32">32. General contractual provisions</a>
+            <a href="#s33">33. Role declarations</a>
+            <a href="#s34">34. Contact</a>
+        </div>
 
-        <h2>4. Orders and Payments</h2>
-        <p>All orders are subject to product availability. We reserve the right to refuse or cancel any order for any reason. Prices for products are subject to change without notice. Payment must be received before orders are processed.</p>
+        <h2 id="s1">1. Introduction and acceptance</h2>
+        <p>1.1 These terms and the Privacy Policy contained in this document govern access to and use of HoneyCave Market, including its website, applications, seller tools, payment-related features and delivery services.</p>
+        <p>1.2 By creating an account, clicking acceptance, placing or accepting an order, listing a product, accepting a delivery assignment or otherwise using the platform, the user confirms that the user has read, understood and agreed to these terms.</p>
+        <p>1.3 If a person uses the platform for a company or another organisation, that person represents that the person is authorised to bind that organisation.</p>
+        <p>1.4 Posted policies incorporated by reference form part of this agreement. If a specific written order term conflicts with a general provision, the specific order term prevails only for that order, unless prohibited by law.</p>
 
-        <h2>5. Shipping and Delivery</h2>
-        <p>We ship to addresses within our service areas. Shipping times are estimates only. We are not responsible for delays caused by customs, weather, or other factors outside our control. Risk of loss passes to you upon delivery.</p>
+        <h2 id="s2">2. Definitions and interpretation</h2>
+        <table>
+            <tr><th>Term</th><th>Meaning</th></tr>
+            <tr><td>Buyer</td><td>A person or organisation purchasing or attempting to purchase through the platform.</td></tr>
+            <tr><td>Seller</td><td>A verified person or organisation authorised to list and sell products.</td></tr>
+            <tr><td>Rider</td><td>A verified person or delivery partner authorised to accept delivery assignments.</td></tr>
+            <tr><td>Stock holding seller</td><td>A seller who possesses or directly controls listed inventory.</td></tr>
+            <tr><td>Approved reseller</td><td>A seller authorised to source products from a declared and verified supplier.</td></tr>
+            <tr><td>Undisclosed middleman</td><td>A seller who lacks reliable control of a listed product and secretly engages another party to supply or fulfil it.</td></tr>
+            <tr><td>Delivery zone</td><td>A defined geographic area within which a rider ordinarily accepts assignments.</td></tr>
+            <tr><td>Platform funds</td><td>Amounts recorded in connection with transactions, subject to settlement, refund, reversal, reserve, verification and provider rules.</td></tr>
+            <tr><td>Settlement period</td><td>The period after confirmed delivery during which funds remain unavailable for withdrawal.</td></tr>
+            <tr><td>OTP</td><td>A one-time code used to verify pickup, transfer, receipt or delivery.</td></tr>
+            <tr><td>User</td><td>A buyer, seller, rider or other authorised platform account holder.</td></tr>
+        </table>
 
-        <h2>6. Returns and Refunds</h2>
-        <p>You may return most items within 15 days of delivery for a full refund. Items must be unused, in their original packaging, and accompanied by proof of purchase. Certain items are non-returnable for health and safety reasons.</p>
+        <h2 id="s3">3. Eligibility, registration and account security</h2>
+        <p>3.1 A buyer must be at least 18 years old and legally capable of entering a contract. Sellers and riders must satisfy the onboarding requirements applicable to their role.</p>
+        <p>3.2 Every user must provide accurate, current and complete information and promptly update it. A user must protect login credentials, devices and OTPs and must immediately report suspected unauthorised use.</p>
+        <p>3.3 Accounts are personal to the verified user unless HoneyCave Market expressly approves an organisation account with authorised representatives. Account sale, transfer, rental, impersonation and credential sharing are prohibited.</p>
+
+        <h2 id="s4">4. Ghana Card and identity verification</h2>
+        <p>4.1 HoneyCave Market may require a buyer, seller or rider to provide a Ghana Card personal identification number and other identity information. The information may be transmitted through an approved verification process for backend confirmation by authorised administrators or an authorised verification provider.</p>
+        <p>4.2 The user will receive a successful, pending or declined status. A declined or incomplete verification may prevent onboarding, cashout, high-value transactions or continued platform use.</p>
+        <p>4.3 HoneyCave Market may request a live selfie, telephone verification, address information, business documents, payout-account confirmation, vehicle documents or further evidence where proportionate to fraud, safety or legal risk.</p>
+        <p>4.4 Identity information shall be processed for account security, transaction integrity, delivery safety, fraud prevention and applicable legal compliance, as further described in the Privacy Policy. A verification result is not a guarantee that a user will perform an obligation honestly or successfully.</p>
+
+        <h2 id="s5">5. Nature of the marketplace</h2>
+        <p>5.1 HoneyCave Market provides technology and operational services that connect buyers and independent sellers and facilitate delivery through riders or delivery partners. Unless HoneyCave Market is expressly identified as the seller of a product, the contract for sale is between the buyer and the relevant seller.</p>
+        <p>5.2 The seller is responsible for title, legality, authenticity, description, quality, conformity, warranty and fulfilment of its product. HoneyCave Market may administer payment, verification, delivery, refunds, disputes and enforcement but does not assume the seller's product obligations except where the law or a written commitment requires otherwise.</p>
+        <p>5.3 Nothing in these terms excludes any non-excludable right or remedy available under applicable Ghanaian law.</p>
+
+        <h2 id="s6">6. General acceptable use</h2>
         <ul>
-            <li>Contact support within 5 days of receiving your order</li>
-            <li>Items must be in original condition</li>
-            <li>Refunds are processed within 5–10 business days</li>
-            <li>Shipping costs for returns are the customer's responsibility</li>
+            <li>Use the platform only for lawful activity and legitimate transactions.</li>
+            <li>Do not commit fraud, misrepresent identity, manipulate reviews, interfere with platform security or misuse another user's information.</li>
+            <li>Do not list, buy, carry or facilitate stolen, counterfeit, illegal, dangerous, hazardous or otherwise prohibited items.</li>
+            <li>Do not evade platform fees, verification, settlement, dispute or delivery controls.</li>
+            <li>Do not harass, threaten, discriminate against or endanger buyers, sellers, riders, staff or the public.</li>
         </ul>
 
-        <h2>7. Privacy</h2>
-        <p>Your use of Market is also governed by our <a href="{% url 'privacy' %}" style="color:var(--gold);">Privacy Policy</a>, which is incorporated into these terms by reference.</p>
+        <h2 id="s7">7. Buyer terms</h2>
+        <p>7.1 A buyer must provide accurate delivery information, remain reasonably available, pay the displayed order and delivery charges, inspect the parcel when permitted and use the delivery OTP only after receipt and reasonable inspection.</p>
+        <p>7.2 The buyer must not request illegal carriage, misuse returns, falsely deny receipt, coordinate an off-platform transaction or provide an OTP before the parcel is delivered.</p>
+        <p>7.3 Product images may be illustrative, but the seller must disclose material differences. The buyer shall review the listing, price, delivery estimate, return restrictions and seller information before ordering.</p>
 
-        <h2>8. Limitation of Liability</h2>
-        <p>Market shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of our services. Our total liability to you shall not exceed the amount paid by you for the product in question.</p>
+        <h2 id="s8">8. Seller onboarding and duties</h2>
+        <p>8.1 A seller may be required to provide Ghana Card verification, live selfie, telephone and email, address and GPS location, payout details matching the verified seller, business documents, authorised representatives, shop or inventory evidence and declared supplier details.</p>
+        <p>8.2 HoneyCave Market may classify a seller as New Seller, Verified Stock Seller, Approved Reseller or Restricted Seller. A badge is not transferable and may be withdrawn.</p>
+        <p>8.3 The seller must keep registration, inventory, pricing, payout and fulfilment information current; cooperate with inspections, test purchases and investigations; and maintain any licences, approvals and tax records required for the seller's activity.</p>
 
-        <h2>9. Changes to Terms</h2>
-        <p>We reserve the right to modify these terms at any time. We will notify users of significant changes. Your continued use of the service after changes are posted constitutes acceptance of the new terms.</p>
+        <h2 id="s9">9. Seller fulfilment and third-party suppliers</h2>
+        <p>9.1 A seller may list only a product that it possesses, directly controls or can reliably obtain through a declared and approved supplier within the stated preparation time.</p>
+        <p>9.2 A reseller must disclose the supplier's identity, contact, operating address, product categories, relationship and agreed pickup location when requested. HoneyCave Market may verify or reject the arrangement.</p>
+        <p>9.3 The seller remains fully responsible for the supplier's conduct and for product authenticity, quality, conformity, availability, packaging, warranty, returns and refunds. Supplier approval does not transfer responsibility to HoneyCave Market.</p>
 
-        <h2>10. Contact</h2>
-        <p>For questions about these Terms, please <a href="{% url 'contact' %}" style="color:var(--gold);">contact us</a>.</p>
+        <h2 id="s10">10. Prohibited seller and middleman conduct</h2>
+        <ul>
+            <li>Listing a product without possessing or reliably controlling it.</li>
+            <li>Redirecting a rider to an undeclared supplier or pickup point.</li>
+            <li>Using copied or misleading images to misrepresent stock.</li>
+            <li>Substituting a product without informed buyer approval recorded through the platform.</li>
+            <li>Asking a buyer to pay the seller, rider or supplier outside the approved checkout process.</li>
+            <li>Using another person's identity or payout account, or opening duplicate accounts to evade restrictions.</li>
+            <li>Attempting to cash out funds linked to an incomplete, reversed, returned or disputed order.</li>
+        </ul>
+
+        <h2 id="s11">11. Product listings, pricing and stock</h2>
+        <p>11.1 A listing must accurately state the product, brand, model, condition, quantity, total price, key specifications, material limitations, warranty, estimated preparation time and applicable return restrictions.</p>
+        <p>11.2 Orders remain subject to availability and verification. HoneyCave Market may refuse, pause or cancel an order for suspected error, fraud, illegality, safety risk, stock failure or payment failure. Where payment has been captured and the order is cancelled without buyer fault, the applicable refund process shall begin.</p>
+        <p>11.3 A seller must confirm stock before rider dispatch. Repeated stock failure may result in a failed-pickup fee, reduced listing visibility, longer settlement or suspension.</p>
+
+        <h2 id="s12">12. Orders, payments, balances and settlement</h2>
+        <p>12.1 Payment must be successfully authorised or received before processing unless HoneyCave Market expressly offers another method. Payment services may be provided by an appropriately authorised third party whose terms also apply.</p>
+        <p>12.2 Buyer funds shall not become immediately withdrawable by a seller. Availability for cashout depends on successful pickup and delivery, buyer acceptance or other valid proof, expiry of the applicable settlement period, fraud checks and absence of a live dispute or reversal.</p>
+        <p>12.3 Recommended settlement periods are 48 to 72 hours for new sellers, 24 hours or the next business day for established sellers, and longer for high-value, high-risk, returned or disputed orders. HoneyCave Market may publish or adjust risk-based periods reasonably and prospectively.</p>
+        <p>12.4 A platform balance is an accounting record, not a bank deposit, and remains subject to provider settlement, refund, chargeback, reserve, deduction and verification rules. HoneyCave Market shall not describe a payment arrangement as escrow unless it has been lawfully structured and approved for that purpose.</p>
+
+        <h2 id="s13">13. Cashout controls, reserves and deductions</h2>
+        <p>13.1 HoneyCave Market may apply withdrawal limits, minimum account age or completed-order requirements, additional review for unusual cashouts, temporary holds after payout-account changes and a reasonable rolling reserve to address refunds, reversals, chargebacks, fraud and valid claims.</p>
+        <p>13.2 HoneyCave Market may deduct agreed commissions, delivery charges, refunds, reversals, chargebacks, failed-pickup charges, taxes required to be withheld and other amounts expressly authorised by these terms or a transaction record.</p>
+        <p>13.3 Undisputed funds shall not be retained permanently without a valid contractual, operational or legal basis. A seller may request a statement of material deductions affecting a payout.</p>
+
+        <h2 id="s14">14. Rider onboarding, status and relationship</h2>
+        <p>14.1 A rider may be required to provide identity, contact and address information, emergency contact, licence where applicable, vehicle registration, insurance or other legally required documents, vehicle type, parcel capacity, payout details and selected delivery zones.</p>
+        <p>14.2 Unless a separate written employment agreement states otherwise, a rider participates as an independent delivery service provider and may decide when to go online and whether to accept an offered assignment. Nothing in these terms removes rights or obligations imposed by applicable law based on the actual relationship.</p>
+        <p>14.3 The rider is responsible for roadworthiness, lawful operation, personal safety equipment, traffic compliance and accurate status information. HoneyCave Market may restrict an expired, unsafe, false or incomplete rider account.</p>
+
+        <h2 id="s15">15. Delivery zones and assignment rules</h2>
+        <p>15.1 Each rider may select a primary zone, neighbouring backup zones, working hours, operating radius, vehicle type and parcel capacity. Assignments should consider pickup and delivery coordinates, availability, capacity, distance, workload and performance.</p>
+        <p>15.2 Before acceptance, the rider should be shown the general route, estimated distance, parcel category, fee and special handling information. A rider may decline an out-of-zone, unsafe, oversized, prohibited or unsuitable assignment without improper penalty.</p>
+        <p>15.3 Same-zone orders should ordinarily use one local rider. Cross-zone orders may use neighbouring riders or a documented transfer hub. Intercity and bulky orders may use approved couriers or suitable vehicles. Every custody transfer must be recorded.</p>
+
+        <h2 id="s16">16. Pickup, packaging and parcel custody</h2>
+        <p>16.1 Before dispatch, the seller shall confirm stock, product identity, quantity, pickup location, packaging and relevant serial numbers. HoneyCave Market may request a current photograph or video.</p>
+        <p>16.2 At pickup, the rider shall attend the verified location, compare reasonable visible details, complete the pickup OTP or QR process, record required identifiers and document the sealed parcel's visible condition. The rider does not certify technical quality or authenticity.</p>
+        <p>16.3 If redirected to an undeclared supplier or location, the rider must pause and report the incident. HoneyCave Market may verify, cancel, reassign, charge the seller, compensate the rider or restrict the account.</p>
+        <p>16.4 The seller must use safe packaging appropriate to the item. The rider must exercise reasonable care while the parcel is in the rider's custody and must not open a sealed parcel without authorisation.</p>
+
+        <h2 id="s17">17. Delivery, buyer acceptance and proof</h2>
+        <p>17.1 At delivery, the rider shall confirm the recipient or order details, permit reasonable visible inspection where applicable, obtain the OTP only after receipt and acceptance, and record the required time, location, signature, photograph or serial-number evidence.</p>
+        <p>17.2 The buyer should confirm general conformity, quantity, obvious damage, substitution and tampering. Acceptance does not waive rights relating to hidden defects, warranty or other non-excludable remedies.</p>
+        <p>17.3 A user must not pressure, deceive or collude with another person concerning an OTP, delivery record, location, review, refund or proof of delivery.</p>
+
+        <h2 id="s18">18. Failed delivery, cancellation and rider compensation</h2>
+        <p>18.1 A delivery may fail because the buyer is unavailable or supplied an incorrect address; the seller supplied an unavailable, incorrect, damaged or incomplete product; a location was changed without approval; safety or legal risk arose; payment failed; or cancellation was otherwise permitted.</p>
+        <p>18.2 The responsible party may be charged a disclosed failed-delivery, redelivery, return or pickup fee. Where the rider reaches the verified pickup location and the order fails because of seller conduct, HoneyCave Market may pay a minimum pickup allowance and recover it from the seller.</p>
+        <p>18.3 A rider shall not be penalised for properly reporting an unavailable, suspicious, prohibited, unsafe or materially incorrect parcel. Rider fees are payable according to the accepted assignment record, subject to valid dispute, fraud or reversal review.</p>
+
+        <h2 id="s19">19. Returns, refunds, warranties and disputes</h2>
+        <p>19.1 Unless a listing lawfully states otherwise, an eligible unused item in its original condition and packaging may be requested for return within 15 days after delivery with proof of purchase. A visible wrong item, shortage, damage, substitution or tampering complaint should be reported as soon as possible and preferably within five days.</p>
+        <p>19.2 Hygiene, safety, perishability, customisation, activation, digital delivery or other legitimate reasons may make an item non-returnable, but the restriction must be clearly disclosed and cannot remove rights that applicable law does not permit the parties to exclude.</p>
+        <p>19.3 If seller fault causes a valid return, the seller shall bear the reasonable approved return cost. If a buyer returns a conforming item under a change-of-mind policy, the buyer may bear the disclosed return cost. Refund timing, ordinarily five to ten business days after approval, may depend on the payment provider.</p>
+        <p>19.4 When a dispute opens, the related funds remain unavailable. HoneyCave Market may review messages, images, GPS and OTP records, serial numbers and statements. A resolution may include redelivery, replacement, return, full or partial refund, release of seller funds, allocation of delivery fees or account enforcement.</p>
+
+        <h2 id="s20">20. Fraud monitoring and enforcement</h2>
+        <p>20.1 HoneyCave Market may monitor repeated stock failures, location changes, third-party redirection, duplicate identity or payout information, implausible pricing, copied photographs, complaint patterns, unusual cashout behaviour and delivery-verification bypass attempts.</p>
+        <p>20.2 Proportionate action may include additional verification, transaction delay, listing removal, reduced priority, extended settlement, reserve increase, payout restriction, warning, suspension, termination or referral to a payment provider or competent authority. Serious fraud, identity misuse, theft, counterfeit sale, violence or deliberate payment diversion may justify immediate restriction.</p>
+
+        <h2 id="s21">21. Fees, taxes and records</h2>
+        <p>21.1 Applicable product prices, commissions, delivery fees and other charges shall be displayed or incorporated into the relevant seller or rider schedule. HoneyCave Market may change fees prospectively after reasonable notice.</p>
+        <p>21.2 Each user is responsible for taxes, registrations, licences and records applicable to that user's business or income. HoneyCave Market may withhold or report amounts where legally required.</p>
+
+        <h2 id="s22">22. Intellectual property</h2>
+        <p>22.1 The HoneyCave Market name, software, layout, content and related intellectual property belong to HoneyCave Market or its licensors. Users receive a limited, revocable, non-transferable right to use the platform for its intended purpose.</p>
+        <p>22.2 A seller grants HoneyCave Market a non-exclusive, worldwide, royalty-free licence during the listing and a reasonable archival period to host, reproduce, resize and display submitted product content for platform operation and marketing. The seller warrants that it has the necessary rights.</p>
+
+        <h2 id="s23">23. Privacy policy</h2>
+        <h3>23.1 Information collected</h3>
+        <p>HoneyCave Market may collect names, contact details, credentials, Ghana Card verification data, selfies, addresses, GPS and delivery locations, business and vehicle documents, payout information, transaction history, device and log information, communications, support records, photographs, signatures, OTP events and fraud indicators.</p>
+        <h3>23.2 Purposes</h3>
+        <ul>
+            <li>Create, verify and secure accounts.</li>
+            <li>Process orders, payments, settlement, cashout, refunds and delivery.</li>
+            <li>Assign riders and record pickup, custody transfer and proof of delivery.</li>
+            <li>Detect fraud, enforce policies and resolve disputes.</li>
+            <li>Provide support, improve services and generate operational analytics.</li>
+            <li>Send service messages and, with required consent, marketing communications.</li>
+            <li>Comply with lawful requests and applicable obligations.</li>
+        </ul>
+        <h3>23.3 Sharing</h3>
+        <p>Information may be shared, only as reasonably necessary, with the buyer, seller or rider involved in an order; payment, identity-verification, hosting, analytics, communications and support providers; professional advisers; insurers; and competent authorities. HoneyCave Market does not sell personal data as an independent commodity.</p>
+        <h3>23.4 Location data</h3>
+        <p>Rider location may be processed while the rider is online, assigned or completing a delivery, subject to app settings and operational necessity. Buyers and sellers receive only location or contact information reasonably needed for the order and must not retain or misuse it.</p>
+
+        <h2 id="s24">24. Data security, retention and user rights</h2>
+        <p>24.1 HoneyCave Market shall use appropriate technical and organisational measures, access controls and vendor safeguards. No system is completely secure, and users must protect their own credentials and devices.</p>
+        <p>24.2 Personal data shall be retained only for legitimate operational, contractual, fraud-prevention, accounting, dispute and legal purposes, then deleted or anonymised where appropriate.</p>
+        <p>24.3 Subject to applicable Ghanaian data-protection law, a person may request access, correction, deletion where applicable, objection, restriction or portability and may withdraw consent where consent is the lawful basis. Identity may be verified before a request is actioned. Some records may be retained despite a deletion request where legally or operationally required.</p>
+        <p>24.4 The service is not intended for persons under 18. HoneyCave Market does not knowingly permit a minor to transact independently through the platform.</p>
+
+        <h2 id="s25">25. Third-party services</h2>
+        <p>The platform may use or link to payment, mapping, identity, communications, courier, hosting and other third-party services. Their own terms and privacy notices may apply. HoneyCave Market is not responsible for an unrelated third-party website merely because it is linked, but will exercise reasonable care in selecting operational providers.</p>
+
+        <h2 id="s26">26. Disclaimers and limitation of liability</h2>
+        <p>26.1 The platform is provided subject to availability. HoneyCave Market does not guarantee uninterrupted access, continuous product availability, a particular seller or rider performance, or delivery times affected by traffic, weather, customs, force majeure, user conduct or other matters outside reasonable control.</p>
+        <p>26.2 To the maximum extent permitted by law, HoneyCave Market shall not be liable for indirect, special or consequential loss that was not reasonably foreseeable. For a claim relating to a specific transaction, aggregate liability shall not exceed the greater of the amount paid to HoneyCave Market for that transaction or any minimum liability required by law.</p>
+        <p>26.3 Nothing in these terms excludes or limits liability for fraud, wilful misconduct, death or personal injury caused by negligence, breach of a non-excludable statutory duty, or any liability that applicable law does not permit to be excluded or limited.</p>
+
+        <h2 id="s27">27. Indemnity</h2>
+        <p>To the extent permitted by law, a seller or rider shall indemnify HoneyCave Market against a third-party claim, regulatory loss or reasonable cost arising from that user's unlawful conduct, product, content, undisclosed supplier, tax breach, unsafe carriage, intellectual-property infringement or material breach of these terms. This clause does not require indemnification for loss caused by HoneyCave Market's own negligence, fraud or wilful misconduct.</p>
+
+        <h2 id="s28">28. Suspension, termination and survival</h2>
+        <p>HoneyCave Market may restrict or terminate an account for material breach, risk, fraud, illegality, safety, repeated performance failure, non-payment or regulatory necessity. Where reasonably possible, notice and an opportunity to respond shall be provided. Transaction completion, payment, refund, dispute, privacy, intellectual-property, liability, indemnity and governing-law provisions survive termination as necessary.</p>
+
+        <h2 id="s29">29. Complaints, appeals and notices</h2>
+        <p>29.1 Complaints should identify the account, order or delivery number, issue, evidence and requested outcome. A seller or rider may appeal an enforcement decision within seven days unless a longer period is stated.</p>
+        <p>29.2 HoneyCave Market may send notices through the platform, website, email, SMS or verified contact details. Users must maintain current contact information. Legal and privacy notices to HoneyCave Market should use the contact details in section 34.</p>
+
+        <h2 id="s30">30. Changes to these terms</h2>
+        <p>HoneyCave Market may amend these terms for operational, legal, safety, payment or technology reasons. Material changes shall be notified reasonably before taking effect where practicable. Changes do not retrospectively remove an accrued right or determine an existing dispute unfairly. Continued use after the effective date constitutes acceptance, subject to applicable law.</p>
+
+        <h2 id="s31">31. Governing law and dispute resolution</h2>
+        <p>31.1 These terms are governed by the laws of the Republic of Ghana. The parties should first attempt good-faith resolution through HoneyCave Market support.</p>
+        <p>31.2 If unresolved, the parties may use mediation or another mutually agreed alternative process. Nothing prevents a person from referring a matter to a competent regulator, statutory complaints body or court where entitled to do so. Subject to any mandatory rule, the courts of Ghana have jurisdiction.</p>
+
+        <h2 id="s32">32. General contractual provisions</h2>
+        <p>32.1 If a provision is invalid or unenforceable, it shall be limited or severed to the minimum extent necessary, and the remainder continues in effect. Failure to enforce a provision is not a waiver.</p>
+        <p>32.2 A user may not assign an account or agreement without written consent. HoneyCave Market may assign this agreement as part of a genuine restructuring, financing or transfer of the platform, subject to applicable law and continued protection of user rights.</p>
+        <p>32.3 These terms, incorporated policies, applicable fee schedules and transaction records form the entire agreement concerning platform use, without excluding liability for fraudulent misrepresentation.</p>
+
+        <h2 id="s33">33. Role declarations</h2>
+        <h3>33.1 Buyer declaration</h3>
+        <p>The buyer confirms that account and delivery information is accurate; payment and OTP procedures will be followed; products will be inspected reasonably; off-platform payment and abusive returns will be avoided; and legitimate delivery, return and dispute charges may apply.</p>
+        <h3>33.2 Seller declaration</h3>
+        <p>The seller confirms that identity and business information is accurate; listed products are lawful, authentic and available or reliably controlled; suppliers and pickup points are declared; the seller accepts responsibility for product and fulfilment obligations; and funds may remain restricted until delivery, settlement and dispute requirements are completed.</p>
+        <h3>33.3 Rider declaration</h3>
+        <p>The rider confirms that identity, licence, vehicle and zone information is accurate; assignments will be performed safely; pickup, custody, OTP and proof procedures will be followed; unauthorised payment will not be collected; suspicious or unavailable products will be reported; and parcel and user information will be protected.</p>
+
+        <h2 id="s34">34. Contact</h2>
+        <p>Questions, privacy requests, complaints and notices may be submitted through the platform or using the details below.</p>
+        <table>
+            <tr><th>Legal entity</th><td>HoneyCave Market / [Insert Registered Company Name]</td></tr>
+            <tr><th>Email</th><td>[Insert Legal and Privacy Email]</td></tr>
+            <tr><th>Telephone</th><td>[Insert Telephone Number]</td></tr>
+            <tr><th>Business address</th><td>[Insert Registered Business Address]</td></tr>
+        </table>
+
+        <p>Your use of HoneyCave Market is also governed by our <a href="{% url 'privacy' %}" style="color:var(--gold);">Privacy Policy</a>, which is incorporated into these terms by reference. For further questions, please <a href="{% url 'contact' %}" style="color:var(--gold);">contact us</a>.</p>
     </div>
 </div>
 {% endblock %}

@@ -342,8 +342,8 @@ const PICKUP_BRANCH = {% if pickup_branch %}{
 
         <div class="fulfillment-grid">
             <!-- Branch Pickup -->
-            <label class="fulfill-card active" id="fc-pickup" onclick="setFulfillment('pickup')">
-                <input type="radio" name="fulfillment_type" value="pickup" checked>
+            <label class="fulfill-card" id="fc-pickup" onclick="setFulfillment('pickup')" style="display:none;">
+                <input type="radio" name="fulfillment_type" value="pickup">
                 <span class="fc-icon">🏪</span>
                 <div class="fc-title">Branch Pickup</div>
                 <div class="fc-desc">Collect your order from the Market branch nearest to you. Usually ready within 24 hours.</div>
@@ -351,11 +351,11 @@ const PICKUP_BRANCH = {% if pickup_branch %}{
             </label>
 
             <!-- Home Delivery -->
-            <label class="fulfill-card" id="fc-delivery" onclick="setFulfillment('delivery')">
-                <input type="radio" name="fulfillment_type" value="delivery">
+            <label class="fulfill-card active" id="fc-delivery" onclick="setFulfillment('delivery')">
+                <input type="radio" name="fulfillment_type" value="delivery" checked>
                 <span class="fc-icon">🛵</span>
                 <div class="fc-title">Home Delivery</div>
-                <div class="fc-desc">We deliver to your door from your nearest branch. Delivered within 24 hours.</div>
+                <div class="fc-desc">We deliver to your door directly from the seller. Delivered within 24 hours.</div>
                 <span class="fc-badge" style="background:#d4edda;color:#155724;">🚶 Free pickup</span>
             </label>
         </div>
@@ -659,6 +659,8 @@ const BTYPE_META = {
   express: { icon: '⚡', label: 'Express Kiosk',    cls: 'btype-express' },
   agent:   { icon: '📍', label: 'Mobile Agent',     cls: 'btype-agent' },
 };
+
+document.addEventListener('DOMContentLoaded', function () { setFulfillment('delivery'); });
 
 function setFulfillment(type) {
   fulfillmentType = type;
@@ -1006,7 +1008,19 @@ function updateDeliveryFee(callback) {
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
-    if (!data.ok) { document.getElementById('sbb-fee').textContent = 'Could not calculate'; return; }
+    if (!data.ok) {
+      document.getElementById('sbb-fee').textContent = 'Not available';
+      document.getElementById('sbb-fee').style.color = '#c0392b';
+      document.getElementById('summary-shipping').textContent = '—';
+      var noteEl = document.getElementById('delivery-fee-note');
+      if (noteEl) {
+        noteEl.textContent = data.error || 'Could not calculate delivery fee for this address.';
+        noteEl.style.display = '';
+        noteEl.style.color = '#c0392b';
+      }
+      deliveryFeeConfirmed = false;
+      return;
+    }
     var fee = data.fee;
     // Store confirmed fee for Paystack amount
     deliveryFeeConfirmed = true;
@@ -1027,9 +1041,10 @@ function updateDeliveryFee(callback) {
       var distEl = document.getElementById('delivery-distance');
       if (distEl) distEl.textContent = data.distance_km + ' km road estimate';
     }
+    document.getElementById('sbb-fee').style.color = 'var(--gold)';
     if (data.note) {
       var noteEl = document.getElementById('delivery-fee-note');
-      if (noteEl) { noteEl.textContent = data.note; noteEl.style.display = ''; }
+      if (noteEl) { noteEl.textContent = data.note; noteEl.style.display = ''; noteEl.style.color = ''; }
     }
     if (callback) callback();
   })

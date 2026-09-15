@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 # ─── Public API ───────────────────────────────────────────────────────────────
 
-def issue_code(order, stage, issued_to_label='', notify_via=None):
+def issue_code(order, stage, issued_to_label='', notify_via=None, rider_delivery=None):
     """
     Generate a new HandoffCode for `order` at `stage`. Invalidates any prior
     active code for the same stage (sets it to expired by zeroing attempts
@@ -49,27 +49,38 @@ def issue_code(order, stage, issued_to_label='', notify_via=None):
                  to override automatic recipient detection (used for testing
                  or custom flows). If None, the function auto-detects who
                  should receive based on stage.
+
+    rider_delivery — the RiderDelivery this code belongs to, for delivery
+                      orders now that shipping is per-seller. Leave None for
+                      admin_to_officer (still whole-order, issued before
+                      sellers are split out) and officer_to_customer (pickup
+                      orders have no rider, no per-seller split).
     """
-    # Invalidate any prior unused code for this stage
+    # Invalidate any prior unused code for this stage -- scoped per
+    # rider_delivery too, so invalidating seller A's code never touches
+    # seller B's.
     HandoffCode.objects.filter(
-        order=order, stage=stage, used_at__isnull=True, locked=False
+        order=order, stage=stage, rider_delivery=rider_delivery,
+        used_at__isnull=True, locked=False,
     ).update(locked=True)
 
     code = _generate_numeric_code()
     handoff = HandoffCode.objects.create(
         order=order,
         stage=stage,
+        rider_delivery=rider_delivery,
         code=code,
         issued_to_label=issued_to_label[:120],
     )
 
     # Build recipient channels and dispatch
     _send_code_to_recipient(order, handoff, override=notify_via)
-    _notify_admins(order, f'Handoff code issued: {handoff.get_stage_display()} for order {order.order_number}.', link=f'/panel/orders/{order.id}/')
+    seller_note = f' (seller: {rider_delivery.seller})' if rider_delivery else ''
+    _notify_admins(order, f'Handoff code issued: {handoff.get_stage_display()} for order {order.order_number}{seller_note}.', link=f'/panel/orders/{order.id}/')
     return handoff
 
 
-def verify_code(order, stage, entered_code, used_by_user=None):
+def verify_code(order, stage, entered_code, used_by_user=None, rider_delivery=None):
     """
     Verify a code entered by the receiving party.
 
@@ -82,7 +93,7 @@ def verify_code(order, stage, entered_code, used_by_user=None):
     """
     cleaned = ''.join(ch for ch in (entered_code or '') if ch.isdigit())[:6]
     handoff = (HandoffCode.objects
-               .filter(order=order, stage=stage)
+               .filter(order=order, stage=stage, rider_delivery=rider_delivery)
                .order_by('-created_at').first())
 
     if handoff is None:
@@ -110,7 +121,7 @@ def verify_code(order, stage, entered_code, used_by_user=None):
         )
         # Auto-advance to next stage where appropriate
         try:
-            advance_after_verify(order, stage)
+            advance_after_verify(order, stage, rider_delivery=rider_delivery)
         except Exception as e:
             logger.exception('Failed to auto-advance after verify: %s', e)
         return 'ok', handoff, 0
@@ -139,37 +150,46 @@ def verify_code(order, stage, entered_code, used_by_user=None):
     return 'wrong', handoff, handoff.remaining_attempts
 
 
-def advance_after_verify(order, just_verified_stage):
+def advance_after_verify(order, just_verified_stage, rider_delivery=None):
     """
     Auto-issue the next stage's code based on the order's fulfillment type
-    and the stage that was just verified, AND update order.status so the
-    customer's tracking page reflects current progress.
+    and the stage that was just verified.
 
-    Delivery flow:  admin_to_keeper → keeper_to_rider → rider_to_customer
-    Pickup flow:    admin_to_keeper → keeper_to_customer
+    Delivery flow (PER SELLER, since independent shipping):
+        admin_to_officer (order-level, once) → officer_to_rider (per seller)
+        → rider_to_customer (per seller)
+    Pickup flow (still order-level, unaffected by this change):
+        admin_to_officer → officer_to_customer
 
-    Status transitions:
-      admin_to_keeper verified   → status = 'processing'  (fulfillment officer has it)
-      keeper_to_rider verified   → status = 'dispatched'  (rider has it)
-      keeper_to_customer verified → status = 'delivered'  (pickup complete)
-      rider_to_customer verified → status = 'delivered'   (customer received)
+    order.status now ONLY reflects whole-order stages: admin_to_officer
+    ('processing') and officer_to_customer ('delivered', pickup only).
+    officer_to_rider and rider_to_customer are per-seller now and do NOT
+    touch order.status at all -- each seller's own RiderDelivery timestamps
+    (dispatched_at/delivered_at/confirmed_at) are the source of truth for
+    that seller's progress. The customer tracking page reads those directly
+    instead of one combined order status (Option 3 decision).
 
     Called automatically after verify_code() succeeds. Safe to call multiple
-    times — issue_code invalidates any prior unused code for the same stage.
+    times — issue_code invalidates any prior unused code for the same
+    stage+rider_delivery combination.
+
+    TODO(money-critical, do not ship delivery payouts live until resolved):
+    credit_order_earnings() is only called here for the officer_to_customer
+    (pickup, whole-order) path for now. It is NOT yet called for
+    rider_to_customer (per-seller delivery) because the current
+    implementation's behaviour when called mid-order (only ONE seller's
+    delivery confirmed, others still in progress) has not been verified —
+    risk of crediting sellers/riders whose own delivery hasn't actually
+    completed yet. Confirm credit_order_earnings' per-row guard logic, then
+    wire in the credit_order_earnings(order, rider_delivery=rider_delivery)
+    call for the rider_to_customer branch below.
     """
     fulfillment = order.fulfillment_type or 'pickup'
 
-    # Map verified stage → new order status. Only update if the new status
-    # is "further along" than the current one (don't downgrade if admin
-    # manually set it to something else like 'shipped' or 'delivered').
-    status_for_stage = {
+    order_level_status = {
         'admin_to_officer':    'processing',
-        'officer_to_rider':    'dispatched',
         'officer_to_customer': 'delivered',
-        'rider_to_customer':  'delivered',
     }
-    # Rank used to compare progress — higher rank = further along.
-    # Custom states (cancelled/confirmed) get high rank to be untouchable.
     status_rank = {
         'pending':    0,
         'processing': 1,
@@ -179,89 +199,103 @@ def advance_after_verify(order, just_verified_stage):
         'confirmed':  4,
         'cancelled':  99,  # cancelled wins over everything — never overwrite
     }
-    new_status = status_for_stage.get(just_verified_stage)
+    new_status = order_level_status.get(just_verified_stage)
     if new_status:
         cur_rank = status_rank.get(order.status, 0)
         new_rank = status_rank.get(new_status, 0)
-        # Only update if we're moving forward, and never overwrite cancelled.
         if new_rank > cur_rank and order.status != 'cancelled':
             order.status = new_status
             order.save(update_fields=['status'])
 
     if just_verified_stage == 'admin_to_officer':
-        # Fulfillment Officer has confirmed receipt. Auto-issue next code.
         if fulfillment == 'pickup':
-            # Issue code for customer-collection at the branch
             issue_code(
                 order,
                 'officer_to_customer',
                 issued_to_label=f'Customer: {order.full_name or "Customer"}',
             )
         else:
-            # Delivery — issue rider code IF rider has already been assigned.
-            # If no rider yet, the officer_to_rider code is issued automatically
-            # when the fulfillment officer assigns a rider via the assign_rider
-            # action (handled in fulfillment_officer_views.py). This is correct
-            # behaviour: we can't issue a rider code before we know who the rider is.
-            rider = order.seller_deliveries.first()
-            if rider and rider.rider_phone:
-                issue_code(
-                    order,
-                    'officer_to_rider',
-                    issued_to_label=f'Rider: {rider.rider_name}',
-                )
+            # Delivery -- issue an officer_to_rider code for every seller
+            # delivery that already has a rider assigned at this point (rare
+            # -- normally the officer assigns riders AFTER this step, which
+            # issues each seller's code directly from the dispatch view).
+            for delivery in order.seller_deliveries.filter(rider__isnull=False):
+                if delivery.rider_phone:
+                    issue_code(
+                        order,
+                        'officer_to_rider',
+                        issued_to_label=f'Rider: {delivery.rider_name}',
+                        rider_delivery=delivery,
+                    )
 
     elif just_verified_stage == 'officer_to_rider':
-        # Rider has the package. Issue customer-delivery code.
-        issue_code(
-            order,
-            'rider_to_customer',
-            issued_to_label=f'Customer: {order.full_name or "Customer"}',
-        )
+        # THIS seller's rider now has their items -- issue THIS seller's
+        # own customer-delivery code, scoped to their own RiderDelivery.
+        if rider_delivery is not None:
+            issue_code(
+                order,
+                'rider_to_customer',
+                issued_to_label=f'Customer: {order.full_name or "Customer"}',
+                rider_delivery=rider_delivery,
+            )
 
     # ── Delivery-complete notifications ─────────────────────────────────
-    # When the customer enters the final code (rider_to_customer for
-    # delivery, keeper_to_customer for pickup), notify both the fulfillment officer
-    # who handled it AND all admin staff so they know the order is closed.
     if just_verified_stage in ('rider_to_customer', 'officer_to_customer'):
+        # Stamp this seller's own confirmation time (per-seller delivery)
+        # or fall through untouched for pickup (rider_delivery is None).
+        if rider_delivery is not None and not rider_delivery.confirmed_at:
+            rider_delivery.confirmed_at = timezone.now()
+            rider_delivery.save(update_fields=['confirmed_at'])
+
         try:
-            _notify_delivery_complete(order, just_verified_stage)
+            _notify_delivery_complete(order, just_verified_stage, rider_delivery=rider_delivery)
         except Exception as e:
-            # Notifications must never break the chain — log and continue
             logger.warning('Delivery-complete notification failed: %s', e)
 
-        # Credit seller + rider wallets now that delivery is confirmed.
-        # credit_order_earnings() is idempotent, so this is safe even if
-        # advance_after_verify is ever called twice for the same order.
-        try:
-            from .wallet import credit_order_earnings
-            credit_order_earnings(order)
-        except Exception as e:
-            # Wallet crediting must never break the handoff chain either —
-            # log loudly so admin can spot + manually reconcile via the
-            # admin transaction dashboard.
-            logger.error('Wallet crediting failed for order %s: %s', order.order_number, e)
+        if just_verified_stage == 'officer_to_customer':
+            # Pickup orders -- unchanged whole-order crediting behaviour.
+            try:
+                from .wallet import credit_order_earnings
+                credit_order_earnings(order)
+            except Exception as e:
+                logger.error('Wallet crediting failed for order %s: %s', order.order_number, e)
+        else:
+            # rider_to_customer (per-seller delivery) -- credit only THIS
+            # seller/rider, scoped to their own rider_delivery row. Safe to
+            # call even if other sellers on the order are still in transit.
+            try:
+                from .wallet import credit_seller_delivery_earnings
+                credit_seller_delivery_earnings(order, rider_delivery)
+            except Exception as e:
+                logger.error(
+                    'Wallet crediting failed for order %s (rider_delivery %s): %s',
+                    order.order_number, rider_delivery.pk if rider_delivery else None, e,
+                )
 
-    # keeper_to_customer and rider_to_customer are terminal — no further codes
+    # officer_to_customer and rider_to_customer are terminal for their
+    # respective seller/order -- no further codes issued from here.
 
 
-def _notify_delivery_complete(order, stage):
+def _notify_delivery_complete(order, stage, rider_delivery=None):
     """
     Send "delivery confirmed" notifications to admin + fulfillment officer after
     the customer enters the final handoff code.
 
     Called automatically from advance_after_verify(). Idempotent — calling
-    multiple times for the same order won't spam (each call creates one
-    notification per recipient, but the customer can only verify once).
+    multiple times for the same order+rider_delivery won't spam (each call
+    creates one notification per recipient, but a given code can only be
+    verified once).
     """
     from .models import Notification
     from django.contrib.auth.models import User as _User
 
     flow_label = 'pickup' if stage == 'officer_to_customer' else 'delivery'
-    title      = f'Order {order.order_number} — {flow_label} confirmed'
+    seller_note = f' (seller: {rider_delivery.seller})' if rider_delivery else ''
+    title      = f'Order {order.order_number} — {flow_label} confirmed{seller_note}'
     message    = (
-        f'Customer {order.full_name or "—"} has confirmed receipt of order '
-        f'{order.order_number}. The {flow_label} chain is now complete.'
+        f'Customer {order.full_name or "—"} has confirmed receipt of '
+        f'{"order " + order.order_number if not rider_delivery else "one seller’s items on order " + order.order_number}. '
+        f'{"That seller’s" if rider_delivery else "The"} {flow_label} chain is now complete.'
     )
     link = f'/panel/orders/{order.id}/'
 
@@ -399,7 +433,7 @@ def _send_code_to_recipient(order, handoff, override=None):
                 profile = getattr(recipient_user, 'profile', None)
                 phone = (profile.phone if profile else '') or ''
         elif stage == 'officer_to_rider':
-            rider = order.seller_deliveries.first()
+            rider = handoff.rider_delivery
             if rider:
                 phone = rider.rider_phone or ''
                 # If we have a Rider object backing this delivery, we still

@@ -168,6 +168,11 @@ class StoreApplicationForm(forms.ModelForm):
             'id_document': 'National ID, passport, or business registration certificate (PDF or image).',
         }
 
+    agree_to_terms = forms.BooleanField(
+        required=True,
+        error_messages={'required': 'You must agree to the Terms & Conditions before submitting.'},
+    )
+
     def clean_id_document(self):
         f = self.cleaned_data['id_document']
         if f.size > 10 * 1024 * 1024:

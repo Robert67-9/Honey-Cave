@@ -59,14 +59,14 @@ def get_or_create_rider_wallet(rider):
 # ─── Crediting earnings ─────────────────────────────────────────────────────
 
 @transaction.atomic
-def _credit(wallet, *, amount, tx_type, order=None, note=''):
+def _credit(wallet, *, amount, tx_type, order=None, rider_delivery=None, note=''):
     """Write a pending ledger credit and bump wallet.pending_balance to match."""
     if amount <= 0:
         return None
     hold_hours = wallet.hold_hours()
     available_at = timezone.now() + timedelta(hours=hold_hours)
     tx = WalletTransaction.objects.create(
-        wallet=wallet, order=order, type=tx_type, status='pending',
+        wallet=wallet, order=order, rider_delivery=rider_delivery, type=tx_type, status='pending',
         amount=amount, note=note, available_at=available_at,
     )
     Wallet.objects.filter(pk=wallet.pk).update(
@@ -149,6 +149,75 @@ def credit_order_earnings(order):
                     f'Delivery fee for order {order.order_number} — '
                     f'GH₵{gross} gross, {site.rider_commission_percent}% commission'
                     + (f' (seller: {delivery.seller})' if delivery.seller_id else '')
+                ),
+            )
+
+
+def credit_seller_delivery_earnings(order, rider_delivery):
+    """
+    Called once per seller-delivery, when THAT delivery's rider_to_customer
+    code is verified (handoff.py calls this from advance_after_verify).
+    Unlike credit_order_earnings (order-scoped, used for pickup orders),
+    this is scoped to a single RiderDelivery so that sellers/riders whose
+    own delivery hasn't completed yet are never touched or blocked by
+    another seller's delivery finishing first.
+
+    Idempotent per rider_delivery: safe to call more than once for the same
+    delivery — skips if a sale_credit row already exists for this specific
+    rider_delivery, so a retried webhook or re-run handoff step can never
+    double-pay this delivery's seller/rider. Deliberately does NOT check
+    anything at the order level, so other deliveries on the same order are
+    unaffected.
+    """
+    if WalletTransaction.objects.filter(rider_delivery=rider_delivery, type='sale_credit').exists():
+        return
+
+    site = SiteSettings.load()
+    seller_rate = site.seller_commission_percent / Decimal('100')
+    rider_rate = site.rider_commission_percent / Decimal('100')
+    reserve_rate = site.reserve_percent / Decimal('100')
+
+    # ── Seller — only this delivery's seller, only their items ─────────────
+    seller = rider_delivery.seller
+    if seller and not seller.is_superuser:
+        gross = sum(
+            (item.get_total_price() for item in order.items.filter(product__created_by=seller)),
+            Decimal('0'),
+        )
+        if gross > 0:
+            commission = (gross * seller_rate).quantize(Decimal('0.01'))
+            reserve = (gross * reserve_rate).quantize(Decimal('0.01'))
+            net = gross - commission - reserve
+            wallet = get_or_create_seller_wallet(seller)
+            _credit(
+                wallet, amount=net, tx_type='sale_credit', order=order, rider_delivery=rider_delivery,
+                note=(
+                    f'Order {order.order_number} (seller delivery) — GH₵{gross} gross, '
+                    f'{site.seller_commission_percent}% commission, '
+                    f'{site.reserve_percent}% reserve held'
+                ),
+            )
+            if reserve > 0:
+                WalletTransaction.objects.create(
+                    wallet=wallet, order=order, rider_delivery=rider_delivery,
+                    type='reserve_hold', status='available',
+                    amount=reserve, note=f'Reserve held from order {order.order_number} (seller delivery)',
+                )
+                Wallet.objects.filter(pk=wallet.pk).update(reserve_held=F('reserve_held') + reserve)
+
+    # ── Rider — this delivery's own fee only ────────────────────────────────
+    if rider_delivery.rider:
+        gross = rider_delivery.shipping_fee or Decimal('0')
+        if gross > 0:
+            commission = (gross * rider_rate).quantize(Decimal('0.01'))
+            net = gross - commission
+            wallet = get_or_create_rider_wallet(rider_delivery.rider)
+            _credit(
+                wallet, amount=net, tx_type='sale_credit', order=order, rider_delivery=rider_delivery,
+                note=(
+                    f'Delivery fee for order {order.order_number} — '
+                    f'GH₵{gross} gross, {site.rider_commission_percent}% commission'
+                    + (f' (seller: {rider_delivery.seller})' if rider_delivery.seller_id else '')
                 ),
             )
 

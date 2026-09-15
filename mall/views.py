@@ -24,7 +24,7 @@ from .models import (
     Product, Category, Order, OrderItem, Branch, BranchProduct,
     AuditLog, StockReservation, Promotion,
     REGION_FEES, REGION_CHOICES, OTPVerification, UserProfile, PaymentSettings,
-    calculate_delivery_fee, DELIVERY_BASE_FEE,
+    calculate_delivery_fee, DELIVERY_BASE_FEE, calculate_seller_delivery_fee,
     Review, ReviewHelpful, WishlistItem, PromoCode, ProductImage, OrderNote, Notification,
     OrderFeedback, RiderDelivery, StoreApplication,
     ShipmentBooking, ShipmentTrackingEvent, SHIPPING_DELIVERY_OPTIONS, SHIPPING_METHODS, calculate_shipment_estimate,
@@ -1280,13 +1280,12 @@ def _handle_provider_webhook(request, provider_slug):
 @login_required
 def delivery_fee_api(request):
     """
-    Calculate home delivery fee and estimated time based on:
-    - The selected branch (source)
-    - The customer's delivery location. If GPS coordinates from the
-      "Pin your location" button are supplied, the fee is computed directly
-      from those coords (most precise). Otherwise the typed address is
-      geocoded via OpenStreetMap Nominatim.
+    Calculate home delivery fee and estimated time for the current cart.
+    Each seller ships directly from their own registered location, so the
+    fee is the sum of each distinct seller's own distance-based fee to the
+    buyer -- not a single branch-to-buyer fee.
     Returns JSON: {ok, fee, fee_display, eta_minutes, eta_display, distance_km}
+    On a blocked seller: {ok: False, error, blocked_sellers: [...]}
     """
     try:
         body  = json.loads(request.body)
@@ -1306,7 +1305,6 @@ def delivery_fee_api(request):
     except (TypeError, ValueError):
         pin_lat = pin_lng = None
 
-    # We need either a pinned location or a typed address to work with.
     if not address and pin_lat is None:
         return JsonResponse({'ok': False, 'error': 'No location provided.'})
 
@@ -1315,123 +1313,92 @@ def delivery_fee_api(request):
     except Branch.DoesNotExist:
         return JsonResponse({'ok': False, 'error': 'Branch not found.'})
 
-    # If branch has no GPS coords, fall back to region fee
-    if branch.latitude is None or branch.longitude is None:
-        from .models import REGION_FEES, DELIVERY_BASE_FEE
-        fee = REGION_FEES.get(branch.region, DELIVERY_BASE_FEE)
-        return JsonResponse({
-            'ok': True,
-            'fee': float(fee),
-            'fee_display': f'GH₵ {fee:.2f}',
-            'eta_minutes': 60,
-            'eta_display': 'Within 24 hours',
-            'distance_km': None,
-            'note': 'Distance-based pricing not available for this branch.',
-        })
-
-    # ── Preferred path: compute the fee straight from the pinned location ──
-    # No geocoding needed — the GPS pin already tells us exactly where the
-    # customer is, so this is both more accurate and more reliable.
+    # ── Resolve buyer coordinates: prefer the GPS pin, else geocode ──
     if pin_lat is not None:
-        distance_km = branch.distance_to(pin_lat, pin_lng)
-        fee, eta_minutes = calculate_delivery_fee(distance_km)
-        request.session['delivery_lat']          = str(pin_lat)
-        request.session['delivery_lng']          = str(pin_lng)
-        request.session['delivery_fee_confirmed'] = str(fee)
-        request.session['delivery_branch_id']     = str(branch_id)
-        if eta_minutes < 60:
-            eta_display = f'~{eta_minutes} minutes'
-        else:
-            hours = eta_minutes // 60
-            mins  = eta_minutes % 60
-            eta_display = f'~{hours}h {mins}min' if mins else f'~{hours} hour{"s" if hours > 1 else ""}'
+        dest_lat, dest_lng = pin_lat, pin_lng
+        note_source = 'your pinned location'
+    else:
+        try:
+            query = urllib.parse.urlencode({
+                'q': address + ', Ghana',
+                'format': 'json',
+                'limit': 1,
+                'countrycodes': 'gh',
+            })
+            geo_url = f'https://nominatim.openstreetmap.org/search?{query}'
+            geo_req = urllib.request.Request(
+                geo_url,
+                headers={'User-Agent': 'HoneyCaveMarket/1.0 (contact@honeycavemarket.com)'},
+            )
+            with urllib.request.urlopen(geo_req, timeout=5) as resp:
+                geo_data = json.loads(resp.read().decode())
+        except Exception:
+            geo_data = None
+        if not geo_data:
+            return JsonResponse({
+                'ok': False,
+                'error': 'Could not locate that address precisely. Please use "Pin your exact location" instead.',
+            })
+        dest_lat = float(geo_data[0]['lat'])
+        dest_lng = float(geo_data[0]['lon'])
+        note_source = 'your address'
+
+    # ── Sum each distinct seller's own delivery fee ──
+    cart_items, _subtotal = get_cart_details(request)
+    if not cart_items:
+        return JsonResponse({'ok': False, 'error': 'Your cart is empty.'})
+
+    sellers_seen = {}
+    for item in cart_items:
+        sellers_seen[item['product'].created_by] = True
+
+    total_fee = Decimal('0')
+    max_eta = 0
+    blocked_sellers = []
+    for seller in sellers_seen:
+        result = calculate_seller_delivery_fee(seller, dest_lat, dest_lng)
+        if result is None:
+            name = (seller.get_full_name() or seller.username) if seller else 'A seller'
+            blocked_sellers.append(name)
+            continue
+        fee, eta_minutes = result
+        total_fee += fee
+        max_eta = max(max_eta, eta_minutes)
+
+    if blocked_sellers:
         return JsonResponse({
-            'ok': True,
-            'fee': float(fee),
-            'fee_display': f'GH₵ {fee:.2f}',
-            'eta_minutes': eta_minutes,
-            'eta_display': eta_display,
-            'distance_km': round(distance_km * 1.3, 1),  # road distance estimate
-            'note': 'Fee based on your pinned location.',
+            'ok': False,
+            'error': (
+                "Home Delivery isn't available yet for items from: "
+                + ', '.join(blocked_sellers)
+                + '. Please choose Branch Pickup for those items, or remove them from your cart.'
+            ),
+            'blocked_sellers': blocked_sellers,
         })
 
-    # Geocode the delivery address using OpenStreetMap Nominatim
-    try:
-        query = urllib.parse.urlencode({
-            'q': address + ', Ghana',
-            'format': 'json',
-            'limit': 1,
-            'countrycodes': 'gh',
-        })
-        geo_url = f'https://nominatim.openstreetmap.org/search?{query}'
-        geo_req = urllib.request.Request(
-            geo_url,
-            headers={'User-Agent': 'HoneyCaveMarket/1.0 (contact@honeycavemarket.com)'},
-        )
-        with urllib.request.urlopen(geo_req, timeout=5) as resp:
-            geo_data = json.loads(resp.read().decode())
-    except Exception:
-        # Geocoding failed — fall back to region fee
-        from .models import REGION_FEES, DELIVERY_BASE_FEE
-        fee = REGION_FEES.get(branch.region, DELIVERY_BASE_FEE)
-        return JsonResponse({
-            'ok': True,
-            'fee': float(fee),
-            'fee_display': f'GH₵ {fee:.2f}',
-            'eta_minutes': 60,
-            'eta_display': 'Within 24 hours',
-            'distance_km': None,
-            'note': 'Could not locate address precisely. Regional rate applied.',
-        })
-
-    if not geo_data:
-        from .models import REGION_FEES, DELIVERY_BASE_FEE
-        fee = REGION_FEES.get(branch.region, DELIVERY_BASE_FEE)
-        return JsonResponse({
-            'ok': True,
-            'fee': float(fee),
-            'fee_display': f'GH₵ {fee:.2f}',
-            'eta_minutes': 60,
-            'eta_display': 'Within 24 hours',
-            'distance_km': None,
-            'note': 'Address not found on map. Regional rate applied.',
-        })
-
-    dest_lat = float(geo_data[0]['lat'])
-    dest_lng = float(geo_data[0]['lon'])
-
-    # Store coords in session so checkout POST can use them server-side
-    request.session['delivery_lat']  = str(dest_lat)
-    request.session['delivery_lng']  = str(dest_lng)
-
-    distance_km = branch.distance_to(dest_lat, dest_lng)
-    fee, eta_minutes = calculate_delivery_fee(distance_km)
-    # Store the confirmed fee so checkout POST can use it directly
-    request.session['delivery_fee_confirmed'] = str(fee)
+    request.session['delivery_lat']           = str(dest_lat)
+    request.session['delivery_lng']           = str(dest_lng)
+    request.session['delivery_fee_confirmed'] = str(total_fee)
     request.session['delivery_branch_id']     = str(branch_id)
 
-    # Human-readable ETA
-    if eta_minutes < 60:
-        eta_display = f'~{eta_minutes} minutes'
+    if max_eta < 60:
+        eta_display = f'~{max_eta} minutes'
     else:
-        hours = eta_minutes // 60
-        mins  = eta_minutes % 60
+        hours = max_eta // 60
+        mins  = max_eta % 60
         eta_display = f'~{hours}h {mins}min' if mins else f'~{hours} hour{"s" if hours > 1 else ""}'
 
     return JsonResponse({
         'ok': True,
-        'fee': float(fee),
-        'fee_display': f'GH₵ {fee:.2f}',
-        'eta_minutes': eta_minutes,
+        'fee': float(total_fee),
+        'fee_display': f'GH₵ {total_fee:.2f}',
+        'eta_minutes': max_eta,
         'eta_display': eta_display,
-        'distance_km': round(distance_km * 1.3, 1),  # road distance estimate
+        'distance_km': None,
+        'note': f'Fee based on {note_source}, calculated per seller.',
     })
 
 
-# ─── Reverse Geocoding API ────────────────────────────────────────────────────
-
-@require_POST
-@login_required
 def reverse_geocode_api(request):
     """
     Turn GPS coordinates into a human-readable address — SERVER-SIDE.
@@ -1818,31 +1785,36 @@ def _auto_create_order_from_stranded_payment(
     server_shipping_fee = Decimal('0.00')
     fulfillment = cleaned.get('fulfillment_type', 'pickup')
     if fulfillment == 'delivery':
-        # Same priority order as the main checkout path (checkout() above):
-        # 1. A fee already confirmed for THIS branch in this session — what
-        #    the customer actually saw before paying.
-        # 2. Recalculate from their saved GPS pin, if we have one and the
-        #    branch has coordinates — most accurate.
-        # 3. Flat region rate as the last resort.
-        # Previously this fallback skipped straight to the flat region rate,
-        # so a stranded-payment order could charge/credit a delivery fee
-        # that didn't match what the customer actually paid for, which also
-        # throws off the rider's payout (rider earnings are a % of
-        # order.shipping_fee — see wallet.credit_order_earnings).
-        confirmed_fee    = request.session.get('delivery_fee_confirmed', '')
-        confirmed_branch = request.session.get('delivery_branch_id', '')
-        delivery_lat     = request.session.get('delivery_lat')
-        delivery_lng     = request.session.get('delivery_lng')
-        if confirmed_fee and confirmed_branch == str(branch.id):
-            try:
-                server_shipping_fee = Decimal(confirmed_fee)
-            except Exception:
-                server_shipping_fee = REGION_FEES.get(branch.region, DELIVERY_BASE_FEE)
-        elif delivery_lat and delivery_lng and branch.latitude and branch.longitude:
-            dist_km = branch.distance_to(float(delivery_lat), float(delivery_lng))
-            server_shipping_fee, _ = calculate_delivery_fee(dist_km)
-        else:
-            server_shipping_fee = REGION_FEES.get(branch.region, DELIVERY_BASE_FEE)
+        # Each seller ships directly from their own location. This is a
+        # best-effort recovery path for an already-paid order that fell
+        # through the normal checkout flow, so unlike the main checkout
+        # path we don't block on a missing seller location here -- we
+        # fall back to the flat region rate for that seller's share
+        # instead, since the customer has already paid and the order
+        # must be reconciled somehow. The address on this order is
+        # already flagged for manual follow-up elsewhere, same team can
+        # review the fee too.
+        delivery_lat = request.session.get('delivery_lat')
+        delivery_lng = request.session.get('delivery_lng')
+        try:
+            delivery_lat = float(delivery_lat) if delivery_lat else None
+            delivery_lng = float(delivery_lng) if delivery_lng else None
+        except (TypeError, ValueError):
+            delivery_lat = delivery_lng = None
+
+        sellers_seen = {}
+        for it in cart_items:
+            sellers_seen[it['product'].created_by] = True
+
+        for seller in sellers_seen:
+            result = None
+            if delivery_lat is not None and delivery_lng is not None:
+                result = calculate_seller_delivery_fee(seller, delivery_lat, delivery_lng)
+            if result is not None:
+                fee, _eta = result
+            else:
+                fee = REGION_FEES.get(branch.region, DELIVERY_BASE_FEE)
+            server_shipping_fee += fee
 
     annotated, branch_subtotal, all_avail = reconcile_cart_with_branch(cart_items, branch)
     # Only build order lines from items the chosen branch genuinely sells —
@@ -2174,28 +2146,51 @@ def checkout(request):
                     # Delivery: use the fee confirmed by delivery_fee_api (stored in session).
                     # If the session has a confirmed fee for this branch, use it.
                     # Otherwise recalculate from GPS coords, or fall back to region rate.
-                    fulfillment = form.cleaned_data.get('fulfillment_type', 'pickup')
+                    fulfillment = 'delivery'  # Branch Pickup temporarily disabled
                     if fulfillment == 'pickup':
                         server_shipping_fee = Decimal('0.00')
                     else:
-                        confirmed_fee    = request.session.get('delivery_fee_confirmed', '')
-                        confirmed_branch = request.session.get('delivery_branch_id', '')
-                        delivery_lat     = request.session.get('delivery_lat')
-                        delivery_lng     = request.session.get('delivery_lng')
+                        # Each seller ships directly from their own location, so
+                        # the fee is the sum of each distinct seller's own
+                        # distance-based fee -- never trust the client-submitted
+                        # value, recompute fully server-side. If any seller in
+                        # the cart has no stored location, refuse the order
+                        # rather than charge an inaccurate estimate.
+                        delivery_lat = request.session.get('delivery_lat')
+                        delivery_lng = request.session.get('delivery_lng')
+                        if not delivery_lat or not delivery_lng:
+                            messages.error(
+                                request,
+                                'We could not confirm your delivery location. '
+                                'Please go back and confirm your delivery address again.'
+                            )
+                            return redirect('cart')
+                        delivery_lat = float(delivery_lat)
+                        delivery_lng = float(delivery_lng)
 
-                        if confirmed_fee and confirmed_branch == str(branch.id):
-                            # Use the fee already calculated and shown to the customer
-                            try:
-                                server_shipping_fee = Decimal(confirmed_fee)
-                            except Exception:
-                                server_shipping_fee = DELIVERY_BASE_FEE
-                        elif delivery_lat and delivery_lng and branch.latitude and branch.longitude:
-                            # Recalculate from saved GPS coords
-                            dist_km = branch.distance_to(float(delivery_lat), float(delivery_lng))
-                            server_shipping_fee, _ = calculate_delivery_fee(dist_km)
-                        else:
-                            # Last resort: region-based flat fee
-                            server_shipping_fee = REGION_FEES.get(branch.region, DELIVERY_BASE_FEE)
+                        sellers_seen = {}
+                        for it in cart_items:
+                            sellers_seen[it['product'].created_by] = True
+
+                        server_shipping_fee = Decimal('0')
+                        blocked_sellers = []
+                        for seller in sellers_seen:
+                            result = calculate_seller_delivery_fee(seller, delivery_lat, delivery_lng)
+                            if result is None:
+                                name = (seller.get_full_name() or seller.username) if seller else 'A seller'
+                                blocked_sellers.append(name)
+                                continue
+                            fee, _eta = result
+                            server_shipping_fee += fee
+
+                        if blocked_sellers:
+                            messages.error(
+                                request,
+                                "Home Delivery isn't available yet for items from: "
+                                + ', '.join(blocked_sellers)
+                                + '. Please choose Branch Pickup for those items, or remove them from your cart.'
+                            )
+                            return redirect('cart')
                     server_grand_total  = subtotal + server_shipping_fee
 
                     # FIX-PROMO: Re-validate the promo code stored in the session
@@ -2250,7 +2245,7 @@ def checkout(request):
                     order.discount_amount  = promo_discount
                     order.promo_code       = applied_promo
                     order.paid             = True
-                    order.fulfillment_type   = form.cleaned_data.get('fulfillment_type', 'pickup')
+                    order.fulfillment_type   = 'delivery'  # Branch Pickup temporarily disabled
                     order.delivery_address   = sanitize_text(form.cleaned_data.get('delivery_address', ''), 500)
                     order.delivery_landmark  = sanitize_text(form.cleaned_data.get('delivery_landmark', ''), 200)
                     # GPS pin (already validated as inside-Ghana by the

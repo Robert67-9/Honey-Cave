@@ -439,6 +439,58 @@ def calculate_delivery_fee(distance_km: float):
     return fee, eta
 
 
+def haversine_km(lat1, lng1, lat2, lng2):
+    """Straight-line distance in km between two lat/lng points."""
+    import math
+    R = 6371
+    dlat = math.radians(lat2 - lat1)
+    dlng = math.radians(lng2 - lng1)
+    a = (math.sin(dlat / 2) ** 2
+         + math.cos(math.radians(lat1))
+         * math.cos(math.radians(lat2))
+         * math.sin(dlng / 2) ** 2)
+    return R * 2 * math.asin(math.sqrt(a))
+
+
+def get_seller_location(seller):
+    """
+    Returns (lat, lng) from the seller's approved StoreApplication, or
+    None if the seller has no approved application with GPS coordinates
+    on file. Products ship directly from the seller, so this is the
+    authoritative origin point for delivery-fee calculation -- not the
+    fulfilling branch.
+    """
+    if seller is None:
+        return None
+    app = (
+        StoreApplication.objects
+        .filter(applicant=seller, status='approved',
+                latitude__isnull=False, longitude__isnull=False)
+        .order_by('-decided_at')
+        .first()
+    )
+    if app is None:
+        return None
+    return (app.latitude, app.longitude)
+
+
+def calculate_seller_delivery_fee(seller, buyer_lat, buyer_lng):
+    """
+    Returns (fee, eta_minutes) for delivering this seller's items directly
+    to the buyer, or None if the seller has no stored location on file.
+    Callers must treat None as "cannot offer delivery for this seller
+    yet" rather than falling back to a flat estimate -- an inaccurate
+    flat fee is what caused the original underpricing bug this replaces.
+    """
+    if buyer_lat is None or buyer_lng is None:
+        return None
+    loc = get_seller_location(seller)
+    if loc is None:
+        return None
+    distance_km = haversine_km(loc[0], loc[1], buyer_lat, buyer_lng)
+    return calculate_delivery_fee(distance_km)
+
+
 # ─── Branch Model ────────────────────────────────────────────────────────────
 
 class Branch(models.Model):
@@ -716,22 +768,40 @@ class Order(models.Model):
         """
         Returns a list of (seller_or_None, item_subtotal, fee_share) for
         every distinct product owner on this order -- None represents
-        platform-owned items (Product.created_by is null). shipping_fee is
-        split proportionally by each party's share of the order's item
-        subtotal, not divided evenly and not looked up independently per
-        seller (every seller on one order shares the same branch/region,
-        so an independent per-seller regional fee would overpay riders by
-        a multiple of what the customer actually paid). The last party in
-        the list absorbs any rounding remainder so the shares always sum
-        to exactly order.shipping_fee.
+        platform-owned items (Product.created_by is null).
+
+        For delivery orders placed after the seller-direct-shipping change
+        (self.delivery_lat/delivery_lng on file), each seller's fee_share
+        is computed independently from that seller's own stored location
+        to the buyer, since each seller now ships their own items
+        separately rather than sharing one branch origin.
+
+        Falls back to the legacy proportional split (dividing
+        self.shipping_fee by each seller's share of the item subtotal) for
+        pickup orders, or any order missing delivery GPS coordinates
+        (e.g. orders placed before this change).
         """
         totals = {}
         for item in self.items.select_related('product__created_by'):
             seller = item.product.created_by
             totals[seller] = totals.get(seller, Decimal('0')) + item.get_total_price()
+        items_list = list(totals.items())
+        if not items_list:
+            return []
+
+        if (self.fulfillment_type == 'delivery'
+                and self.delivery_lat is not None
+                and self.delivery_lng is not None):
+            shares = []
+            for seller, subtotal in items_list:
+                result = calculate_seller_delivery_fee(seller, self.delivery_lat, self.delivery_lng)
+                fee = result[0] if result else Decimal('0')
+                shares.append((seller, subtotal, fee))
+            return shares
+
+        # Legacy proportional-split fallback.
         fee = self.shipping_fee or Decimal('0')
         grand_subtotal = sum(totals.values())
-        items_list = list(totals.items())
         shares = []
         if grand_subtotal <= 0 or fee <= 0:
             for seller, subtotal in items_list:
@@ -2330,6 +2400,12 @@ class HandoffCode(models.Model):
     MAX_ATTEMPTS = 3
 
     order        = models.ForeignKey('Order', on_delete=models.CASCADE, related_name='handoff_codes')
+    rider_delivery = models.ForeignKey(
+        'RiderDelivery', on_delete=models.CASCADE, null=True, blank=True,
+        related_name='handoff_codes',
+        help_text="Which seller's delivery this code belongs to. Null for "
+                  "order-level stages (admin_to_officer, officer_to_customer).",
+    )
     stage        = models.CharField(max_length=24, choices=STAGE_CHOICES)
     code         = models.CharField(max_length=6, db_index=True,
                                     help_text='6-digit numeric code shown to the issuer and entered by the receiver.')
@@ -2509,6 +2585,12 @@ class WalletTransaction(models.Model):
     wallet        = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name='transactions')
     order         = models.ForeignKey('Order', on_delete=models.SET_NULL, null=True, blank=True, related_name='wallet_transactions')
     withdrawal    = models.ForeignKey('WithdrawalRequest', on_delete=models.SET_NULL, null=True, blank=True, related_name='ledger_entries')
+    rider_delivery = models.ForeignKey(
+        'RiderDelivery', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='wallet_transactions',
+        help_text="Set when this credit is scoped to one seller's delivery within a "
+                  "multi-seller order, rather than the whole order.",
+    )
     type          = models.CharField(max_length=20, choices=TYPE_CHOICES)
     status        = models.CharField(max_length=10, choices=STATUS_CHOICES, default='available')
     amount        = models.DecimalField(max_digits=12, decimal_places=2,
