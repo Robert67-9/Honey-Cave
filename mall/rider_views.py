@@ -117,6 +117,21 @@ def _send_otp(rider, code):
         whatsapp_text=msg,
         sms_text=msg,
     )
+    # Also send by email if the rider has one on file.
+    if getattr(rider, 'email', ''):
+        try:
+            from django.core.mail import send_mail
+            from django.conf import settings as django_settings
+            send_mail(
+                'Your Honey Cave Market rider login code',
+                msg,
+                getattr(django_settings, 'DEFAULT_FROM_EMAIL', None) or django_settings.EMAIL_HOST_USER,
+                [rider.email],
+                fail_silently=True,
+            )
+            result['email'] = True
+        except Exception as e:
+            logger.warning('Rider OTP email send failed for %s: %s', rider.email, e)
     # Console/terminal fallback for development — always available so the
     # code is never "stuck" when no provider is configured.
     try:
@@ -152,12 +167,12 @@ def rider_login(request):
             messages.error(request, 'Too many login attempts. Please wait a few minutes.')
             return render(request, 'mall/rider/login.html', {'next': next_url})
 
-        phone = (request.POST.get('phone') or '').strip()
-        if not phone or len(phone) > 20:
-            messages.error(request, 'Please enter a valid phone number.')
+        identifier = (request.POST.get('phone') or '').strip()
+        if not identifier or len(identifier) > 254:
+            messages.error(request, 'Please enter your registered phone number or email.')
             return render(request, 'mall/rider/login.html', {'next': next_url})
 
-        rider = Rider.find_by_phone(phone, active_only=True)
+        rider = Rider.find_by_phone_or_email(identifier, active_only=True)
 
         # IMPORTANT: we deliberately do NOT tell the user "no rider with that
         # phone" — that would let an attacker enumerate which phone numbers

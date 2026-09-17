@@ -2918,6 +2918,7 @@ def admin_rider_form(request, pk=None):
         name = (request.POST.get('name') or '').strip()
         phone = (request.POST.get('phone') or '').strip()
         alt_phone = (request.POST.get('alt_phone') or '').strip()
+        email = (request.POST.get('email') or '').strip().lower()
         vehicle_type = request.POST.get('vehicle_type') or 'motorcycle'
         license_number = (request.POST.get('license_number') or '').strip()
         notes = (request.POST.get('notes') or '').strip()
@@ -2952,6 +2953,19 @@ def admin_rider_form(request, pk=None):
                 'vehicle_choices': Rider.VEHICLE_CHOICES,
             })
 
+        # Email uniqueness — exclude self when editing. Email is optional,
+        # so only check when one was actually provided.
+        if email:
+            existing_email_qs = Rider.objects.filter(email__iexact=email)
+            if rider:
+                existing_email_qs = existing_email_qs.exclude(pk=rider.pk)
+            if existing_email_qs.exists():
+                messages.error(request, f'Another rider already uses email {email}.')
+                return render(request, 'mall/admin/rider_form.html', {
+                    'rider': rider, 'branches': branches, 'action': 'Edit' if rider else 'Add',
+                    'vehicle_choices': Rider.VEHICLE_CHOICES,
+                })
+
         if rider is None:
             rider = Rider(created_by=request.user)
             action = 'created'
@@ -2961,6 +2975,7 @@ def admin_rider_form(request, pk=None):
         rider.name = name
         rider.phone = phone
         rider.alt_phone = alt_phone
+        rider.email = email or None
         rider.vehicle_type = vehicle_type
         rider.license_number = license_number
         rider.notes = notes

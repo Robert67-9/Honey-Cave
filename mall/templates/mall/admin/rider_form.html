@@ -44,6 +44,13 @@
              style="width:100%; padding:.65rem; border:1px solid var(--border); border-radius:8px; background:var(--bg-input); color:var(--text);">
     </div>
     <div>
+      <label style="display:block; font-size:.78rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:.35rem;">Email (optional)</label>
+      <input type="email" name="email" maxlength="254"
+             value="{{ rider.email|default:'' }}"
+             placeholder="rider@example.com"
+             style="width:100%; padding:.65rem; border:1px solid var(--border); border-radius:8px; background:var(--bg-input); color:var(--text);">
+    </div>
+    <div>
       <label style="display:block; font-size:.78rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:.35rem;">Vehicle</label>
       <select name="vehicle_type" style="width:100%; padding:.65rem; border:1px solid var(--border); border-radius:8px; background:var(--bg-input); color:var(--text);">
         {% for value, label in vehicle_choices %}
