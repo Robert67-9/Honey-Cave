@@ -63,7 +63,11 @@
         </div>
         {% endif %}
         <div style="font-size:.82rem; margin-top:.4rem;">
+          {% if a.id_document %}
           <a href="{{ a.id_document.url }}" target="_blank" rel="noopener" style="color:var(--accent); font-weight:600;">📎 View ID Document</a>
+          {% else %}
+          <span style="color:var(--text-faint);">No ID document on file.</span>
+          {% endif %}
         </div>
         <div style="font-size:.78rem; color:var(--text-faint); margin-top:.4rem;">
           Submitted {{ a.created|date:"M j, Y H:i" }}

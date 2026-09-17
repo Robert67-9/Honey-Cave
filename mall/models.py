@@ -1307,6 +1307,10 @@ class Rider(models.Model):
         help_text='Primary phone (WhatsApp). Must be unique across all riders.',
     )
     alt_phone      = models.CharField(max_length=20, blank=True)
+    email          = models.EmailField(
+        blank=True, null=True, unique=True,
+        help_text='Optional. Lets the rider log in with email instead of phone, and receive OTPs by email.',
+    )
     vehicle_type   = models.CharField(
         max_length=12, choices=VEHICLE_CHOICES, default='motorcycle',
     )
@@ -1362,6 +1366,23 @@ class Rider(models.Model):
             if cls.normalize_phone(rider.phone) == normalized:
                 return rider
         return None
+
+    @classmethod
+    def find_by_email(cls, raw, *, active_only=False):
+        email = (raw or '').strip().lower()
+        if not email:
+            return None
+        qs = cls.objects.filter(email__iexact=email)
+        if active_only:
+            qs = qs.filter(is_active=True)
+        return qs.first()
+
+    @classmethod
+    def find_by_phone_or_email(cls, raw, *, active_only=False):
+        raw = (raw or '').strip()
+        if '@' in raw:
+            return cls.find_by_email(raw, active_only=active_only)
+        return cls.find_by_phone(raw, active_only=active_only)
 
     def save(self, *args, **kwargs):
         if self.phone:
