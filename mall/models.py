@@ -1302,6 +1302,7 @@ class RiderApplication(models.Model):
         ('motorcycle', 'Motorcycle'),
         ('bicycle',    'Bicycle'),
         ('car',        'Car'),
+        ('truck',      'Delivery Truck'),
         ('tricycle',   'Tricycle (Pragya)'),
         ('foot',       'On Foot'),
         ('other',      'Other'),
@@ -1364,6 +1365,7 @@ class Rider(models.Model):
         ('motorcycle', 'Motorcycle'),
         ('bicycle',    'Bicycle'),
         ('car',        'Car'),
+        ('truck',      'Delivery Truck'),
         ('tricycle',   'Tricycle (Pragya)'),
         ('foot',       'On Foot'),
         ('other',      'Other'),
@@ -1386,6 +1388,14 @@ class Rider(models.Model):
     branches       = models.ManyToManyField(
         'Branch', related_name='riders', blank=True,
         help_text='Branches this rider is authorized to deliver for.',
+    )
+    latitude       = models.FloatField(
+        null=True, blank=True,
+        help_text="Rider's base/home GPS latitude, for proximity-based dispatch.",
+    )
+    longitude      = models.FloatField(
+        null=True, blank=True,
+        help_text="Rider's base/home GPS longitude, for proximity-based dispatch.",
     )
     is_active      = models.BooleanField(
         default=True,
@@ -1471,6 +1481,18 @@ class Rider(models.Model):
         if not self.is_verified:
             return 'Unverified'
         return 'Active'
+
+    def distance_to(self, lat, lng):
+        """
+        Haversine straight-line distance in km from this rider's stored
+        base location to the given coordinates. Returns float('inf') if
+        this rider has no location on file -- callers should treat that
+        as "unknown distance", not "zero distance", so unlocated riders
+        sort last rather than first.
+        """
+        if self.latitude is None or self.longitude is None:
+            return float('inf')
+        return haversine_km(self.latitude, self.longitude, lat, lng)
 
 
 class RiderOTP(models.Model):
