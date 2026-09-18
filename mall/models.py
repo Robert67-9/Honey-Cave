@@ -413,10 +413,10 @@ REGION_FEES = {
 # ─── Delivery fee calculation ─────────────────────────────────────────────────
 
 # Base fee for all home deliveries (covers first 5 km)
-DELIVERY_BASE_FEE   = Decimal('10.00')   # GH₵ 10 base
-DELIVERY_RATE_PER_KM = Decimal('1.50')   # GH₵ 1.50 per km after 5 km
+DELIVERY_BASE_FEE   = Decimal('20.00')   # GH₵ 20 base
+DELIVERY_RATE_PER_KM = Decimal('20.00')  # GH₵ 20 per km after 5 km
 DELIVERY_FREE_KM    = 5                  # first 5 km included in base fee
-DELIVERY_MAX_FEE    = Decimal('80.00')   # cap for very long distances
+DELIVERY_MAX_FEE    = Decimal('160.00')  # cap for very long distances (8x base, same ratio as before)
 
 # Estimated delivery time: 20 min base + 3 min per km
 DELIVERY_BASE_MINS  = 20
