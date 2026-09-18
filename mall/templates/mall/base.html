@@ -987,6 +987,9 @@
             </form>
             <!-- ── Desktop nav links (hidden on mobile via CSS) ─────── -->
             <div class="nav-links">
+                {% if nav_rider %}
+                <a href="{% url 'rider_dashboard' %}" style="color:var(--gold);font-weight:600;">🛵 Rider Dashboard</a>
+                {% endif %}
                 <a href="{% url 'product_list' %}">Shop</a>
                 <a href="{% url 'contact' %}">Contact</a>
                 <a href="{% url 'branches' %}">Our Branches</a>
