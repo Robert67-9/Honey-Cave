@@ -154,6 +154,7 @@ tbody tr:last-child td { border-bottom: none; }
   {% if request.rider %}
   <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
     <a href="{% url 'rider_dashboard' %}" style="{% if request.resolver_match.url_name == 'rider_dashboard' %}font-weight:600;color:var(--gold);{% endif %}">Dashboard</a>
+    <a href="{% url 'product_list' %}">🛍️ Shop</a>
     <a href="{% url 'rider_history' %}" style="{% if request.resolver_match.url_name == 'rider_history' %}font-weight:600;color:var(--gold);{% endif %}">History</a>
     <a href="{% url 'rider_earnings' %}" style="{% if request.resolver_match.url_name in 'rider_earnings,rider_withdraw,rider_withdraw_confirm' %}font-weight:600;color:var(--gold);{% endif %}">Earnings</a>
     <span class="who">{{ request.rider.name }}</span>

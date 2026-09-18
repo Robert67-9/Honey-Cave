@@ -103,6 +103,7 @@ TEMPLATES = [
                 'mall.context_processors.cart_count',
                 'mall.context_processors.branding',
                 'mall.context_processors.store_categories',
+                'mall.context_processors.rider_status',
             ],
         },
     },

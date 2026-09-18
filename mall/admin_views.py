@@ -9,7 +9,7 @@ from django.db.models import Sum, Count, Q, F
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from datetime import timedelta
-from .models import Product, Category, Order, OrderItem, Review, REGION_FEES, PaymentSettings, Branch, REGION_CHOICES as _RC, PromoCode, OrderNote, Notification, ProductImage, RiderDelivery, AuditLog, AdminTOTP, Promotion, SiteSettings, HandoffCode, BranchProduct, UserProfile, Rider, BranchAssignment, OfficerUploadRequest, StoreApplication, normalize_phone, Wallet, WalletTransaction, WithdrawalRequest, OfficerAutoLoginToken, EmailCampaign, EmailCampaignRecipient
+from .models import Product, Category, Order, OrderItem, Review, REGION_FEES, PaymentSettings, Branch, REGION_CHOICES as _RC, PromoCode, OrderNote, Notification, ProductImage, RiderDelivery, AuditLog, AdminTOTP, Promotion, SiteSettings, HandoffCode, BranchProduct, UserProfile, Rider, BranchAssignment, OfficerUploadRequest, StoreApplication, RiderApplication, RiderAutoLoginToken, normalize_phone, Wallet, WalletTransaction, WithdrawalRequest, OfficerAutoLoginToken, EmailCampaign, EmailCampaignRecipient
 from .forms import PaymentSettingsForm
 from .security import validate_uploaded_image
 from . import wallet as wallet_svc
@@ -3246,6 +3246,110 @@ def admin_store_application_decide(request, pk):
     )
     messages.success(request, 'Decision saved.')
     return redirect('admin_store_applications')
+
+
+@admin_required
+def admin_rider_applications(request):
+    qs = RiderApplication.objects.select_related('decided_by', 'created_rider').order_by('-created')
+
+    status_filter = request.GET.get('status') or 'pending'
+    if status_filter != 'all':
+        qs = qs.filter(status=status_filter)
+
+    counts = {
+        'pending':  RiderApplication.objects.filter(status='pending').count(),
+        'approved': RiderApplication.objects.filter(status='approved').count(),
+        'rejected': RiderApplication.objects.filter(status='rejected').count(),
+    }
+
+    return render(request, 'mall/admin/rider_applications.html', {
+        'applications':  qs,
+        'counts':        counts,
+        'status_filter': status_filter,
+    })
+
+
+@admin_required
+@require_POST
+def admin_rider_application_decide(request, pk):
+    """
+    Approve or reject a RiderApplication. Approving creates the actual
+    Rider roster record (mirrors what admin_rider_form does manually) and
+    auto-assigns branches in the applicant's stated region — an officer can
+    adjust the exact branch list afterwards from the rider edit form.
+    """
+    application = get_object_or_404(RiderApplication, pk=pk)
+    decision = (request.POST.get('decision') or '').strip()
+    note = (request.POST.get('note') or '').strip()[:300]
+
+    if decision not in ('approve', 'reject'):
+        messages.error(request, 'Invalid decision.')
+        return redirect('admin_rider_applications')
+
+    if application.status != 'pending':
+        messages.info(request, 'This application has already been decided.')
+        return redirect('admin_rider_applications')
+
+    if decision == 'approve':
+        normalized_phone = normalize_phone(application.phone)
+        conflict = Rider.objects.filter(phone=normalized_phone).first()
+        if conflict:
+            messages.error(request, f'A rider already exists with phone {application.phone} ("{conflict.name}"). Resolve manually before approving.')
+            return redirect('admin_rider_applications')
+        if application.email:
+            email_conflict = Rider.objects.filter(email__iexact=application.email).first()
+            if email_conflict:
+                messages.error(request, f'A rider already exists with email {application.email} ("{email_conflict.name}"). Resolve manually before approving.')
+                return redirect('admin_rider_applications')
+
+        rider = Rider.objects.create(
+            name=application.name,
+            phone=application.phone,
+            alt_phone=application.alt_phone,
+            email=application.email or None,
+            vehicle_type=application.vehicle_type,
+            license_number=application.license_number,
+            photo=application.photo or None,
+            notes=application.notes,
+            is_verified=True,
+            created_by=request.user,
+        )
+        rider.branches.set(Branch.objects.filter(is_active=True, region=application.region))
+
+        # One-time login link — hand this to the rider instead of making
+        # them go through phone+OTP for their very first visit.
+        auto_login_token = RiderAutoLoginToken.objects.create(
+            rider=rider, created_by=request.user,
+        )
+        auto_login_url = request.build_absolute_uri(
+            f'/rider/auto-login/{auto_login_token.token}/'
+        )
+
+        application.status = 'approved'
+        application.created_rider = rider
+        admin_note = note or f'Approved by {request.user.username}'
+    else:
+        application.status = 'rejected'
+        admin_note = note or f'Rejected by {request.user.username}'
+
+    application.decision_note = admin_note
+    application.decided_at = timezone.now()
+    application.decided_by = request.user
+    application.save()
+
+    audit_log(
+        request,
+        f'rider_application_{decision}',
+        f'{application.name} ({application.phone})',
+    )
+    if decision == 'approve':
+        messages.success(
+            request,
+            f'Decision saved. One-time rider login link (valid 72h, single use): {auto_login_url} — share this with {rider.name} now.'
+        )
+    else:
+        messages.success(request, 'Decision saved.')
+    return redirect('admin_rider_applications')
 
 
 # ─── Admin: Officer Upload-Access Requests ────────────────────────────────────

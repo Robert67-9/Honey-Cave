@@ -26,14 +26,14 @@ from .models import (
     REGION_FEES, REGION_CHOICES, OTPVerification, UserProfile, PaymentSettings,
     calculate_delivery_fee, DELIVERY_BASE_FEE, calculate_seller_delivery_fee,
     Review, ReviewHelpful, WishlistItem, PromoCode, ProductImage, OrderNote, Notification,
-    OrderFeedback, RiderDelivery, StoreApplication,
+    OrderFeedback, RiderDelivery, RiderApplication, StoreApplication,
     ShipmentBooking, ShipmentTrackingEvent, SHIPPING_DELIVERY_OPTIONS, SHIPPING_METHODS, calculate_shipment_estimate,
 )
 from .forms import (
     RegisterForm, CheckoutForm, ReviewForm,
     OTPVerifyForm, ForgotPasswordForm, ResetPasswordForm,
     ContactForm, ProfileUpdateForm, PromoCodeForm, OrderFeedbackForm,
-    StoreApplicationForm, ShipmentBookingForm,
+    StoreApplicationForm, RiderApplicationForm, ShipmentBookingForm,
 )
 from .security import (
     rate_limit, check_rate_limit, clear_rate_limit,
@@ -1475,6 +1475,32 @@ def reverse_geocode_api(request):
         address_str = ''
         landmark    = ''
 
+    # GhanaPost GPS digital address — best-effort, via a free unofficial
+    # community-run wrapper (not operated by GhanaPost; no uptime guarantee).
+    # Failure here must never break the rest of reverse geocoding, so it's
+    # fully isolated in its own try/except.
+    digital_address = ''
+    try:
+        gp_body = urllib.parse.urlencode({'lat': f'{lat:.6f}', 'long': f'{lng:.6f}'}).encode()
+        gp_req = urllib.request.Request(
+            'https://ghanapostgps.sperixlabs.org/get-address',
+            data=gp_body,
+            headers={'Content-Type': 'application/x-www-form-urlencoded'},
+        )
+        with urllib.request.urlopen(gp_req, timeout=5) as resp:
+            gp_data = json.loads(resp.read().decode())
+        if gp_data.get('found'):
+            rows = ((gp_data.get('data') or {}).get('Table')) or []
+            if rows:
+                gps_name = (rows[0].get('GPSName') or '').strip()
+                # GPSName comes back like "AK4849321" — format to "AK-484-9321".
+                if len(gps_name) >= 9:
+                    digital_address = f'{gps_name[:2]}-{gps_name[2:5]}-{gps_name[5:]}'
+                else:
+                    digital_address = gps_name
+    except Exception:
+        digital_address = ''
+
     nb = _nearest_branch(lat, lng)
     nearest = None
     if nb is not None:
@@ -1497,7 +1523,8 @@ def reverse_geocode_api(request):
         }
 
     return JsonResponse({
-        'ok':             True,
+        'ok':               True,
+        'digital_address':  digital_address,
         'found':          bool(address_str),
         'address':        address_str,
         'landmark':       landmark,
@@ -3309,6 +3336,56 @@ def store_application(request):
             messages.error(request, 'Please correct the errors below.')
 
     return render(request, 'mall/store_application.html', {
+        'form': form,
+        'application': existing,  # None, or a past rejected one (shown as history)
+    })
+
+
+def rider_application(request):
+    """
+    Public application to become a delivery rider.
+
+    Unlike store_application, this has no login requirement — riders aren't
+    necessarily existing site accounts, and RiderApplication has no
+    applicant FK. The in-progress/decided application is tracked via the
+    session instead of request.user.
+    """
+    existing = None
+    existing_id = request.session.get('rider_application_id')
+    if existing_id:
+        existing = RiderApplication.objects.filter(pk=existing_id).first()
+
+    if existing and existing.status in ('pending', 'approved'):
+        return render(request, 'mall/rider_application.html', {
+            'application': existing,
+        })
+
+    form = RiderApplicationForm(request.POST or None, request.FILES or None)
+    if request.method == 'POST':
+        if not check_rate_limit('rider_application', request, limit=3, window=3600):
+            messages.error(request, 'Too many submissions. Please try again later.')
+            return redirect('rider_application')
+        if form.is_valid():
+            application = form.save()
+            request.session['rider_application_id'] = application.pk
+
+            from .notify import notify_admins
+            notify_admins(
+                notif_type='order_update',
+                title='🏍️ New Rider Application',
+                message=(
+                    f'{application.name} applied to become a rider '
+                    f'({application.get_vehicle_type_display()}, {application.get_region_display()}).'
+                ),
+                link='/panel/rider-applications/',
+            )
+
+            messages.success(request, 'Your application has been submitted! We will review it and get back to you.')
+            return redirect('rider_application')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+
+    return render(request, 'mall/rider_application.html', {
         'form': form,
         'application': existing,  # None, or a past rejected one (shown as history)
     })

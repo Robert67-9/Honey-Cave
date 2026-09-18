@@ -74,6 +74,47 @@ def _resolve_rider(request):
     return session.rider
 
 
+def rider_auto_login(request, token):
+    """
+    One-time entry point for a freshly-approved rider: admin shares this
+    link instead of (or alongside) telling them to log in with their phone.
+    First visit creates a real RiderSession (same cookie-based session used
+    by rider_verify_otp) and burns the token; every visit after that goes
+    through the normal /rider/login/ phone+OTP flow.
+    """
+    from .models import RiderAutoLoginToken, RiderSession
+
+    row = RiderAutoLoginToken.objects.filter(token=token).select_related('rider').first()
+    if row is None or not row.is_valid:
+        messages.error(request, 'This login link is invalid or has expired. Please log in with your phone number.')
+        return redirect('rider_login')
+
+    if not row.rider.is_active:
+        messages.error(request, 'This rider account is not active.')
+        return redirect('rider_login')
+
+    row.used_at = timezone.now()
+    row.save(update_fields=['used_at'])
+
+    session = RiderSession.objects.create(
+        rider=row.rider,
+        user_agent=(request.META.get('HTTP_USER_AGENT') or '')[:300],
+        ip_address=_client_ip(request),
+    )
+
+    response = redirect('rider_dashboard')
+    response.set_cookie(
+        SESSION_COOKIE,
+        session.token,
+        max_age=RiderSession.DEFAULT_TTL_DAYS * 24 * 3600,
+        httponly=True,
+        secure=request.is_secure(),
+        samesite='Lax',
+    )
+    messages.success(request, f"Welcome, {row.rider.name.split()[0] if row.rider.name else 'rider'}! You're logged in.")
+    return response
+
+
 def rider_required(view_func):
     """
     Decorator: only riders with a valid session cookie can pass.

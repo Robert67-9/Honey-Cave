@@ -2,7 +2,7 @@ import re
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, SetPasswordForm
 from django.contrib.auth.models import User
-from .models import Order, Review, ReviewHelpful, REGION_CHOICES, PaymentSettings, UserProfile, PromoCode, StoreApplication, ShipmentBooking
+from .models import Order, Review, ReviewHelpful, REGION_CHOICES, PaymentSettings, UserProfile, PromoCode, StoreApplication, RiderApplication, ShipmentBooking
 
 
 class PromoCodeForm(forms.Form):
@@ -180,6 +180,46 @@ class StoreApplicationForm(forms.ModelForm):
         return f
 
 
+class RiderApplicationForm(forms.ModelForm):
+    class Meta:
+        model = RiderApplication
+        fields = ['name', 'phone', 'alt_phone', 'email', 'vehicle_type', 'license_number', 'region', 'id_document', 'photo', 'notes']
+        labels = {
+            'alt_phone': 'Alternate Phone',
+            'license_number': 'License Number (if any)',
+        }
+        widgets = {
+            'name': forms.TextInput(attrs={'placeholder': 'e.g. Kwame Mensah'}),
+            'phone': forms.TextInput(attrs={'placeholder': 'e.g. 0244 123 456'}),
+            'alt_phone': forms.TextInput(attrs={'placeholder': 'Optional'}),
+            'email': forms.EmailInput(attrs={'placeholder': 'Optional'}),
+            'license_number': forms.TextInput(attrs={'placeholder': 'Optional'}),
+            'notes': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Availability, experience, anything else we should know…'}),
+        }
+        help_texts = {
+            'id_document': "National ID, passport, or driver's license (PDF or image).",
+            'photo': 'A clear photo of yourself — optional, but helps officers recognize you at handoff.',
+        }
+
+    agree_to_terms = forms.BooleanField(
+        required=True,
+        error_messages={'required': 'You must agree to the Terms & Conditions before submitting.'},
+    )
+
+    def clean_id_document(self):
+        f = self.cleaned_data['id_document']
+        if f.size > 10 * 1024 * 1024:
+            raise forms.ValidationError('File is too large — please keep it under 10MB.')
+        return f
+
+    def clean_phone(self):
+        from .models import normalize_phone
+        phone = self.cleaned_data['phone'].strip()
+        if not normalize_phone(phone):
+            raise forms.ValidationError('Please enter a valid phone number.')
+        return phone
+
+
 class ShipmentBookingForm(forms.ModelForm):
     class Meta:
         model = ShipmentBooking
@@ -218,6 +258,18 @@ class CheckoutForm(forms.ModelForm):
         help_text='Required for Home Delivery.',
     )
 
+    # Auto-filled from the GhanaPost reverse-lookup when the customer uses
+    # the location pin. Editable — the lookup can be wrong or unavailable.
+    delivery_digital_address = forms.CharField(
+        required=False,  # required only for Home Delivery — enforced in clean()
+        max_length=20,
+        label='Digital Address',
+        widget=forms.TextInput(attrs={
+            'placeholder': 'e.g. GA-184-9021',
+        }),
+        help_text='Ghana Post GPS address — auto-filled when you use the location pin, or enter it yourself.',
+    )
+
     # Optional landmark — Ghanaian addresses lean on these
     # ("behind the blue water tank, opposite the church"). Riders rely on
     # them more than on the actual address text, so we surface a dedicated
@@ -248,7 +300,7 @@ class CheckoutForm(forms.ModelForm):
     class Meta:
         model   = Order
         fields  = ['full_name', 'email', 'phone', 'address', 'city', 'zip_code',
-                   'fulfillment_type', 'delivery_address', 'delivery_landmark',
+                   'fulfillment_type', 'delivery_address', 'delivery_digital_address', 'delivery_landmark',
                    'delivery_lat', 'delivery_lng', 'payment_reference']
         widgets = {'address': forms.Textarea(attrs={'rows': 2})}
 
@@ -262,6 +314,8 @@ class CheckoutForm(forms.ModelForm):
         cleaned = super().clean()
         if cleaned.get('fulfillment_type') == 'delivery' and not cleaned.get('delivery_address', '').strip():
             self.add_error('delivery_address', 'Please enter your delivery address.')
+        if cleaned.get('fulfillment_type') == 'delivery' and not cleaned.get('delivery_digital_address', '').strip():
+            self.add_error('delivery_digital_address', 'Please enter your Ghana Post digital address, or use the location pin above to auto-fill it.')
 
         # Validate captured GPS coordinates if present. Reject anything
         # outside Ghana — the user almost certainly wasn't in Argentina

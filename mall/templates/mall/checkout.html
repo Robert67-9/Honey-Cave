@@ -403,6 +403,15 @@ const PICKUP_BRANCH = {% if pickup_branch %}{
                 <p style="font-size:.78rem;color:var(--muted);margin-top:.3rem;">{{ form.delivery_landmark.help_text }}</p>
             </div>
 
+            <div class="form-group">
+                <label style="font-weight:600;">{{ form.delivery_digital_address.label }} <span style="color:#dc3545;">*</span></label>
+                {{ form.delivery_digital_address }}
+                {% if form.delivery_digital_address.errors %}
+                <div class="form-errors">{{ form.delivery_digital_address.errors }}</div>
+                {% endif %}
+                <p style="font-size:.78rem;color:var(--muted);margin-top:.3rem;">{{ form.delivery_digital_address.help_text }}</p>
+            </div>
+
             <!-- Hidden inputs filled by the geolocation JS below -->
             {{ form.delivery_lat }}
             {{ form.delivery_lng }}
@@ -1428,6 +1437,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var lngInput  = document.getElementById('{{ form.delivery_lng.auto_id }}');
     var addrInput = document.getElementById('{{ form.delivery_address.auto_id }}');
     var lmrkInput = document.getElementById('{{ form.delivery_landmark.auto_id }}');
+    var digAddrInput = document.getElementById('{{ form.delivery_digital_address.auto_id }}');
     if (!btn || !latInput || !lngInput) return;
 
     function setStatus(html, kind) {
@@ -1478,6 +1488,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             if (lmrk && lmrkInput && !lmrkInput.value.trim()) {
               lmrkInput.value = 'Near ' + lmrk;
+            }
+            var digAddr = (data && data.digital_address) || '';
+            if (digAddr && digAddrInput && !digAddrInput.value.trim()) {
+              digAddrInput.value = digAddr;
             }
             if (data && data.address) {
               setStatus(

@@ -80,3 +80,17 @@ def store_categories(request):
     except Exception:
         names = ''
     return {'store_category_names': names}
+
+
+def rider_status(request):
+    """
+    Exposes whether the current visitor has a valid rider session, for
+    templates outside the rider portal (e.g. the main site nav) that want
+    to show a "Rider Dashboard" link without going through @rider_required.
+    Cheap: only runs the session lookup if the cookie is present at all.
+    """
+    from .rider_views import _resolve_rider
+    rider = None
+    if request.COOKIES.get('rider_session'):
+        rider = _resolve_rider(request)
+    return {'nav_rider': rider}

@@ -130,6 +130,16 @@
       {% endif %}
 
       <div class="profile-links">
+        {% if nav_rider %}
+        <a href="{% url 'rider_dashboard' %}" class="profile-link"
+           style="background:var(--gold);color:#1d1405;font-weight:700;margin-bottom:0.5rem;">
+          🛵 Rider Dashboard
+        </a>
+        <a href="{% url 'product_list' %}" class="profile-link"
+           style="border:1px solid var(--gold);font-weight:600;margin-bottom:0.5rem;">
+          🛍️ Go to Shop
+        </a>
+        {% endif %}
         {% if user.profile.is_fulfillment_officer %}
         <a href="{% url 'fulfillment_officer_dashboard' %}" class="profile-link"
            style="background:var(--gold);color:#1d1405;font-weight:700;margin-bottom:0.5rem;">

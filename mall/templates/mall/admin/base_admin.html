@@ -288,6 +288,9 @@
         <a href="{% url 'admin_store_applications' %}" class="sidebar-link {% if 'store_application' in request.resolver_match.url_name %}active{% endif %}">
             <span class="icon">🏪</span> Store Applications
         </a>
+        <a href="{% url 'admin_rider_applications' %}" class="sidebar-link {% if 'rider_application' in request.resolver_match.url_name %}active{% endif %}">
+            <span class="icon">🏍️</span> Rider Applications
+        </a>
         <a href="{% url 'admin_branch_requests' %}" class="sidebar-link {% if 'branch_request' in request.resolver_match.url_name %}active{% endif %}">
             <span class="icon">📋</span> Branch Requests
         </a>
