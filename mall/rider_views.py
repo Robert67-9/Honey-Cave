@@ -721,3 +721,71 @@ def rider_withdraw_confirm(request):
         return redirect('rider_earnings')
 
     return render(request, 'mall/rider/withdraw_confirm.html', {'wr': wr})
+
+@rider_required
+def rider_location(request):
+    """
+    Lets a rider set their own base/home location, either by typing an
+    address (geocoded via Nominatim, same pattern used for buyer/branch
+    addresses elsewhere) or by sharing their live GPS position from the
+    browser. Used to sort/filter the roster an officer sees when
+    assigning riders to a delivery, by proximity to each seller.
+    """
+    import urllib.request
+    import urllib.parse
+    import json as _json
+
+    rider = request.rider
+
+    if request.method == 'POST':
+        pin_lat = request.POST.get('pin_lat', '').strip()
+        pin_lng = request.POST.get('pin_lng', '').strip()
+        address = request.POST.get('address', '').strip()
+
+        if pin_lat and pin_lng:
+            try:
+                rider.latitude = float(pin_lat)
+                rider.longitude = float(pin_lng)
+                rider.save(update_fields=['latitude', 'longitude'])
+                messages.success(request, 'Location updated from your GPS position.')
+            except ValueError:
+                messages.error(request, 'Invalid GPS coordinates received.')
+            return redirect('rider_location')
+
+        if not address:
+            messages.error(request, 'Please enter an address or share your GPS location.')
+            return redirect('rider_location')
+
+        try:
+            query = urllib.parse.urlencode({
+                'q': address + ', Ghana',
+                'format': 'json',
+                'limit': 1,
+                'countrycodes': 'gh',
+            })
+            geo_url = f'https://nominatim.openstreetmap.org/search?{query}'
+            geo_req = urllib.request.Request(
+                geo_url,
+                headers={'User-Agent': 'HoneyCaveMarket/1.0 (contact@honeycavemarket.com)'},
+            )
+            with urllib.request.urlopen(geo_req, timeout=5) as resp:
+                geo_data = _json.loads(resp.read().decode())
+        except Exception:
+            geo_data = None
+
+        if not geo_data:
+            messages.error(
+                request,
+                'Could not locate that address precisely. Try a more specific '
+                'address, or use "Share my GPS location" instead.',
+            )
+            return redirect('rider_location')
+
+        rider.latitude = float(geo_data[0]['lat'])
+        rider.longitude = float(geo_data[0]['lon'])
+        rider.save(update_fields=['latitude', 'longitude'])
+        messages.success(request, 'Location updated.')
+        return redirect('rider_location')
+
+    return render(request, 'mall/rider/location.html', {'rider': rider})
+

@@ -1,0 +1,63 @@
+{% extends 'mall/rider/base.html' %}
+{% block title %}My Location — Rider Portal{% endblock %}
+{% block content %}
+<div style="max-width: 480px; margin: 2rem auto;">
+  <div class="card" style="padding: 2rem;">
+    <h1 style="margin-bottom: 0.4rem;">📍 My Location</h1>
+    <p style="color: var(--muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+      Set your base location so officers can find the rider nearest to a seller when assigning deliveries.
+    </p>
+
+    <button type="button" id="share-gps-btn" class="btn btn-gold" style="width:100%; padding: 0.85rem; margin-bottom: 1.5rem;">
+      📡 Share My GPS Location
+    </button>
+    <div id="gps-status" style="font-size: 0.82rem; margin-bottom: 1.5rem;"></div>
+
+    <p style="text-align:center; color: var(--muted); font-size: 0.8rem; margin: 1rem 0;">— or type an address —</p>
+
+    <form method="post">
+      {% csrf_token %}
+      <div style="margin-bottom: 1rem;">
+        <label for="rider-address" style="display:block; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.3rem;">
+          Address
+        </label>
+        <input type="text" id="rider-address" name="address"
+               placeholder="e.g. East Legon, Accra"
+               style="width:100%; padding: 0.85rem; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 1rem; background: var(--surface); color: var(--dark);">
+      </div>
+      <button type="submit" class="btn btn-gold" style="width:100%; padding: 0.85rem;">
+        Save Address
+      </button>
+    </form>
+
+    {% if rider.latitude and rider.longitude %}
+    <p style="text-align:center; color: var(--muted); font-size: 0.78rem; margin-top: 1.5rem;">
+      Current saved location: {{ rider.latitude|floatformat:5 }}, {{ rider.longitude|floatformat:5 }}
+    </p>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+document.getElementById('share-gps-btn').addEventListener('click', function() {
+  var statusEl = document.getElementById('gps-status');
+  if (!navigator.geolocation) {
+    statusEl.textContent = 'Geolocation is not supported by your browser.';
+    return;
+  }
+  statusEl.textContent = 'Getting your location...';
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.innerHTML =
+      '{% csrf_token %}' +
+      '<input type="hidden" name="pin_lat" value="' + pos.coords.latitude + '">' +
+      '<input type="hidden" name="pin_lng" value="' + pos.coords.longitude + '">';
+    document.body.appendChild(form);
+    form.submit();
+  }, function(err) {
+    statusEl.textContent = 'Could not get your location: ' + err.message;
+  });
+});
+</script>
+{% endblock %}
