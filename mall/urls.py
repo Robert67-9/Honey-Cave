@@ -116,6 +116,7 @@ urlpatterns = [
     # ─── Apply for Job / Own a Store / Shipping Import-Export ─────────────────
     path('apply/job/', views.apply_job, name='apply_job'),
     path('apply/store/', views.store_application, name='store_application'),
+    path('apply/rider/', views.rider_application, name='rider_application'),
     path('verify/<str:seller_code>/', views.verify_seller, name='verify_seller'),
     path('shipping-import-export/', views.shipping_import_export, name='shipping_import_export'),
     path('shipping-import-export/book/', views.shipping_book, name='shipping_book'),
@@ -123,6 +124,9 @@ urlpatterns = [
     path('my-shipments/', views.my_shipments, name='my_shipments'),
     path('panel/store-applications/', admin_views.admin_store_applications, name='admin_store_applications'),
     path('panel/store-applications/<int:pk>/decide/', admin_views.admin_store_application_decide, name='admin_store_application_decide'),
+    path('panel/rider-applications/', admin_views.admin_rider_applications, name='admin_rider_applications'),
+    path('panel/rider-applications/<int:pk>/decide/', admin_views.admin_rider_application_decide, name='admin_rider_application_decide'),
+    path('rider/auto-login/<str:token>/', rider_views.rider_auto_login, name='rider_auto_login'),
 
     # Reviews
     path('reviews/<int:review_id>/helpful/', views.mark_review_helpful, name='mark_review_helpful'),
