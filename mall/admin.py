@@ -16,6 +16,7 @@ from .models import (
     ProductUpload,
     ProductUploadItem,
     UploadedProductImage,
+    APIKey,
 )
 from .models import UserProfile
 
@@ -208,3 +209,17 @@ class UserProfileAdmin(admin.ModelAdmin):
     list_editable = ['is_suspended']
     search_fields = ['user__username', 'user__email', 'phone']
     readonly_fields = ['google_id', 'email_verified']
+
+@admin.register(APIKey)
+class APIKeyAdmin(admin.ModelAdmin):
+    list_display = ('name', 'prefix', 'user', 'scopes', 'is_active', 'created', 'last_used_at', 'revoked_at')
+    list_filter = ('is_active', 'scopes')
+    search_fields = ('name', 'prefix', 'user__username', 'user__email')
+    readonly_fields = ('prefix', 'key_hash', 'created', 'last_used_at', 'revoked_at')
+    actions = ['revoke_keys']
+
+    def revoke_keys(self, request, queryset):
+        from django.utils import timezone
+        updated = queryset.filter(is_active=True).update(is_active=False, revoked_at=timezone.now())
+        self.message_user(request, f"Revoked {updated} API key(s).")
+    revoke_keys.short_description = "Revoke selected keys"
