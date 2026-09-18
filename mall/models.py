@@ -1,3 +1,4 @@
+from .validators import validate_image_size
 from django.db import models
 from django.contrib.auth.models import User
 from decimal import Decimal
@@ -126,7 +127,7 @@ class OTPVerification(models.Model):
 class UserProfile(models.Model):
     user            = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     phone           = models.CharField(max_length=20, blank=True)
-    profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True, validators=[validate_image_size])
     is_verified     = models.BooleanField(default=False)
     # Location — set on login/register via browser geolocation
     latitude        = models.FloatField(null=True, blank=True)
@@ -295,7 +296,7 @@ class Product(models.Model):
     slug = models.SlugField(unique=True)
     description = models.TextField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    image = models.ImageField(upload_to='products/', blank=True, null=True)
+    image = models.ImageField(upload_to='products/', blank=True, null=True, validators=[validate_image_size])
     image_url = models.URLField(blank=True, null=True)
     stock = models.PositiveIntegerField(default=0)
     available = models.BooleanField(default=True)
@@ -698,6 +699,10 @@ class Order(models.Model):
     ]
     fulfillment_type  = models.CharField(max_length=10, choices=FULFILLMENT_CHOICES, default='pickup')
     delivery_address  = models.TextField(blank=True, help_text='Full address for home delivery')
+    delivery_digital_address = models.CharField(
+        max_length=20, blank=True, default='',
+        help_text="Ghana Post GPS digital address, e.g. GA-184-9021 — auto-filled from the location pin when available.",
+    )
     delivery_landmark = models.CharField(
         max_length=200, blank=True,
         help_text='Nearby landmark — e.g. "behind blue water tank, opposite Ghana Methodist Church".',
@@ -998,7 +1003,7 @@ class WishlistItem(models.Model):
 class ProductImage(models.Model):
     """Additional images for a product (beyond the main product.image field)."""
     product    = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='gallery')
-    image      = models.ImageField(upload_to='products/gallery/')
+    image      = models.ImageField(upload_to='products/gallery/', validators=[validate_image_size])
     sort_order = models.PositiveIntegerField(default=0, help_text='Lower = shown first')
     alt_text   = models.CharField(max_length=200, blank=True)
     created    = models.DateTimeField(auto_now_add=True)
@@ -1163,7 +1168,7 @@ class ProductUploadItem(models.Model):
 
 class UploadedProductImage(models.Model):
     upload_item = models.ForeignKey(ProductUploadItem, on_delete=models.CASCADE, related_name='images')
-    image = models.ImageField(upload_to='product_uploads/images/')
+    image = models.ImageField(upload_to='product_uploads/images/', validators=[validate_image_size])
     alt_text = models.CharField(max_length=200, blank=True)
     sort_order = models.PositiveIntegerField(default=0)
 
@@ -1271,6 +1276,67 @@ class Notification(models.Model):
 # ─── Rider Delivery ───────────────────────────────────────────────────────────
 
 import secrets as _secrets
+
+class RiderApplication(models.Model):
+    """
+    Public application submitted from the "Become a Rider" page by anyone
+    who wants to join the rider roster -- no Django User account required,
+    since riders authenticate via phone/email OTP, not username/password.
+
+    Admin reviews the details + ID upload from the admin panel. Approving
+    auto-creates a Rider record (is_verified=True, is_active=True) from
+    the application's fields -- see admin_rider_application_decide.
+    """
+    STATUS_CHOICES = [
+        ('pending',  'Pending Review'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+
+    name            = models.CharField(max_length=150)
+    phone           = models.CharField(max_length=20, help_text='Primary phone (WhatsApp).')
+    alt_phone       = models.CharField(max_length=20, blank=True)
+    email           = models.EmailField(blank=True, null=True)
+    vehicle_type    = models.CharField(max_length=12, choices=[
+        ('motorcycle', 'Motorcycle'),
+        ('bicycle',    'Bicycle'),
+        ('car',        'Car'),
+        ('tricycle',   'Tricycle (Pragya)'),
+        ('foot',       'On Foot'),
+        ('other',      'Other'),
+    ], default='motorcycle')
+    license_number  = models.CharField(max_length=50, blank=True)
+    region          = models.CharField(max_length=50, choices=REGION_CHOICES, default='greater_accra',
+                                        help_text='Where the applicant mainly wants to ride.')
+    id_document     = models.FileField(
+        upload_to='rider_applications/ids/',
+        help_text='National ID, passport, or driver\'s license',
+    )
+    photo           = models.ImageField(upload_to='rider_applications/photos/', blank=True, null=True)
+    notes           = models.TextField(blank=True, help_text="Applicant's message — experience, availability, etc.")
+
+    status          = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    decision_note   = models.CharField(max_length=300, blank=True, default='')
+    decided_by      = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='decided_rider_applications',
+    )
+    decided_at      = models.DateTimeField(null=True, blank=True)
+    created_rider   = models.ForeignKey(
+        'Rider', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='source_application',
+        help_text='Set to the Rider record created when this application was approved.',
+    )
+
+    created         = models.DateTimeField(auto_now_add=True)
+    updated         = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created']
+
+    def __str__(self):
+        return f'{self.name} — {self.phone} ({self.get_status_display()})'
+
 
 class Rider(models.Model):
     """
@@ -1593,6 +1659,42 @@ class OfficerAutoLoginToken(models.Model):
 
     def __str__(self):
         return f'Auto-login for {self.officer.username} ({"used" if self.used_at else "unused"})'
+
+    def save(self, *args, **kwargs):
+        if not self.token:
+            self.token = _secrets.token_urlsafe(48)
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(hours=self.DEFAULT_TTL_HOURS)
+        super().save(*args, **kwargs)
+
+    @property
+    def is_valid(self):
+        return self.used_at is None and timezone.now() < self.expires_at
+
+
+class RiderAutoLoginToken(models.Model):
+    """
+    One-time login link handed to a rider right after an admin approves
+    their RiderApplication, so they can get into the rider portal without
+    going through the phone+OTP flow first. Single-use: the moment it's
+    consumed a normal RiderSession is created (same cookie-based session
+    used by rider_verify_otp) and the token is burned — any future visit
+    goes through /rider/login/ like usual.
+    """
+    DEFAULT_TTL_HOURS = 72   # admin needs time to actually hand the link over
+
+    rider       = models.ForeignKey('Rider', on_delete=models.CASCADE, related_name='auto_login_tokens')
+    token       = models.CharField(max_length=64, unique=True, editable=False, db_index=True)
+    created_at  = models.DateTimeField(auto_now_add=True)
+    created_by  = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    expires_at  = models.DateTimeField()
+    used_at     = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'Rider Auto-Login Token'
+
+    def __str__(self):
+        return f'Auto-login for {self.rider.name} ({"used" if self.used_at else "unused"})'
 
     def save(self, *args, **kwargs):
         if not self.token:
