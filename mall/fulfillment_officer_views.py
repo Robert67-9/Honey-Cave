@@ -1261,7 +1261,6 @@ def officer_product_delete_confirm(request, pk):
 
 
 @fulfillment_officer_required
-@fulfillment_officer_required
 def officer_certificate(request):
     """
     Printable "Official Seller Partner" certificate for an approved store
