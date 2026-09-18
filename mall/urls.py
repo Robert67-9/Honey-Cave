@@ -1,10 +1,14 @@
 from django.urls import path
+from . import api_v1
 from . import views, admin_views, google_auth, fulfillment_officer_views, rider_views, return_views
 
 urlpatterns = [
     path('manifest.json', views.pwa_manifest, name='pwa_manifest'),
     path('sw.js', views.pwa_service_worker, name='pwa_service_worker'),
     path('api/push/subscribe/', views.save_push_subscription, name='save_push_subscription'),
+
+    # ─── Public API v1 (third-party integrations) ──────────────────────────
+    path('api/v1/products/', api_v1.products_list, name='api_v1_products_list'),
 
     # ─── Custom Admin Panel ───────────────────────────────────────────────────
     path('panel/', admin_views.admin_dashboard, name='admin_dashboard'),

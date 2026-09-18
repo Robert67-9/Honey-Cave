@@ -41,6 +41,7 @@ services:
       - media_files:/app/media         # persistent media uploads
       - static_files:/app/staticfiles  # served by Nginx
       - app_logs:/app/logs
+      - ./mall:/app/mall  # dev convenience: host edits take effect on restart, no rebuild needed
     networks:
       - backend
       - frontend
