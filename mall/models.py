@@ -1276,6 +1276,7 @@ class Notification(models.Model):
 # ─── Rider Delivery ───────────────────────────────────────────────────────────
 
 import secrets as _secrets
+import hashlib as _hashlib
 
 class RiderApplication(models.Model):
     """
@@ -2904,3 +2905,54 @@ class PushSubscription(models.Model):
 
     def str(self):
         return f'PushSubscription({self.user.username})'
+
+
+class APIKey(models.Model):
+    """
+    Issued to a seller or external partner so their own software can call
+    HoneyCave's public /api/v1/ endpoints. The raw key is shown to the user
+    exactly once at creation time -- only its SHA-256 hash is ever stored,
+    same principle as a password. `prefix` (the first 12 chars of the key)
+    is stored in the clear purely so we can look the row up fast without
+    hashing every stored key on every request.
+
+    `scopes` is a comma-separated list of permission strings, checked by
+    api_auth.api_key_required() -- e.g. a delivery partner's key can be
+    scoped to orders:read only, so even a leaked key can't be used to
+    place orders or edit a seller's catalog.
+    """
+    SCOPE_CHOICES = [
+        ('catalog:read',   'Read product catalog'),
+        ('stock:read',     'Read stock / availability'),
+        ('orders:read',    'Read order & delivery status'),
+        ('orders:write',   'Place orders'),
+        ('products:write', "Manage own store's products"),
+    ]
+
+    user         = models.ForeignKey(User, on_delete=models.CASCADE, related_name='api_keys')
+    name         = models.CharField(max_length=100, help_text='Label to remember what this key is for, e.g. "Acme Logistics integration".')
+    prefix       = models.CharField(max_length=12, unique=True, editable=False, db_index=True)
+    key_hash     = models.CharField(max_length=128, editable=False)
+    scopes       = models.CharField(max_length=300, help_text='Comma-separated scopes, e.g. catalog:read,orders:write')
+    is_active    = models.BooleanField(default=True)
+    created      = models.DateTimeField(auto_now_add=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+    revoked_at   = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'API Key'
+
+    def __str__(self):
+        return f'{self.name} ({self.prefix}…) — {self.user.username}'
+
+    def has_scope(self, scope):
+        return scope in [s.strip() for s in self.scopes.split(',') if s.strip()]
+
+    @staticmethod
+    def generate_key():
+        """Returns (raw_key, prefix, key_hash). raw_key is shown once and never stored."""
+        raw = _secrets.token_urlsafe(32)
+        full_key = f'hc_live_{raw}'
+        prefix = full_key[:12]
+        key_hash = _hashlib.sha256(full_key.encode()).hexdigest()
+        return full_key, prefix, key_hash
