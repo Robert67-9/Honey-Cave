@@ -1,0 +1,95 @@
+{% extends 'mall/fulfillment_officer/base.html' %}
+
+{% block title %}API Keys — Fulfillment Officer{% endblock %}
+
+{% block content %}
+<div style="max-width:720px;margin:0 auto;">
+
+  <h2 style="color:#1d1405;margin-bottom:0.3rem;">API Keys</h2>
+  <p style="color:#666;font-size:0.92rem;margin-bottom:1.5rem;">
+    Generate keys to connect your own software to Honey Cave's API. Each key is shown
+    <strong>once</strong>, immediately after creation — copy it somewhere safe right away.
+  </p>
+
+  {% if new_raw_key %}
+  <div style="background:#fdecf3;border:2px solid #ec1e79;border-radius:12px;padding:1.2rem 1.4rem;margin-bottom:1.5rem;">
+    <div style="font-weight:800;color:#ec1e79;margin-bottom:0.5rem;">🔑 Your new API key (copy it now):</div>
+    <code id="new-key-value" style="display:block;background:#fff;border:1px solid #f0c4d8;border-radius:8px;padding:0.7rem 0.9rem;font-size:0.92rem;word-break:break-all;">{{ new_raw_key }}</code>
+    <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('new-key-value').textContent.trim())" class="btn btn-gold" style="margin-top:0.8rem;">Copy to clipboard</button>
+    <div style="margin-top:0.6rem;font-size:0.82rem;color:#888;">This key will not be shown again. If you lose it, revoke it and create a new one.</div>
+  </div>
+  {% endif %}
+
+  <div style="background:#fff;border:1px solid #eee;border-radius:12px;padding:1.4rem;margin-bottom:1.5rem;">
+    <div style="font-weight:700;margin-bottom:0.8rem;">Create a new key</div>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="create">
+      <label style="display:block;font-size:0.88rem;color:#555;margin-bottom:0.3rem;">Name (what is this key for?)</label>
+      <input type="text" name="name" placeholder="e.g. My inventory sync tool" required
+             style="width:100%;padding:0.6rem 0.8rem;border:1px solid #ddd;border-radius:8px;margin-bottom:1rem;box-sizing:border-box;">
+
+      <label style="display:block;font-size:0.88rem;color:#555;margin-bottom:0.4rem;">Scopes (what can this key do?)</label>
+      <div style="display:flex;flex-direction:column;gap:0.4rem;margin-bottom:1.2rem;">
+        {% for value, label in scope_choices %}
+        <label style="font-size:0.9rem;color:#333;">
+          <input type="checkbox" name="scopes" value="{{ value }}"> {{ label }} <span style="color:#999;">({{ value }})</span>
+        </label>
+        {% endfor %}
+      </div>
+
+      <button type="submit" class="btn btn-gold">Generate key</button>
+    </form>
+  </div>
+
+  <div style="font-weight:700;margin-bottom:0.6rem;">Your keys</div>
+  {% if keys %}
+  <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:0.88rem;">
+      <thead>
+        <tr style="text-align:left;border-bottom:2px solid #eee;">
+          <th style="padding:0.5rem;">Name</th>
+          <th style="padding:0.5rem;">Prefix</th>
+          <th style="padding:0.5rem;">Scopes</th>
+          <th style="padding:0.5rem;">Status</th>
+          <th style="padding:0.5rem;">Created</th>
+          <th style="padding:0.5rem;">Last used</th>
+          <th style="padding:0.5rem;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for key in keys %}
+        <tr style="border-bottom:1px solid #f2f2f2;">
+          <td style="padding:0.5rem;">{{ key.name }}</td>
+          <td style="padding:0.5rem;"><code>{{ key.prefix }}…</code></td>
+          <td style="padding:0.5rem;color:#666;">{{ key.scopes }}</td>
+          <td style="padding:0.5rem;">
+            {% if key.is_active %}
+              <span style="color:#1a8a3c;font-weight:700;">Active</span>
+            {% else %}
+              <span style="color:#b02a2a;">Revoked</span>
+            {% endif %}
+          </td>
+          <td style="padding:0.5rem;color:#888;">{{ key.created|date:"d M Y" }}</td>
+          <td style="padding:0.5rem;color:#888;">{{ key.last_used_at|date:"d M Y"|default:"Never" }}</td>
+          <td style="padding:0.5rem;">
+            {% if key.is_active %}
+            <form method="post" onsubmit="return confirm('Revoke &quot;{{ key.name }}&quot;? Anything using this key will stop working immediately.');">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="revoke">
+              <input type="hidden" name="key_id" value="{{ key.id }}">
+              <button type="submit" style="background:none;border:none;color:#b02a2a;cursor:pointer;font-size:0.85rem;text-decoration:underline;">Revoke</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p style="color:#888;">You haven't created any API keys yet.</p>
+  {% endif %}
+
+</div>
+{% endblock %}

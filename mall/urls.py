@@ -9,6 +9,7 @@ urlpatterns = [
 
     # ─── Public API v1 (third-party integrations) ──────────────────────────
     path('api/v1/products/', api_v1.products_list, name='api_v1_products_list'),
+    path('api/v1/orders/', api_v1.orders_create, name='api_v1_orders_create'),
 
     # ─── Custom Admin Panel ───────────────────────────────────────────────────
     path('panel/', admin_views.admin_dashboard, name='admin_dashboard'),
@@ -242,6 +243,7 @@ urlpatterns = [
     path('officer/product-upload/',   fulfillment_officer_views.officer_product_upload,     name='officer_product_upload'),
     path('officer/upload-access/',     fulfillment_officer_views.officer_upload_access,      name='officer_upload_access'),
     path('officer/certificate/', fulfillment_officer_views.officer_certificate, name='officer_certificate'),
+    path('officer/api-keys/', fulfillment_officer_views.officer_api_keys, name='officer_api_keys'),
     path('officer/upload-access/request/', fulfillment_officer_views.officer_request_upload_access, name='officer_request_upload_access'),
     path('officer/upload-access/verify/',  fulfillment_officer_views.officer_upload_pay_verify,     name='officer_upload_pay_verify'),
     path('officer/my-products/',      fulfillment_officer_views.officer_my_products,        name='officer_my_products'),

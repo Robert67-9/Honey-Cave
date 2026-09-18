@@ -1955,3 +1955,55 @@ def save_product_with_unique_slug(p, base_slug, max_attempts=5):
             p.slug = f'{base_slug}-{n}'[:50]
     # Last attempt, let it raise if it still fails
     p.save()
+
+@fulfillment_officer_required
+def officer_api_keys(request):
+    """
+    Self-service API key management, scoped strictly to request.user.
+    Raw key is only ever shown once, immediately after creation --
+    only its hash is stored (mirrors password handling).
+    """
+    from mall.models import APIKey
+    new_raw_key = None
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'create':
+            name = request.POST.get('name', '').strip()
+            scopes = request.POST.getlist('scopes')
+            if not name:
+                messages.error(request, 'Please give this key a name.')
+            elif not scopes:
+                messages.error(request, 'Select at least one scope.')
+            else:
+                raw_key, prefix, key_hash = APIKey.generate_key()
+                APIKey.objects.create(
+                    user=request.user,
+                    name=name,
+                    prefix=prefix,
+                    key_hash=key_hash,
+                    scopes=','.join(scopes),
+                )
+                new_raw_key = raw_key
+                messages.success(request, 'API key created. Copy it now -- it will not be shown again.')
+
+        elif action == 'revoke':
+            key_id = request.POST.get('key_id')
+            key = APIKey.objects.filter(id=key_id, user=request.user, is_active=True).first()
+            if key:
+                key.is_active = False
+                key.revoked_at = timezone.now()
+                key.save()
+                messages.success(request, f'"{key.name}" has been revoked.')
+            else:
+                messages.error(request, 'Key not found.')
+
+    keys = APIKey.objects.filter(user=request.user).order_by('-created')
+
+    return render(request, 'mall/fulfillment_officer/api_keys.html', {
+        'keys': keys,
+        'new_raw_key': new_raw_key,
+        'scope_choices': APIKey.SCOPE_CHOICES,
+    })
+
