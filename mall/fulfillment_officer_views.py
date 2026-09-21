@@ -238,7 +238,6 @@ def fulfillment_officer_order(request, pk):
 
             if opened:
                 messages.success(request, f'Opened {len(opened)} delivery leg(s) to any available rider in the region.')
-                audit_log(request, 'delivery_opened_to_pool', f'Order {order.order_number}', f'{len(opened)} leg(s)')
             else:
                 messages.info(request, 'All delivery legs on this order already have a rider assigned.')
             return redirect('fulfillment_officer_order', pk=order.pk)
