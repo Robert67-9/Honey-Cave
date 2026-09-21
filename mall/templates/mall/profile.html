@@ -133,12 +133,18 @@
         {% if nav_rider %}
         <a href="{% url 'rider_dashboard' %}" class="profile-link"
            style="background:var(--gold);color:#1d1405;font-weight:700;margin-bottom:0.5rem;">
-          🛵 Rider Dashboard
+          🛵 {{ nav_rider.name }}'s Dashboard
         </a>
         <a href="{% url 'product_list' %}" class="profile-link"
            style="border:1px solid var(--gold);font-weight:600;margin-bottom:0.5rem;">
           🛍️ Go to Shop
         </a>
+        <form method="post" action="{% url 'rider_logout' %}" style="margin-bottom:0.5rem;">
+          {% csrf_token %}
+          <button type="submit" class="profile-link" style="width:100%;border:1px solid var(--border);background:none;cursor:pointer;font-size:0.85rem;color:var(--muted);">
+            Not {{ nav_rider.name }}? Log out of rider session
+          </button>
+        </form>
         {% endif %}
         {% if user.profile.is_fulfillment_officer %}
         <a href="{% url 'fulfillment_officer_dashboard' %}" class="profile-link"
