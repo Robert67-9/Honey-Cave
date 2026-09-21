@@ -988,7 +988,11 @@
             <!-- ── Desktop nav links (hidden on mobile via CSS) ─────── -->
             <div class="nav-links">
                 {% if nav_rider %}
-                <a href="{% url 'rider_dashboard' %}" style="color:var(--gold);font-weight:600;">🛵 Rider Dashboard</a>
+                <a href="{% url 'rider_dashboard' %}" style="color:var(--gold);font-weight:600;">🛵 {{ nav_rider.name }}'s Dashboard</a>
+                <form method="post" action="{% url 'rider_logout' %}" style="display:inline;margin:0;">
+                  {% csrf_token %}
+                  <button type="submit" style="background:none;border:none;color:var(--muted);font-size:0.78rem;text-decoration:underline;cursor:pointer;padding:0;">(not {{ nav_rider.name }}? log out)</button>
+                </form>
                 {% endif %}
                 <a href="{% url 'product_list' %}">Shop</a>
                 <a href="{% url 'contact' %}">Contact</a>
