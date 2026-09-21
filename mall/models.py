@@ -1638,6 +1638,17 @@ class RiderDelivery(models.Model):
     confirmed_at  = models.DateTimeField(null=True, blank=True)
     rider_note    = models.TextField(blank=True)
 
+    # Rider pool: officer opens this delivery to any active rider in the
+    # branch's region instead of assigning one directly (e.g. seller's own
+    # rider is unavailable). Any eligible rider can claim it first-come,
+    # first-served -- claim_delivery() below handles the race safely.
+    is_open_for_pickup = models.BooleanField(
+        default=False,
+        help_text='True when this delivery is open for any active rider in the region to claim.',
+    )
+    opened_at     = models.DateTimeField(null=True, blank=True)
+    claimed_at    = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         verbose_name = 'Rider Delivery'
         unique_together = [('order', 'seller')]

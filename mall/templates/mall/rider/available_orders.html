@@ -1,0 +1,45 @@
+{% extends 'mall/rider/base.html' %}
+{% block title %}Available Orders — Rider Portal{% endblock %}
+{% block content %}
+<div style="max-width: 680px; margin: 2rem auto;">
+  <h1 style="margin-bottom: 0.4rem;">📦 Available Orders</h1>
+  <p style="color: var(--muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+    Deliveries opened by branches in your region — first to claim gets it.
+  </p>
+
+  {% if not pool %}
+  <div class="card" style="padding: 2rem; text-align:center; color: var(--muted);">
+    No open deliveries right now. Check back soon.
+  </div>
+  {% else %}
+  {% for delivery in pool %}
+  <div class="card" style="padding: 1.25rem; margin-bottom: 1rem;">
+    <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom: 0.75rem;">
+      <div>
+        <strong>{{ delivery.order.order_number }}</strong>
+        <div style="color: var(--muted); font-size: 0.82rem;">Opened {{ delivery.opened_at|timesince }} ago</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-weight:700; color: var(--gold);">GH₵{{ delivery.shipping_fee }}</div>
+        <div style="color: var(--muted); font-size: 0.78rem;">delivery fee</div>
+      </div>
+    </div>
+
+    <div style="font-size: 0.88rem; margin-bottom: 0.5rem;">
+      <strong>📍 Pickup:</strong> {{ delivery.order.branch.name }} — {{ delivery.order.branch.address }}, {{ delivery.order.branch.city }}
+    </div>
+    <div style="font-size: 0.88rem; margin-bottom: 1rem;">
+      <strong>🏁 Drop-off:</strong> {{ delivery.order.city }}{% if delivery.order.delivery_landmark %} — near {{ delivery.order.delivery_landmark }}{% endif %}
+    </div>
+
+    <form method="post" action="{% url 'rider_claim_delivery' delivery.id %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-gold" style="width:100%; padding: 0.8rem;">
+        Pickup &amp; Deliver
+      </button>
+    </form>
+  </div>
+  {% endfor %}
+  {% endif %}
+</div>
+{% endblock %}

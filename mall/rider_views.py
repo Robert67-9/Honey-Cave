@@ -789,3 +789,84 @@ def rider_location(request):
 
     return render(request, 'mall/rider/location.html', {'rider': rider})
 
+
+@rider_required
+def rider_available_orders(request):
+    """
+    Pool of deliveries any active rider in the branch's region can claim --
+    opened by a fulfillment officer via "Open for Any Rider" when the
+    seller's usual rider is unavailable. First to claim it gets it;
+    claim_delivery below handles the race safely with select_for_update.
+    """
+    from .models import RiderDelivery
+
+    rider = request.rider
+    my_regions = set(rider.branches.values_list('region', flat=True))
+
+    pool = (
+        RiderDelivery.objects
+        .filter(is_open_for_pickup=True, rider__isnull=True)
+        .select_related('order', 'order__branch', 'seller')
+        .filter(order__branch__region__in=my_regions)
+        .order_by('opened_at')
+    )
+
+    return render(request, 'mall/rider/available_orders.html', {
+        'pool': pool,
+    })
+
+
+@rider_required
+def rider_claim_delivery(request, delivery_id):
+    """
+    POST-only. Atomically claims an open pool delivery for the current
+    rider. select_for_update locks the row for the duration of the
+    transaction so two riders tapping "Pickup & Deliver" at the same
+    moment can't both succeed -- the second one simply sees it's gone.
+    """
+    from django.db import transaction
+    from .models import RiderDelivery
+    from . import handoff as handoff_svc
+
+    if request.method != 'POST':
+        return redirect('rider_available_orders')
+
+    rider = request.rider
+
+    with transaction.atomic():
+        try:
+            delivery = RiderDelivery.objects.select_for_update().get(pk=delivery_id)
+        except RiderDelivery.DoesNotExist:
+            messages.error(request, 'That delivery no longer exists.')
+            return redirect('rider_available_orders')
+
+        if not delivery.is_open_for_pickup or delivery.rider_id:
+            messages.error(request, 'Sorry, another rider already claimed this delivery.')
+            return redirect('rider_available_orders')
+
+        if delivery.order.branch not in rider.branches.all():
+            messages.error(request, "This delivery isn't in one of your authorized branches.")
+            return redirect('rider_available_orders')
+
+        order = delivery.order
+        is_new = not order.seller_deliveries.exclude(pk=delivery.pk).filter(rider__isnull=False).exists()
+
+        delivery.rider = rider
+        delivery.rider_name = rider.name
+        delivery.rider_phone = rider.phone
+        delivery.is_open_for_pickup = False
+        delivery.claimed_at = timezone.now()
+        delivery.save(update_fields=['rider', 'rider_name', 'rider_phone', 'is_open_for_pickup', 'claimed_at'])
+
+        if order.status not in ('dispatched', 'shipped', 'delivered', 'confirmed'):
+            order.status = 'dispatched'
+            order.save(update_fields=['status'])
+
+        handoff_svc.issue_code(
+            order, 'officer_to_rider',
+            issued_to_label=f'Rider: {rider.name}',
+            rider_delivery=delivery,
+        )
+
+    messages.success(request, f'Claimed! Head to {delivery.order.branch.name} and get the pickup code from the officer.')
+    return redirect('rider_dashboard')

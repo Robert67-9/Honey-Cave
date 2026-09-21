@@ -209,6 +209,39 @@ def fulfillment_officer_order(request, pk):
 
     if request.method == 'POST':
         action = request.POST.get('action', '')
+        if action == 'open_for_pool':
+            # Seller/officer's own rider is unavailable -- open this
+            # order's delivery(ies) to any active rider in the branch's
+            # region instead. Creates or resets each seller's
+            # RiderDelivery row with rider=None, is_open_for_pickup=True.
+            # The admin_to_officer handoff must already be confirmed
+            # (order physically at the branch) before it's meaningful to
+            # offer it out for pickup.
+            if not order.handoff_codes.filter(stage='admin_to_officer', used_at__isnull=False).exists():
+                messages.error(request, 'Confirm receipt from admin first before opening this order for pickup.')
+                return redirect('fulfillment_officer_order', pk=order.pk)
+            if order.fulfillment_type != 'delivery':
+                messages.error(request, 'Only home-delivery orders can be opened to the rider pool.')
+                return redirect('fulfillment_officer_order', pk=order.pk)
+
+            now = timezone.now()
+            opened = []
+            for seller, subtotal, fee_share in order.seller_delivery_shares():
+                delivery, _ = RiderDelivery.objects.get_or_create(order=order, seller=seller)
+                if delivery.rider_id:
+                    continue  # already has a rider assigned -- leave it alone
+                delivery.is_open_for_pickup = True
+                delivery.opened_at = now
+                delivery.shipping_fee = fee_share
+                delivery.save(update_fields=['is_open_for_pickup', 'opened_at', 'shipping_fee'])
+                opened.append(delivery)
+
+            if opened:
+                messages.success(request, f'Opened {len(opened)} delivery leg(s) to any available rider in the region.')
+                audit_log(request, 'delivery_opened_to_pool', f'Order {order.order_number}', f'{len(opened)} leg(s)')
+            else:
+                messages.info(request, 'All delivery legs on this order already have a rider assigned.')
+            return redirect('fulfillment_officer_order', pk=order.pk)
         if action == 'verify_admin_code':
             entered = request.POST.get('code', '').strip()
             status, _, remaining = handoff_svc.verify_code(

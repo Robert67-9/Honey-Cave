@@ -189,6 +189,21 @@
     </button>
   </form>
 
+  {% if order.fulfillment_type == 'delivery' %}
+  <div style="border-top: 1px solid var(--border); margin-top: 1.1rem; padding-top: 1.1rem;">
+    <p style="font-size: .84rem; color: var(--text-muted); margin-bottom: .6rem;">
+      Can't find a rider right now? Open this delivery to any active rider in the region — first to claim it gets it.
+    </p>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="open_for_pool">
+      <button type="submit" class="btn" style="padding: .6rem 1.4rem; border: 1px solid var(--gold); color: var(--gold); background: none;">
+        📢 Open to Any Rider in Region
+      </button>
+    </form>
+  </div>
+  {% endif %}
+
   <script>
   function switchRiderMode(mode) {
     var roster = document.getElementById('rider-form-roster');

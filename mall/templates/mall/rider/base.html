@@ -158,6 +158,7 @@ tbody tr:last-child td { border-bottom: none; }
     <a href="{% url 'rider_history' %}" style="{% if request.resolver_match.url_name == 'rider_history' %}font-weight:600;color:var(--gold);{% endif %}">History</a>
     <a href="{% url 'rider_earnings' %}" style="{% if request.resolver_match.url_name in 'rider_earnings,rider_withdraw,rider_withdraw_confirm' %}font-weight:600;color:var(--gold);{% endif %}">Earnings</a>
     <a href="{% url 'rider_location' %}" style="{% if request.resolver_match.url_name == 'rider_location' %}font-weight:600;color:var(--gold);{% endif %}">My Location</a>
+    <a href="{% url 'rider_available_orders' %}" style="{% if request.resolver_match.url_name == 'rider_available_orders' %}font-weight:600;color:var(--gold);{% endif %}">📦 Available Orders</a>
     <span class="who">{{ request.rider.name }}</span>
     <form method="post" action="{% url 'rider_logout' %}" style="display:inline;margin:0;">
       {% csrf_token %}

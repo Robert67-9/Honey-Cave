@@ -200,6 +200,8 @@ urlpatterns = [
     path('rider/earnings/withdraw/resend/', rider_views.rider_withdraw_resend, name='rider_withdraw_resend'),
     path('rider/earnings/withdraw/<int:pk>/resume/', rider_views.rider_withdraw_resume, name='rider_withdraw_resume'),
     path('rider/location/', rider_views.rider_location, name='rider_location'),
+    path('rider/available-orders/', rider_views.rider_available_orders, name='rider_available_orders'),
+    path('rider/available-orders/<int:delivery_id>/claim/', rider_views.rider_claim_delivery, name='rider_claim_delivery'),
     path('orders/<int:order_id>/confirm-delivery/', views.confirm_delivery, name='confirm_delivery'),
 
     # CSV Import
