@@ -93,6 +93,10 @@ def fulfillment_officer_login(request):
     who aren't flagged is_fulfillment_officer.
     """
     next_url = request.GET.get('next') or request.POST.get('next') or '/officer/'
+    if request.method == 'GET' and request.user.is_authenticated:
+        prof = getattr(request.user, 'profile', None)
+        if prof and prof.is_fulfillment_officer:
+            return redirect(next_url if next_url.startswith('/officer') else '/officer/')
     if request.method == 'POST':
         username = (request.POST.get('username') or '').strip()
         password = request.POST.get('password') or ''

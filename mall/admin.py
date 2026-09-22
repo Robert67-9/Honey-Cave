@@ -199,7 +199,7 @@ class StoreApplicationAdmin(admin.ModelAdmin):
     list_display  = ['store_name', 'applicant', 'status', 'product_category', 'created']
     list_filter   = ['status']
     search_fields = ['store_name', 'applicant__username', 'business_reg_no']
-    readonly_fields = ['created', 'updated']
+    readonly_fields = ['status', 'created', 'updated']
 
 
 @admin.register(UserProfile)

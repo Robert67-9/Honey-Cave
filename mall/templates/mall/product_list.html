@@ -159,11 +159,12 @@
 
     <!-- Products -->
     <div>
+        {% if query or current_category %}
         <p class="results-info">
-            Showing <strong>{{ products|length }}</strong> product{{ products|length|pluralize }}
-            {% if query %} for "<strong>{{ query }}</strong>"{% endif %}
-            {% if current_category %} in <strong>{{ current_category.name }}</strong>{% endif %}
+            {% if query %}Results for "<strong>{{ query }}</strong>"{% endif %}
+            {% if current_category %}{% if query %} in {% else %}Showing {% endif %}<strong>{{ current_category.name }}</strong>{% endif %}
         </p>
+        {% endif %}
 
         {% if products %}
         <div class="product-grid">

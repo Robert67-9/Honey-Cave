@@ -178,7 +178,7 @@ a.row-link:hover { color: var(--gold); }
 <body>
 <header class="skp-bar">
   <div class="brand">📦 Fulfillment Officer Portal</div>
-  {% if user.is_authenticated %}
+  {% if user.is_authenticated and user.profile and user.profile.is_fulfillment_officer %}
   <button class="menu-toggle" id="officerMenuToggle" aria-label="Menu" aria-expanded="false">☰</button>
   <nav id="officerMenu">
     <a href="{% url 'fulfillment_officer_dashboard' %}" {% if request.resolver_match.url_name == 'fulfillment_officer_dashboard' %}style="font-weight:600;color:#fff;"{% endif %}>Dashboard</a>
