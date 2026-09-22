@@ -798,18 +798,29 @@ def rider_available_orders(request):
     seller's usual rider is unavailable. First to claim it gets it;
     claim_delivery below handles the race safely with select_for_update.
     """
-    from .models import RiderDelivery
+    from decimal import Decimal
+    from .models import RiderDelivery, SiteSettings
 
     rider = request.rider
     my_regions = set(rider.branches.values_list('region', flat=True))
 
-    pool = (
+    pool = list(
         RiderDelivery.objects
         .filter(is_open_for_pickup=True, rider__isnull=True)
         .select_related('order', 'order__branch', 'seller')
         .filter(order__branch__region__in=my_regions)
         .order_by('opened_at')
     )
+
+    # Riders should only ever see their net payout, never the platform's
+    # commission cut -- mirrors the same gross/commission math used at
+    # payout time in wallet.py's credit_order_earnings().
+    site = SiteSettings.load()
+    rider_rate = site.rider_commission_percent / Decimal('100')
+    for delivery in pool:
+        gross = delivery.shipping_fee or Decimal('0')
+        commission = (gross * rider_rate).quantize(Decimal('0.01'))
+        delivery.net_fee = gross - commission
 
     return render(request, 'mall/rider/available_orders.html', {
         'pool': pool,
